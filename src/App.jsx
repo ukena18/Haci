@@ -877,13 +877,23 @@ function addDebt(customerId, amount, note) {
       />
 
       {/* CUSTOMER MODAL */}
-      <CustomerModal
-        open={custModalOpen}
-        onClose={() => setCustModalOpen(false)}
-        customers={state.customers}
-        editingCustomerId={editingCustId}
-        onSave={(cust) => upsertCustomer(cust)}
-      />
+    <CustomerModal
+  open={custModalOpen}
+  onClose={() => setCustModalOpen(false)}
+  customers={state.customers}
+  editingCustomerId={editingCustId}
+  onSave={(cust) => upsertCustomer(cust)}
+  onDeleteCustomer={() => {
+  setCustModalOpen(false); // close edit modal FIRST
+  setConfirm({
+    open: true,
+    type: "customer",
+    id: editingCustId,
+    message: "Bu müşteriyi ve tüm işlerini silmek istediğinize emin misiniz?",
+  });
+}}
+
+/>
 
       {/* CUSTOMER DETAIL / STATEMENT MODAL */}
       <CustomerDetailModal
@@ -896,9 +906,13 @@ function addDebt(customerId, amount, note) {
         onMakePayment={makePayment}
         onAddDebt={addDebt}
         onEditCustomer={() => {
-          setEditingCustId(selectedCustomerId);
-          setCustModalOpen(true);
-        }}
+  setCustDetailOpen(false);      // 🔴 CLOSE detail modal FIRST
+  setEditingCustId(selectedCustomerId);
+  setTimeout(() => {
+    setCustModalOpen(true);     // 🟢 OPEN edit modal AFTER
+  }, 0);
+}}
+
         onDeleteCustomer={() =>
           setConfirm({
             open: true,
@@ -1268,7 +1282,7 @@ function ConfirmModal({ open, message, onYes, onNo }) {
 /**
  * Customer add/edit modal
  */
-function CustomerModal({ open, onClose, customers, editingCustomerId, onSave }) {
+function CustomerModal({ open, onClose, customers, editingCustomerId, onSave, onDeleteCustomer }) {
   const editing = editingCustomerId
     ? customers.find((c) => c.id === editingCustomerId)
     : null;
@@ -1389,14 +1403,31 @@ function isValidPhone(phone) {
         />
       </div>
 
-      <div className="btn-row">
-        <button className="btn btn-cancel" onClick={onClose}>
-          İptal
-        </button>
-        <button className="btn btn-save" onClick={save}>
-          Kaydet
-        </button>
-      </div>
+     <div className="btn-row">
+  <button className="btn btn-cancel" onClick={onClose}>
+    İptal
+  </button>
+
+  <button className="btn btn-save" onClick={save}>
+    Kaydet
+  </button>
+</div>
+
+{editing && (
+  <div style={{ marginTop: 12 }}>
+    <button
+      className="btn btn-delete"
+      style={{ width: "100%" }}
+      onClick={() => {
+  onDeleteCustomer();
+  onClose();
+}}
+    >
+      Müşteriyi Sil
+    </button>
+  </div>
+)}
+
     </ModalBase>
   );
 }
@@ -1621,6 +1652,22 @@ function CustomerDetailModal({
 }) {
   const [paymentAmount, setPaymentAmount] = useState("");
 const [paymentNote, setPaymentNote] = useState("");
+const [fromDate, setFromDate] = useState("");
+const [toDate, setToDate] = useState("");
+function isInRange(dateStr) {
+  if (!dateStr) return false;
+
+  const d = new Date(dateStr);
+  const from = fromDate ? new Date(fromDate) : null;
+  const to = toDate ? new Date(toDate) : null;
+
+  if (from && d < from) return false;
+  if (to && d > to) return false;
+
+  return true;
+}
+
+
   const printRef = useRef(null);
 
 useEffect(() => {
@@ -1631,19 +1678,31 @@ useEffect(() => {
 
 
   const customerJobs = useMemo(() => {
-    if (!customer) return [];
-    return jobs
-      .filter((j) => j.customerId === customer.id)
-      .slice()
-      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-  }, [jobs, customer]);
-
- const customerPayments = useMemo(() => {
   if (!customer) return [];
+
+  return jobs
+    .filter((j) => j.customerId === customer.id)
+    .filter((j) => {
+      if (!fromDate && !toDate) return true;
+      return isInRange(j.date);
+    })
+    .slice()
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+}, [jobs, customer, fromDate, toDate]);
+
+
+const customerPayments = useMemo(() => {
+  if (!customer) return [];
+
   return (payments || [])
     .filter((p) => p.customerId === customer.id)
+    .filter((p) => {
+      if (!fromDate && !toDate) return true;
+      return isInRange(p.date);
+    })
     .sort((a, b) => b.createdAt - a.createdAt);
-}, [payments, customer]);
+}, [payments, customer, fromDate, toDate]);
+
 
 
 
@@ -1781,16 +1840,32 @@ useEffect(() => {
             <button className="btn btn-save" onClick={onEditCustomer}>
               Müşteri Düzenle
             </button>
-            <button className="btn btn-delete" onClick={onDeleteCustomer}>
-              Müşteriyi Sil
-            </button>
+             
           </div>
 
           <hr />
 
           {/* Jobs list for customer */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h4 style={{ margin: 0 }}>İş Geçmişi</h4>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+  <h4 style={{ margin: 0 }}>İş Geçmişi</h4>
+
+  <div style={{ display: "flex", gap: 6 }}>
+    <input
+      type="date"
+      value={fromDate}
+      onChange={(e) => setFromDate(e.target.value)}
+      style={{ fontSize: 12 }}
+    />
+    <input
+      type="date"
+      value={toDate}
+      onChange={(e) => setToDate(e.target.value)}
+      style={{ fontSize: 12 }}
+    />
+  </div>
+</div>
+
             <button className="btn btn-save" onClick={onAddJob}>
               + İş Ekle
             </button>
