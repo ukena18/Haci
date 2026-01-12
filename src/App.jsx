@@ -204,6 +204,10 @@ function MainApp({ state, setState }) {
   const [custModalOpen, setCustModalOpen] = useState(false);
   const [custDetailOpen, setCustDetailOpen] = useState(false);
 
+  // STEP 2: folder open / close state
+  const [activeOpen, setActiveOpen] = useState(true);
+  const [completedOpen, setCompletedOpen] = useState(false);
+
   // Editing entities
   const [editingJobId, setEditingJobId] = useState(null);
   const [editingCustId, setEditingCustId] = useState(null);
@@ -234,6 +238,9 @@ function MainApp({ state, setState }) {
     const q = search.trim().toLowerCase();
     if (!q) return state.jobs;
 
+  
+
+
     return state.jobs.filter((j) => {
       const c = customersById.get(j.customerId);
       const text = `${c?.name || ""} ${c?.surname || ""} ${j.date || ""} ${
@@ -242,7 +249,11 @@ function MainApp({ state, setState }) {
       return text.includes(q);
     });
   }, [search, state.jobs, customersById]);
+  
 
+
+  const activeJobs = filteredJobs.filter(j => !j.isCompleted);
+  const completedJobs = filteredJobs.filter(j => j.isCompleted);
   /**
    * Customers filtering by search (Customers tab)
    */
@@ -306,38 +317,74 @@ function MainApp({ state, setState }) {
    * - Increase cash register balance
    */
   function makePayment(customerId, amount) {
-    const amt = toNum(amount);
-    if (amt <= 0) return;
+  const amt = toNum(amount);
+  if (amt <= 0) return;
 
-    setState((s) => {
-      const nextCustomers = s.customers.map((c) => {
-        if (c.id !== customerId) return c;
-        const owed = toNum(c.balanceOwed);
-        return { ...c, balanceOwed: Math.max(0, owed - amt) };
-      });
+  const now = new Date();
 
-      return {
-        ...s,
-        customers: nextCustomers,
-        kasaBalance: toNum(s.kasaBalance) + amt,
-      };
-    });
-  }
+  setState((s) => {
+    // 1️⃣ reduce customer debt
+    const nextCustomers = s.customers.map((c) =>
+      c.id === customerId
+        ? { ...c, balanceOwed: Math.max(0, toNum(c.balanceOwed) - amt) }
+        : c
+    );
+
+    // 2️⃣ create tahsilat history entry
+    const paymentJob = {
+      id: uid(),
+      customerId,
+      type: "payment", // 👈 IMPORTANT
+      date: now.toISOString().slice(0, 10),
+      amount: amt,
+      createdAt: Date.now(),
+      isCompleted: true,
+    };
+
+    return {
+      ...s,
+      customers: nextCustomers,
+      jobs: [...s.jobs, paymentJob],
+      kasaBalance: toNum(s.kasaBalance) + amt,
+    };
+  });
+}
+
 
   /** Add debt to a customer (does NOT affect cash) */
-  function addDebt(customerId, amount) {
-    const amt = toNum(amount);
-    if (amt <= 0) return;
+function addDebt(customerId, amount) {
+  const amt = toNum(amount);
+  if (amt <= 0) return;
 
-    setState((s) => {
-      const nextCustomers = s.customers.map((c) => {
-        if (c.id !== customerId) return c;
-        return { ...c, balanceOwed: toNum(c.balanceOwed) + amt };
-      });
+  const now = new Date();
 
-      return { ...s, customers: nextCustomers };
-    });
-  }
+  setState((s) => {
+    // 1️⃣ add debt to customer balance
+    const nextCustomers = s.customers.map((c) =>
+      c.id === customerId
+        ? { ...c, balanceOwed: toNum(c.balanceOwed) + amt }
+        : c
+    );
+
+    // 2️⃣ add a "debt job" to history
+    const debtJob = {
+      id: uid(),
+      customerId,
+      type: "debt", // 👈 IMPORTANT
+      date: now.toISOString().slice(0, 10),
+      amount: amt,
+      createdAt: Date.now(),
+      isCompleted: true,
+    };
+
+    return {
+      ...s,
+      customers: nextCustomers,
+      jobs: [...s.jobs, debtJob],
+    };
+  });
+}
+
 
   /**
    * Mark job as completed:
@@ -489,197 +536,80 @@ function MainApp({ state, setState }) {
         {page === "home" && (
           <div id="page-home">
             <div id="job-list">
-              {filteredJobs.length === 0 ? (
-                <div className="card">Henüz iş yok.</div>
-              ) : (
-                filteredJobs
-                  .slice()
-                  .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
-                  .map((job) => {
-                    const c = customersById.get(job.customerId);
+              {/* ACTIVE JOBS FOLDER */}
+<div className="card">
+  <div
+    className="list-item"
+    style={{ cursor: "pointer" }}
+    onClick={() => setActiveOpen(o => !o)}
+  >
+    <strong>🟢 Aktif İşler ({activeJobs.length})</strong>
+    <span>{activeOpen ? "▾" : "▸"}</span>
+  </div>
+</div>
 
-                    // Live hours if running; otherwise manual hours
-                    const liveMs =
-                      job.isRunning && job.clockInAt ? Date.now() - job.clockInAt : 0;
+{activeOpen && (
+  activeJobs.length === 0 ? (
+    <div className="card">Aktif iş yok.</div>
+  ) : (
+    activeJobs
+      .slice()
+      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+      .map(job => (
+        /* TEMP — job card stays same for now */
+        <JobCard
+  key={job.id}
+  job={job}
+  customersById={customersById}
+  toggleJobOpen={toggleJobOpen}
+  clockIn={clockIn}
+  clockOut={clockOut}
+  setEditingJobId={setEditingJobId}
+  setJobModalOpen={setJobModalOpen}
+  setConfirm={setConfirm}
+  markJobComplete={markJobComplete}
+/>
 
-                    const hours = job.isRunning
-                      ? liveMs / 36e5
-                      : calcHours(job.start, job.end);
+      ))
+  )
+)}
 
-                    const partsTotal = (job.parts || []).reduce(
-                      (sum, p) => sum + toNum(p.price),
-                      0
-                    );
+{/* COMPLETED JOBS FOLDER */}
+<div className="card" style={{ marginTop: 10 }}>
+  <div
+    className="list-item"
+    style={{ cursor: "pointer" }}
+    onClick={() => setCompletedOpen(o => !o)}
+  >
+    <strong>✅ Tamamlanan İşler ({completedJobs.length})</strong>
+    <span>{completedOpen ? "▾" : "▸"}</span>
+  </div>
+</div>
 
-                    const laborTotal = hours * toNum(job.rate);
-                    const total = laborTotal + partsTotal;
+{completedOpen && (
+  completedJobs.length === 0 ? (
+    <div className="card">Tamamlanan iş yok.</div>
+  ) : (
+    completedJobs
+      .slice()
+      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+      .map(job => (
+         <JobCard
+  key={job.id}
+  job={job}
+  customersById={customersById}
+  toggleJobOpen={toggleJobOpen}
+  clockIn={clockIn}
+  clockOut={clockOut}
+  setEditingJobId={setEditingJobId}
+  setJobModalOpen={setJobModalOpen}
+  setConfirm={setConfirm}
+  markJobComplete={markJobComplete}
+/>
+      ))
+  )
+)}
 
-                    return (
-                      <div key={job.id} className="card">
-                        {/* Folder header row */}
-                        <div className="list-item" style={{ gap: 10 }}>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                              <button
-                                className="iconLike"
-                                title="Klasörü aç/kapat"
-                                onClick={() => toggleJobOpen(job.id)}
-                              >
-                                {job.isOpen ? "▾" : "▸"}
-                              </button>
-
-                              <strong>
-                                {c ? `${c.name} ${c.surname}` : "Bilinmeyen"}
-                              </strong>
-
-                              {job.isRunning && <span className="badge">Çalışıyor</span>}
-                              {job.isCompleted && (
-                                <span className="badge" style={{ background: "#dcfce7", color: "#166534" }}>
-                                  Tamamlandı
-                                </span>
-                              )}
-                            </div>
-
-                            {/* Sub info */}
-                            <div style={{ marginTop: 6, fontSize: 13, color: "#555" }}>
-                              {job.isRunning ? (
-                                <>
-                                  ⏱ Süre:{" "}
-                                  <strong style={{ color: "#111" }}>
-                                    {formatTimer(liveMs)}
-                                  </strong>
-                                </>
-                              ) : (
-                                <>
-                                  <span>{job.date || "Tarih yok"}</span> |{" "}
-                                  <span>
-                                    {job.start || "--:--"} - {job.end || "--:--"}
-                                  </span>{" "}
-                                  | <span>{hours.toFixed(2)} saat</span>
-                                </>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Right side: total + actions */}
-                          <div style={{ textAlign: "right" }}>
-                            <strong style={{ color: "var(--primary)" }}>
-                              {moneyTRY(total)}
-                            </strong>
-
-                            <div style={{ marginTop: 8, display: "flex", gap: 6, justifyContent: "flex-end", flexWrap: "wrap" }}>
-                              {/* Clock in/out */}
-                              {job.isRunning ? (
-                                <button
-                                  className="btn btn-delete"
-                                  onClick={() => clockOut(job.id)}
-                                >
-                                  Clock Out
-                                </button>
-                              ) : (
-                                <button
-                                  className="btn btn-save"
-                                  onClick={() => clockIn(job.id)}
-                                  disabled={job.isCompleted}
-                                  title={job.isCompleted ? "Tamamlanan işte clock kapalı" : "Clock In"}
-                                >
-                                  Clock In
-                                </button>
-                              )}
-
-                              {/* Edit */}
-                              <button
-                                className="btn"
-                                style={{ background: "#eee", color: "#333" }}
-                                onClick={() => {
-                                  setEditingJobId(job.id);
-                                  setJobModalOpen(true);
-                                }}
-                              >
-                                Düzenle
-                              </button>
-
-                              {/* Delete (confirmation modal) */}
-                              <button
-                                className="btn btn-delete"
-                                onClick={() =>
-                                  setConfirm({
-                                    open: true,
-                                    type: "job",
-                                    id: job.id,
-                                    message: "Are you sure you want to delete this?",
-                                  })
-                                }
-                              >
-                                Sil
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Folder content (expanded) */}
-                        {job.isOpen && (
-                          <div style={{ marginTop: 12 }}>
-                            <div style={{ display: "grid", gap: 8 }}>
-                              <div className="miniRow">
-                                <span>Saatlik Ücret:</span>
-                                <strong>{moneyTRY(job.rate)}</strong>
-                              </div>
-                              <div className="miniRow">
-                                <span>İşçilik:</span>
-                                <strong>{moneyTRY(laborTotal)}</strong>
-                              </div>
-                              <div className="miniRow">
-                                <span>Parçalar:</span>
-                                <strong>{moneyTRY(partsTotal)}</strong>
-                              </div>
-
-                              {job.parts?.length ? (
-                                <div style={{ marginTop: 8 }}>
-                                  <div style={{ fontWeight: 700, marginBottom: 6 }}>
-                                    Kullanılan Parçalar
-                                  </div>
-                                  {job.parts.map((p) => (
-                                    <div key={p.id} className="partLine">
-                                      <span>{p.name || "Parça"}</span>
-                                      <span>{moneyTRY(p.price)}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : (
-                                <div style={{ color: "#666", fontSize: 13 }}>
-                                  Parça yok.
-                                </div>
-                              )}
-
-                              {job.notes ? (
-                                <div style={{ marginTop: 8, color: "#333" }}>
-                                  <strong>Not:</strong> {job.notes}
-                                </div>
-                              ) : null}
-
-                              {/* Mark complete */}
-                              <div style={{ marginTop: 10, display: "flex", justifyContent: "flex-end" }}>
-                                <button
-                                  className="btn btn-save"
-                                  disabled={job.isCompleted}
-                                  onClick={() => markJobComplete(job.id)}
-                                  title={
-                                    job.isCompleted
-                                      ? "Bu iş zaten tamamlandı."
-                                      : "İşi tamamla ve müşteri borcuna ekle"
-                                  }
-                                >
-                                  İş Tamamla (Borç Ekle)
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })
-              )}
             </div>
           </div>
         )}
@@ -859,6 +789,207 @@ function MainApp({ state, setState }) {
     </>
   );
 }
+
+
+function JobCard({
+  job,
+  customersById,
+  toggleJobOpen,
+  clockIn,
+  clockOut,
+  setEditingJobId,
+  setJobModalOpen,
+  setConfirm,
+  markJobComplete,
+}) {
+  const c = customersById.get(job.customerId);
+
+  const liveMs =
+    job.isRunning && job.clockInAt ? Date.now() - job.clockInAt : 0;
+
+  const hours = job.isRunning
+    ? liveMs / 36e5
+    : calcHours(job.start, job.end);
+
+  const partsTotal = (job.parts || []).reduce(
+    (sum, p) => sum + toNum(p.price),
+    0
+  );
+
+  const laborTotal = hours * toNum(job.rate);
+  const total = laborTotal + partsTotal;
+
+  return (
+    <div className="card">
+      {/* Folder header row */}
+      <div className="list-item" style={{ gap: 10 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <button
+              className="iconLike"
+              title="Klasörü aç/kapat"
+              onClick={() => toggleJobOpen(job.id)}
+            >
+              {job.isOpen ? "▾" : "▸"}
+            </button>
+
+            <strong>
+              {c ? `${c.name} ${c.surname}` : "Bilinmeyen"}
+            </strong>
+
+            {job.isRunning && <span className="badge">Çalışıyor</span>}
+            {job.isCompleted && (
+              <span
+                className="badge"
+                style={{ background: "#dcfce7", color: "#166534" }}
+              >
+                Tamamlandı
+              </span>
+            )}
+          </div>
+
+          <div style={{ marginTop: 6, fontSize: 13, color: "#555" }}>
+            {job.isRunning ? (
+              <>
+                ⏱ Süre:{" "}
+                <strong style={{ color: "#111" }}>
+                  {formatTimer(liveMs)}
+                </strong>
+              </>
+            ) : (
+              <>
+                <span>{job.date || "Tarih yok"}</span> |{" "}
+                <span>
+                  {job.start || "--:--"} - {job.end || "--:--"}
+                </span>{" "}
+                | <span>{hours.toFixed(2)} saat</span>
+              </>
+            )}
+          </div>
+        </div>
+
+        <div style={{ textAlign: "right" }}>
+          <strong style={{ color: "var(--primary)" }}>
+            {moneyTRY(total)}
+          </strong>
+
+          <div
+            style={{
+              marginTop: 8,
+              display: "flex",
+              gap: 6,
+              justifyContent: "flex-end",
+              flexWrap: "wrap",
+            }}
+          >
+            {job.isRunning ? (
+              <button
+                className="btn btn-delete"
+                onClick={() => clockOut(job.id)}
+              >
+                Clock Out
+              </button>
+            ) : (
+              <button
+                className="btn btn-save"
+                onClick={() => clockIn(job.id)}
+                disabled={job.isCompleted}
+              >
+                Clock In
+              </button>
+            )}
+
+            <button
+              className="btn"
+              style={{ background: "#eee", color: "#333" }}
+              onClick={() => {
+                setEditingJobId(job.id);
+                setJobModalOpen(true);
+              }}
+            >
+              Düzenle
+            </button>
+
+            <button
+              className="btn btn-delete"
+              onClick={() =>
+                setConfirm({
+                  open: true,
+                  type: "job",
+                  id: job.id,
+                  message: "Are you sure you want to delete this?",
+                })
+              }
+            >
+              Sil
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {job.isOpen && (
+        <div style={{ marginTop: 12 }}>
+          <div style={{ display: "grid", gap: 8 }}>
+            <div className="miniRow">
+              <span>Saatlik Ücret:</span>
+              <strong>{moneyTRY(job.rate)}</strong>
+            </div>
+            <div className="miniRow">
+              <span>İşçilik:</span>
+              <strong>{moneyTRY(laborTotal)}</strong>
+            </div>
+            <div className="miniRow">
+              <span>Parçalar:</span>
+              <strong>{moneyTRY(partsTotal)}</strong>
+            </div>
+
+            {job.parts?.length ? (
+              <div style={{ marginTop: 8 }}>
+                <div style={{ fontWeight: 700, marginBottom: 6 }}>
+                  Kullanılan Parçalar
+                </div>
+                {job.parts.map((p) => (
+                  <div key={p.id} className="partLine">
+                    <span>{p.name || "Parça"}</span>
+                    <span>{moneyTRY(p.price)}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ color: "#666", fontSize: 13 }}>
+                Parça yok.
+              </div>
+            )}
+
+            {job.notes && (
+              <div style={{ marginTop: 8, color: "#333" }}>
+                <strong>Not:</strong> {job.notes}
+              </div>
+            )}
+
+            <div
+              style={{
+                marginTop: 10,
+                display: "flex",
+                justifyContent: "flex-end",
+              }}
+            >
+              <button
+                className="btn btn-save"
+                disabled={job.isCompleted}
+                onClick={() => markJobComplete(job.id)}
+              >
+                İş Tamamla (Borç Ekle)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 
 /* ============================================================
    6) CUSTOMER SHARE PAGE (Read-only)
@@ -1383,6 +1514,7 @@ function CustomerDetailModal({
           <hr />
 
           {/* Payment / debt */}
+          {/* i basically add another button and havent changed payment amonut for debt button */}
           <div className="btn-row">
             <div style={{ flex: 1 }}>
               <label>Tutar (₺)</label>
@@ -1465,46 +1597,81 @@ function CustomerDetailModal({
               <div className="card">Bu müşteriye ait iş yok.</div>
             ) : (
               customerJobs.map((j) => {
-                const hours = calcHours(j.start, j.end);
-                const partsTotal = (j.parts || []).reduce(
-                  (sum, p) => sum + toNum(p.price),
-                  0
-                );
-                const total = hours * toNum(j.rate) + partsTotal;
+  // 🔴 DEBT ENTRY
+  if (j.type === "debt") {
+    return (
+      <div
+        key={j.id}
+        className="card list-item"
+        style={{
+          background: "#fee2e2",
+          borderLeft: "6px solid #dc2626",
+        }}
+      >
+        <div>
+          <strong>Borç Eklendi</strong>
+          <br />
+          <small>{j.date}</small>
+        </div>
+        <div style={{ color: "#dc2626", fontWeight: 700 }}>
+          +{moneyTRY(j.amount)}
+        </div>
+      </div>
+    );
+  }
+  // 🟢 PAYMENT ENTRY (TAHSİLAT)
+if (j.type === "payment") {
+  return (
+    <div
+      key={j.id}
+      className="card list-item"
+      style={{
+        background: "#dcfce7",
+        borderLeft: "6px solid #16a34a",
+      }}
+    >
+      <div>
+        <strong>Tahsilat Alındı</strong>
+        <br />
+        <small>{j.date}</small>
+      </div>
+      <div style={{ color: "#16a34a", fontWeight: 700 }}>
+        −{moneyTRY(j.amount)}
+      </div>
+    </div>
+  );
+}
+  // 🟢 NORMAL JOB (existing logic)
+  const hours = calcHours(j.start, j.end);
+  const partsTotal = (j.parts || []).reduce(
+    (sum, p) => sum + toNum(p.price),
+    0
+  );
+  const total = hours * toNum(j.rate) + partsTotal;
 
-                return (
-                  <div key={j.id} className="card list-item">
-                    <div>
-                      <strong>{j.date}</strong>
-                      <br />
-                      <small>
-                        {j.start || "--:--"}-{j.end || "--:--"} | {hours.toFixed(2)} saat
-                      </small>
-                      <br />
-                      <small style={{ color: "#666" }}>
-                        Durum:{" "}
-                        {j.isCompleted ? (
-                          <b style={{ color: "var(--success)" }}>Tamamlandı</b>
-                        ) : (
-                          <b style={{ color: "#333" }}>Açık</b>
-                        )}
-                      </small>
-                    </div>
-                    <div style={{ textAlign: "right" }}>
-                      <strong style={{ color: "var(--primary)" }}>{moneyTRY(total)}</strong>
-                      <div style={{ marginTop: 8 }}>
-                        <button
-                          className="btn"
-                          style={{ background: "#eee", color: "#333" }}
-                          onClick={() => onEditJob(j.id)}
-                        >
-                          Düzenle
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
+  return (
+    <div key={j.id} className="card list-item">
+      <div>
+        <strong>{j.date}</strong>
+        <br />
+        <small>
+          {j.start || "--:--"}-{j.end || "--:--"} | {hours.toFixed(2)} saat
+        </small>
+        <br />
+        <small style={{ color: "#666" }}>
+          Durum:{" "}
+          <b style={{ color: "var(--success)" }}>Tamamlandı</b>
+        </small>
+      </div>
+      <div style={{ textAlign: "right" }}>
+        <strong style={{ color: "var(--primary)" }}>
+          {moneyTRY(total)}
+        </strong>
+      </div>
+    </div>
+  );
+})
+
             )}
           </div>
 
@@ -1534,25 +1701,51 @@ function CustomerDetailModal({
                   </tr>
                 </thead>
                 <tbody>
-                  {customerJobs.map((j) => {
-                    const hours = calcHours(j.start, j.end);
-                    const partsTotal = (j.parts || []).reduce(
-                      (sum, p) => sum + toNum(p.price),
-                      0
-                    );
-                    const total = hours * toNum(j.rate) + partsTotal;
+  {customerJobs.map((j) => {
+    // 🔴 BORÇ
+    if (j.type === "debt") {
+      return (
+        <tr key={j.id}>
+          <td>{j.date}</td>
+          <td colSpan="2">Borçlandırma</td>
+          <td>{moneyTRY(j.amount)}</td>
+          <td>Borç</td>
+        </tr>
+      );
+    }
 
-                    return (
-                      <tr key={j.id}>
-                        <td>{j.date}</td>
-                        <td>{j.start || "--:--"}</td>
-                        <td>{j.end || "--:--"}</td>
-                        <td>{moneyTRY(total)}</td>
-                        <td>{j.isCompleted ? "Tamamlandı" : "Açık"}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
+    // 🟢 TAHSİLAT
+    if (j.type === "payment") {
+      return (
+        <tr key={j.id}>
+          <td>{j.date}</td>
+          <td colSpan="2">Tahsilat</td>
+          <td>−{moneyTRY(j.amount)}</td>
+          <td>Tahsilat</td>
+        </tr>
+      );
+    }
+
+    // ⚙️ NORMAL JOB
+    const hours = calcHours(j.start, j.end);
+    const partsTotal = (j.parts || []).reduce(
+      (sum, p) => sum + toNum(p.price),
+      0
+    );
+    const total = hours * toNum(j.rate) + partsTotal;
+
+    return (
+      <tr key={j.id}>
+        <td>{j.date}</td>
+        <td>{j.start || "--:--"}</td>
+        <td>{j.end || "--:--"}</td>
+        <td>{moneyTRY(total)}</td>
+        <td>{j.isCompleted ? "Tamamlandı" : "Açık"}</td>
+      </tr>
+    );
+  })}
+</tbody>
+
               </table>
             </div>
           </div>
@@ -1766,3 +1959,7 @@ input, select, textarea {
  * - We can also add “Prevent clock in if another is running” as a warning
  *   instead of auto-stopping the previous job.
  */
+
+
+
+
