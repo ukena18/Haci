@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import "./App.css"
+
 import { onAuthStateChanged, signOut  } from "firebase/auth";
 import { ensureUserData, loadUserData, saveUserData  } from "./firestoreService";
 
@@ -58,10 +60,30 @@ function daysBetween(a, b) {
   return Math.floor((b - a) / ms);
 }
 
+
+function getJobStartDate(job) {
+  // If user manually selected a date, use it (YYYY-MM-DD)
+  if (job.date) {
+    return new Date(job.date + "T00:00:00");
+  }
+
+  // Fallback to createdAt (old behavior)
+  if (job.createdAt) {
+    return new Date(job.createdAt);
+  }
+
+  return null;
+}
+
+
 /** Pad to 2 digits (ex: 4 => "04") */
 function pad2(n) {
   return String(n).padStart(2, "0");
 }
+
+
+
+
 
 /**
  * Customer ID requirement:
@@ -86,10 +108,20 @@ function uid() {
 }
 
 /** Format money as TRY (₺) */
-function moneyTRY(v) {
+function money(v, currency = "TRY") {
   const n = Number(v || 0);
-  return `${n.toFixed(2)} ₺`;
+
+  const symbols = {
+    TRY: "₺",
+    USD: "$",
+    EUR: "€",
+  };
+
+  const symbol = symbols[currency] || "₺";
+
+  return `${n.toFixed(2)} ${symbol}`;
 }
+
 
 /** Safe number conversion */
 function toNum(v) {
@@ -136,7 +168,7 @@ function makeEmptyCustomer() {
 function makeEmptyJob(customers) {
   return {
     id: uid(),
-    customerId: customers?.[0]?.id || "",
+    customerId: "", // ✅ no default customer
     date: new Date().toISOString().slice(0, 10), // yyyy-mm-dd
     start: "",
     end: "",
@@ -184,7 +216,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AppRoutes user={user} />
-      <style>{css}</style>
+       
     </BrowserRouter>
   );
 }
@@ -201,7 +233,28 @@ function AppRoutes({ user }) {
     async function init() {
       await ensureUserData(user.uid);
       const data = await loadUserData(user.uid);
-      setState(data);
+      // ✅ MIGRATION: support old users that still have kasaName/kasaBalance
+const fixed = { ...data };
+if (!fixed.currency) {
+  fixed.currency = "TRY"; // default
+}
+
+if (!fixed.kasalar || !Array.isArray(fixed.kasalar)) {
+  const legacyName = fixed.kasaName || "Ana Kasa";
+  const legacyBal = Number(fixed.kasaBalance || 0);
+
+  fixed.kasalar = [
+    { id: "kasa_ana", name: legacyName, balance: legacyBal, createdAt: Date.now() }
+  ];
+  fixed.activeKasaId = "kasa_ana";
+}
+
+// optional: remove old fields if you want (not required)
+// delete fixed.kasaName;
+// delete fixed.kasaBalance;
+
+setState(fixed);
+       
       setLoading(false);
       setHydrated(true);
     }
@@ -246,10 +299,20 @@ function MainApp({ state, setState }) {
   const [page, setPage] = useState("home"); // home | customers | settings
   const [search, setSearch] = useState("");
 
+
+  const currency = state.currency || "TRY";
+
+ const activeKasa = useMemo(() => {
+    return (state?.kasalar || []).find((k) => k.id === state?.activeKasaId) || null;
+  }, [state?.kasalar, state?.activeKasaId]);
   // Modals
   const [jobModalOpen, setJobModalOpen] = useState(false);
   const [custModalOpen, setCustModalOpen] = useState(false);
   const [custDetailOpen, setCustDetailOpen] = useState(false);
+
+  const [editingKasaId, setEditingKasaId] = useState(null);
+const [editingKasaName, setEditingKasaName] = useState("");
+
 
   // STEP 2: folder open / close state
   const [activeOpen, setActiveOpen] = useState(true);
@@ -307,24 +370,22 @@ const [paymentOpen, setPaymentOpen] = useState(true);
   const completedJobs = filteredJobs.filter(j => j.isCompleted);
 
 
-  // 🔔 30-day payment tracking (active jobs only)
+// 🔔 30-day payment tracking (active jobs only)
 const paymentWatchList = activeJobs
   .map((job) => {
-    if (!job.createdAt) return null;
+    const startDate = getJobStartDate(job);
+    if (!startDate) return null;
 
-    const created = new Date(job.createdAt);
     const now = new Date();
 
-    const daysPassed = daysBetween(created, now);
+    const daysPassed = daysBetween(startDate, now);
     const daysLeft = 30 - daysPassed;
 
-    return {
-      job,
-      daysLeft,
-    };
+    return { job, daysLeft };
   })
   .filter(Boolean)
-  .sort((a, b) => a.daysLeft - b.daysLeft); // closest first
+  .sort((a, b) => a.daysLeft - b.daysLeft);
+
 
 
 
@@ -390,50 +451,62 @@ const paymentWatchList = activeJobs
    * - Reduce customer's balance owed
    * - Increase cash register balance
    */
-function makePayment(customerId, amount, note) {
+function makePayment(customerId, amount, note, kasaId, method) {
   const amt = toNum(amount);
   if (amt <= 0) return;
 
   setState((s) => {
-    const payment = {
-      id: uid(),
-      customerId,
-      type: "payment",
-      amount: amt,
-      note: note || "Tahsilat",
-      date: new Date().toISOString().slice(0, 10),
-      createdAt: Date.now(),
-    };
+   const payment = {
+  id: uid(),
+  customerId,
+  kasaId: kasaId || s.activeKasaId,
+  type: "payment",
+  amount: amt,
+  method, // ✅ NEW
+  note: note || "Tahsilat",
+  date: new Date().toISOString().slice(0, 10),
+  createdAt: Date.now(),
+};
 
-    return {
-      ...s,
-      kasaBalance: toNum(s.kasaBalance) + amt,
-      customers: s.customers.map((c) =>
-        c.id === customerId
-          ? { ...c, balanceOwed: Math.max(0, toNum(c.balanceOwed) - amt) }
-          : c
-      ),
-      payments: [...(s.payments || []), payment],
-    };
+
+
+return {
+  ...s,
+  kasalar: s.kasalar.map((k) =>
+    k.id === s.activeKasaId
+      ? { ...k, balance: toNum(k.balance) + amt }
+      : k
+  ),
+  customers: s.customers.map((c) =>
+    c.id === customerId
+      ? { ...c, balanceOwed: toNum(c.balanceOwed) - amt } //allow negatives
+      : c
+  ),
+  payments: [...(s.payments || []), payment],
+};
+
   });
 }
 
 
   /** Add debt to a customer (does NOT affect cash) */
-function addDebt(customerId, amount, note) {
+function addDebt(customerId, amount, note, kasaId, method) {
+ 
   const amt = toNum(amount);
   if (amt <= 0) return;
 
   setState((s) => {
-    const debt = {
-      id: uid(),
-      customerId,
-      type: "debt",
-      amount: amt,
-      note: note || "Borç",
-      date: new Date().toISOString().slice(0, 10),
-      createdAt: Date.now(),
-    };
+const debt = {
+  id: uid(),
+  customerId,
+  kasaId: kasaId || s.activeKasaId,
+  type: "debt",
+  amount: amt,
+  method, // ✅ SAVE METHOD
+  note: note || "Borç",
+  date: new Date().toISOString().slice(0, 10),
+  createdAt: Date.now(),
+};
 
     return {
       ...s,
@@ -582,7 +655,8 @@ function addDebt(customerId, amount, note) {
   <div className="header-left">
     <h2 id="page-title" className="header-title">{headerTitle}</h2>
     <div id="kasa-ozet" className="header-sub">
-      Kasa: <strong id="main-kasa-val">{moneyTRY(state.kasaBalance)}</strong>
+      Kasa ({activeKasa?.name || "—"}):<strong id="main-kasa-val">{money(activeKasa?.balance || 0, currency)}</strong>
+      
     </div>
   </div>
 
@@ -662,14 +736,13 @@ function addDebt(customerId, amount, note) {
           </div>
 
           <div style={{ fontWeight: 700 }}>
-            {moneyTRY(
-              calcHours(job.start, job.end) * toNum(job.rate) +
-                (job.parts || []).reduce(
-                  (s, p) => s + toNum(p.price),
-                  0
-                )
-            )}
-          </div>
+  {money(
+    calcHours(job.start, job.end) * toNum(job.rate) +
+      (job.parts || []).reduce((s, p) => s + toNum(p.price), 0),
+    currency
+  )}
+</div>
+
         </div>
       );
     })
@@ -710,6 +783,7 @@ function addDebt(customerId, amount, note) {
   setJobModalOpen={setJobModalOpen}
   setConfirm={setConfirm}
   markJobComplete={markJobComplete}
+   currency={currency}   // ✅ ADD THIS
 />
 
       ))
@@ -747,6 +821,7 @@ function addDebt(customerId, amount, note) {
   setJobModalOpen={setJobModalOpen}
   setConfirm={setConfirm}
   markJobComplete={markJobComplete}
+   currency={currency}   // ✅ ADD THIS
 />
       ))
   )
@@ -788,7 +863,7 @@ function addDebt(customerId, amount, note) {
                           ID: <span style={{ fontFamily: "monospace" }}>{c.id}</span>
                         </div>
                         <div style={{ marginTop: 4, fontSize: 12, color: "#666" }}>
-                          Borç: <strong>{moneyTRY(c.balanceOwed)}</strong>
+                          Borç: <strong>{money(c.balanceOwed, currency)}</strong>
                         </div>
                       </div>
                       <div style={{ color: "#999" }}>›</div>
@@ -800,40 +875,153 @@ function addDebt(customerId, amount, note) {
         )}
 
         {/* SETTINGS PAGE */}
-        {page === "settings" && (
-          <div id="page-settings">
-            <div className="card">
-              <h3>Kasa Yönetimi</h3>
-              <div className="form-group">
-                <label>Kasa Adı (Örn: Recep Kasası)</label>
-                <input
-                  type="text"
-                  value={state.kasaName}
-                  onChange={(e) =>
-                    setState((s) => ({ ...s, kasaName: e.target.value }))
-                  }
-                  placeholder="Kasa adını girin"
-                />
-              </div>
+{page === "settings" && (
+  <div id="page-settings">
+    <div className="card">
+      <h3>Kasa Yönetimi</h3>
+{/* CURRENCY SELECT */}
+<div className="card" style={{ marginBottom: 12 }}>
+  <label>Para Birimi</label>
 
-              <div className="form-group">
-                <label>Kasa Başlangıç / Düzeltme Bakiye</label>
-                <input
-                  type="number"
-                  value={state.kasaBalance}
-                  onChange={(e) =>
-                    setState((s) => ({ ...s, kasaBalance: toNum(e.target.value) }))
-                  }
-                />
-              </div>
+  <select
+    value={state.currency || "TRY"}
+    onChange={(e) =>
+      setState((s) => ({
+        ...s,
+        currency: e.target.value,
+      }))
+    }
+  >
+    <option value="TRY">₺ Türk Lirası</option>
+    <option value="USD">$ US Dollar</option>
+    <option value="EUR">€ Euro</option>
+  </select>
+</div>
 
-              <p>
-                Mevcut Bakiye:{" "}
-                <strong id="settings-kasa-val">{moneyTRY(state.kasaBalance)}</strong>
-              </p>
+      {/* KASA LIST */}
+      {state.kasalar.map((kasa) => {
+        const isActive = kasa.id === state.activeKasaId;
+
+        return (
+          <div
+            key={kasa.id}
+            className="card list-item"
+            style={{
+              borderLeft: isActive
+                ? "6px solid #2563eb"
+                : "6px solid transparent",
+              background: isActive ? "#eff6ff" : "white",
+            }}
+          >
+            <div>
+              {editingKasaId === kasa.id ? (
+  <input
+    value={editingKasaName}
+    autoFocus
+    onChange={(e) => setEditingKasaName(e.target.value)}
+    onBlur={() => {
+      if (!editingKasaName.trim()) {
+        setEditingKasaId(null);
+        return;
+      }
+
+      setState((s) => ({
+        ...s,
+        kasalar: s.kasalar.map((k) =>
+          k.id === kasa.id ? { ...k, name: editingKasaName.trim() } : k
+        ),
+      }));
+      setEditingKasaId(null);
+    }}
+    onKeyDown={(e) => {
+      if (e.key === "Enter") e.target.blur();
+      if (e.key === "Escape") setEditingKasaId(null);
+    }}
+    style={{
+      fontSize: 14,
+      padding: "4px 6px",
+      width: "100%",
+    }}
+  />
+) : (
+  <strong
+    style={{ cursor: "pointer" }}
+    title="Kasa adını düzenle"
+    onClick={() => {
+      setEditingKasaId(kasa.id);
+      setEditingKasaName(kasa.name);
+    }}
+  >
+    {kasa.name}
+  </strong>
+)}
+
+              <div style={{ fontSize: 13, color: "#555" }}>
+                Bakiye: {money(kasa.balance, currency)}
+              </div>
             </div>
+
+            {isActive ? (
+             <div className="kasa-active-badge">
+    AKTİF
+  </div>
+
+            ) : (
+              <button
+                className="btn btn-save kasa-select-btn"
+                style={{
+    padding: "6px 12px",
+    fontSize: 12,
+    width: "auto",
+    flexShrink: 0,
+    minWidth: 70,
+  }}
+                onClick={() =>
+                  setState((s) => ({
+                    ...s,
+                    activeKasaId: kasa.id,
+                  }))
+                }
+              >
+                Seç
+              </button>
+            )}
           </div>
-        )}
+        );
+      })}
+
+      {/* ADD NEW KASA */}
+      <button
+        className="btn"
+        style={{
+          marginTop: 12,
+          background: "#eee",
+          color: "#333",
+        }}
+        onClick={() => {
+          const id = uid();
+
+          setState((s) => ({
+            ...s,
+            kasalar: [
+              ...(s.kasalar || []),
+              {
+                id,
+                name: `Yeni Kasa ${s.kasalar.length + 1}`,
+                balance: 0,
+                createdAt: Date.now(),
+              },
+            ],
+            activeKasaId: id,
+          }));
+        }}
+      >
+        + Yeni Kasa Ekle
+      </button>
+    </div>
+  </div>
+)}
+
       </div>
 
       {/* Floating Action Button */}
@@ -874,6 +1062,7 @@ function addDebt(customerId, amount, note) {
         jobs={state.jobs}
         editingJobId={editingJobId}
         onSave={(job) => upsertJob(job)}
+         currency={currency}   // ✅ ADD THIS
       />
 
       {/* CUSTOMER MODAL */}
@@ -898,13 +1087,17 @@ function addDebt(customerId, amount, note) {
       {/* CUSTOMER DETAIL / STATEMENT MODAL */}
       <CustomerDetailModal
         open={custDetailOpen}
+        currency={currency}   // ✅ ADD THIS
         onClose={() => setCustDetailOpen(false)}
         customer={state.customers.find((c) => c.id === selectedCustomerId) || null}
         jobs={state.jobs}
         payments={state.payments}
-        kasaName={state.kasaName}
+          kasalar={state.kasalar}            // ✅ ADD
+  activeKasaId={state.activeKasaId}  // ✅ ADD
+         
         onMakePayment={makePayment}
         onAddDebt={addDebt}
+        
         onEditCustomer={() => {
   setCustDetailOpen(false);      // 🔴 CLOSE detail modal FIRST
   setEditingCustId(selectedCustomerId);
@@ -958,6 +1151,7 @@ function JobCard({
   setJobModalOpen,
   setConfirm,
   markJobComplete,
+  currency,   // ✅ ADD THIS
 }) {
   const c = customersById.get(job.customerId);
 
@@ -1027,7 +1221,7 @@ function JobCard({
 
         <div style={{ textAlign: "right" }}>
           <strong style={{ color: "var(--primary)" }}>
-            {moneyTRY(total)}
+            {money(total, currency)}
           </strong>
 
           <div
@@ -1089,15 +1283,15 @@ function JobCard({
           <div style={{ display: "grid", gap: 8 }}>
             <div className="miniRow">
               <span>Saatlik Ücret:</span>
-              <strong>{moneyTRY(job.rate)}</strong>
+              <strong>{money(job.rate, currency)}</strong>
             </div>
             <div className="miniRow">
               <span>İşçilik:</span>
-              <strong>{moneyTRY(laborTotal)}</strong>
+              <strong>{money(laborTotal, currency)}</strong>
             </div>
             <div className="miniRow">
               <span>Parçalar:</span>
-              <strong>{moneyTRY(partsTotal)}</strong>
+              <strong>{money(partsTotal, currency)}</strong>
             </div>
 
             {job.parts?.length ? (
@@ -1108,7 +1302,7 @@ function JobCard({
                 {job.parts.map((p) => (
                   <div key={p.id} className="partLine">
                     <span>{p.name || "Parça"}</span>
-                    <span>{moneyTRY(p.price)}</span>
+                    <span>{money(p.price, currency)}</span>
                   </div>
                 ))}
               </div>
@@ -1182,7 +1376,7 @@ function CustomerSharePage({ state }) {
           {customer ? (
             <>
               {customer.name} {customer.surname} — Borç:{" "}
-              <strong>{moneyTRY(customer.balanceOwed)}</strong>
+              <strong>{money(customer.balanceOwed, state.currency)}</strong>
             </>
           ) : (
             "Müşteri bulunamadı"
@@ -1220,7 +1414,7 @@ function CustomerSharePage({ state }) {
                   </div>
                   <div>
                     <strong style={{ color: "var(--primary)" }}>
-                      {moneyTRY(total)}
+                      {money(total, currency)}
                     </strong>
                   </div>
                 </div>
@@ -1229,7 +1423,7 @@ function CustomerSharePage({ state }) {
           )}
         </div>
       </div>
-      <style>{css}</style>
+       
     </>
   );
 }
@@ -1437,7 +1631,7 @@ function isValidPhone(phone) {
  * - manual edit is always possible
  * - parts add unlimited
  */
-function JobModal({ open, onClose, customers, jobs, editingJobId, onSave }) {
+function JobModal({ open, onClose, customers, jobs, editingJobId, onSave, currency }) {
   const editing = editingJobId ? jobs.find((j) => j.id === editingJobId) : null;
 
   const [draft, setDraft] = useState(() => makeEmptyJob(customers));
@@ -1545,7 +1739,7 @@ function JobModal({ open, onClose, customers, jobs, editingJobId, onSave }) {
       </div>
 
       <div className="form-group">
-        <label>Saatlik Ücret (₺)</label>
+        <label>Saatlik Ücret ({currency})</label>
         <input
           type="number"
           value={draft.rate}
@@ -1599,14 +1793,14 @@ function JobModal({ open, onClose, customers, jobs, editingJobId, onSave }) {
         </div>
         <div style={{ display: "flex", justifyContent: "space-between" }}>
           <span>İşçilik:</span>
-          <strong>{moneyTRY(laborTotal)}</strong>
+          <strong>{money(laborTotal, currency)}</strong>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between" }}>
           <span>Parçalar:</span>
-          <strong>{moneyTRY(partsTotal)}</strong>
+          <strong>{money(partsTotal, currency)}</strong>
         </div>
         <hr style={{ border: "none", borderTop: "1px solid #ddd", margin: "10px 0" }} />
-        Toplam Tutar: <strong>{moneyTRY(grandTotal)}</strong>
+        Toplam Tutar: <strong>{money(grandTotal, currency)}</strong>
       </div>
 
       <div className="form-group">
@@ -1641,7 +1835,9 @@ function CustomerDetailModal({
   onClose,
   customer,
   jobs,
-  kasaName,
+   currency,   // ✅ ADD
+  kasalar,        // ✅ ADD
+  activeKasaId,   // ✅ ADD
     payments,   //ADD this
   onMakePayment,
   onAddDebt,
@@ -1650,6 +1846,8 @@ function CustomerDetailModal({
   onEditJob,
   onAddJob,
 }) {
+  const [selectedKasaId, setSelectedKasaId] = useState("");
+const [paymentMethod, setPaymentMethod] = useState("cash");
   const [paymentAmount, setPaymentAmount] = useState("");
 const [paymentNote, setPaymentNote] = useState("");
 const [fromDate, setFromDate] = useState("");
@@ -1672,9 +1870,29 @@ function isInRange(dateStr) {
 
 useEffect(() => {
   if (!open) return;
+
   setPaymentAmount("");
   setPaymentNote("");
+
+  // ✅ default kasa = active kasa
+  setSelectedKasaId(activeKasaId || "");
+
+  // ✅ default payment method
+  setPaymentMethod("cash");
 }, [open]);
+
+
+function kasaNameOf(id) {
+  return (kasalar || []).find((k) => k.id === id)?.name || "—";
+}
+
+function methodLabel(m) {
+  if (m === "cash") return "Nakit";
+  if (m === "card") return "Kart";
+  if (m === "transfer") return "Havale / EFT";
+  if (m === "other") return "Diğer";
+  return "—";
+}
 
 
   const customerJobs = useMemo(() => {
@@ -1761,7 +1979,7 @@ const customerPayments = useMemo(() => {
             </small>
             <br />
             <small style={{ color: "#666" }}>
-              Borç: <b>{moneyTRY(customer.balanceOwed)}</b>
+              Borç: <b>{money(customer.balanceOwed, currency)}</b>
             </small>
           </p>
 
@@ -1771,6 +1989,19 @@ const customerPayments = useMemo(() => {
           {/* i basically add another button and havent changed payment amonut for debt button */}
           <div className="btn-row">
             <div style={{ flex: 1 }}>
+              <label>Kasa</label>
+                <select
+  value={selectedKasaId}
+  onChange={(e) => setSelectedKasaId(e.target.value)}
+>
+  <option value="">Kasa seçin</option>
+  {kasalar.map((k) => (
+    <option key={k.id} value={k.id}>
+      {k.name}
+    </option>
+  ))}
+</select>
+
               <label>Tutar (₺)</label>
               <input
                 type="number"
@@ -1778,17 +2009,35 @@ const customerPayments = useMemo(() => {
                 onChange={(e) => setPaymentAmount(e.target.value)}
               />
               <label style={{ marginTop: 6 }}>Açıklama / Not</label>
+              <label style={{ marginTop: 6 }}>Ödeme Yöntemi</label>
+<select
+  value={paymentMethod}
+  onChange={(e) => setPaymentMethod(e.target.value)}
+>
+  <option value="cash">💵 Nakit</option>
+  <option value="card">💳 Kart</option>
+  <option value="transfer">🏦 Havale / EFT</option>
+  <option value="other">📦 Diğer</option>
+</select>
+
 <input
   type="text"
   placeholder="Örn: Parça ücreti, Avans, Elden ödeme"
   value={paymentNote}
   onChange={(e) => setPaymentNote(e.target.value)}
 />
+
               <button
                 className="btn btn-save"
                 style={{ marginTop: 8 }}
                 onClick={() => {
-  onMakePayment(customer.id, paymentAmount, paymentNote);
+  onMakePayment(
+  customer.id,
+  paymentAmount,
+  paymentNote,
+  selectedKasaId,
+  paymentMethod
+);
   setPaymentAmount("");
   setPaymentNote("");
 }}
@@ -1874,28 +2123,54 @@ const customerPayments = useMemo(() => {
           <div id="detail-history" style={{ marginTop: 12, fontSize: 14 }}>
 
   {/* 💰 Tahsilat / Borç Kayıtları */}
-  {customerPayments.map((p) => (
+  {/* 💰 Tahsilat / Borç Kayıtları */}
+{customerPayments.map((p) => {
+  const isPayment = p.type === "payment";
+
+  return (
     <div
       key={p.id}
-      className="card"
+      className="card list-item"
       style={{
-        borderLeft: `5px solid ${p.type === "payment" ? "#16a34a" : "#dc2626"}`
+        borderLeft: `6px solid ${isPayment ? "#16a34a" : "#dc2626"}`,
+        background: isPayment ? "#f0fdf4" : "#fef2f2"
       }}
     >
-      <strong>
-        {p.type === "payment" ? "💰 Tahsilat" : "🧾 Borç"}
-      </strong>{" "}
-      — {moneyTRY(p.amount)}
+      {/* LEFT SIDE */}
+      <div>
+        <strong style={{ color: isPayment ? "#166534" : "#7f1d1d" }}>
+          {isPayment ? "💰 Tahsilat" : "🧾 Borç"}
+        </strong>
 
-      <div style={{ fontSize: 13, color: "#555", marginTop: 4 }}>
-        {p.note}
+        {p.note && (
+          <div style={{ fontSize: 13, color: "#555", marginTop: 4 }}>
+            {p.note}
+          </div>
+        )}
+
+        <div style={{ fontSize: 12, color: "#777" }}>
+  {p.date}
+  {" • "}
+  Kasa: <b>{kasaNameOf(p.kasaId)}</b>
+  {" • "}
+  Yöntem: <b>{methodLabel(p.method)}</b>
+</div>
       </div>
 
-      <div style={{ fontSize: 12, color: "#777" }}>
-        {p.date}
+      {/* RIGHT SIDE (amount) */}
+      <div
+        style={{
+          fontWeight: 700,
+          color: isPayment ? "#16a34a" : "#dc2626",
+          fontSize: 15
+        }}
+      >
+        {isPayment ? "-" : "+"}{money(p.amount, currency)}
       </div>
     </div>
-  ))}
+  );
+})}
+
 
   {/* 🧰 İşler */}
   {customerJobs.length === 0 ? (
@@ -1920,7 +2195,8 @@ const customerPayments = useMemo(() => {
           </div>
           <div style={{ textAlign: "right" }}>
             <strong style={{ color: "var(--primary)" }}>
-              {moneyTRY(total)}
+              {money(total, currency)
+}
             </strong>
           </div>
         </div>
@@ -1935,42 +2211,46 @@ const customerPayments = useMemo(() => {
             <div ref={printRef}>
               <h1>Müşteri Dökümü</h1>
               <div className="muted">
-                Kasa: {kasaName} <br />
-                Tarih: {new Date().toLocaleDateString("tr-TR")}
-              </div>
+  Tarih: {new Date().toLocaleDateString("tr-TR")}
+</div>
               <hr />
               <div>
                 <b>Müşteri:</b> {customer.name} {customer.surname} <br />
                 <b>ID:</b> {customer.id} <br />
-                <b>Borç:</b> {moneyTRY(customer.balanceOwed)}
+                <b>Borç:</b> {money(customer.balanceOwed, currency)}
               </div>
 
               <table>
                 <thead>
                   <tr>
-                    <th>Tarih</th>
-                    <th>Başlangıç</th>
-                    <th>Bitiş</th>
-                    <th>Tutar</th>
-                    <th>Durum</th>
-                  </tr>
+    <th>Tarih</th>
+    <th>Başlangıç</th>
+    <th>Bitiş</th>
+    <th>Kasa</th>
+    <th>Yöntem</th>
+    <th>Tutar</th>
+    <th>Durum</th>
+  </tr>
                 </thead>
                <tbody>
   {/* 💰 Tahsilat / Borç */}
   {customerPayments.map((p) => (
-    <tr key={p.id}>
-      <td>{p.date}</td>
-      <td colSpan="2">
-        {p.type === "payment" ? "Tahsilat" : "Borç"}
-      </td>
-      <td>
-        {p.type === "payment"
-          ? `-${moneyTRY(p.amount)}`
-          : moneyTRY(p.amount)}
-      </td>
-      <td>{p.note}</td>
-    </tr>
-  ))}
+  <tr key={p.id}>
+    <td>{p.date}</td>
+    <td colSpan="2">
+      {p.type === "payment" ? "Tahsilat" : "Borç"}
+    </td>
+    <td>{kasaNameOf(p.kasaId)}</td>
+    <td>{methodLabel(p.method)}</td>
+    <td>
+      {p.type === "payment"
+        ? `-${money(p.amount, currency)}`
+        : money(p.amount, currency)}
+    </td>
+    <td>{p.note}</td>
+  </tr>
+))}
+
 
   {/* ⚙️ İşler */}
   {customerJobs.map((j) => {
@@ -1986,8 +2266,11 @@ const customerPayments = useMemo(() => {
         <td>{j.date}</td>
         <td>{j.start || "--:--"}</td>
         <td>{j.end || "--:--"}</td>
-        <td>{moneyTRY(total)}</td>
-        <td>{j.isCompleted ? "Tamamlandı" : "Açık"}</td>
+        <td>—</td>
+<td>—</td>
+<td>{money(total, currency)
+}</td>
+<td>{j.isCompleted ? "Tamamlandı" : "Açık"}</td>
       </tr>
     );
   })}
@@ -2003,265 +2286,6 @@ const customerPayments = useMemo(() => {
   );
 }
 
-/* ============================================================
-   8) CSS (Copied + adapted from your HTML)
-============================================================ */
-
-const css = `
-:root {
-  --primary: #2563eb;
-  --success: #16a34a;
-  --danger: #dc2626;
-  --bg: #f3f4f6;
-  --white: #ffffff;
-}
-
-body {
-  font-family: 'Segoe UI', sans-serif;
-  margin: 0;
-  background: var(--bg);
-  padding-bottom: 70px;
-}
-
-.header {
-  background: var(--primary);
-  color: white;
-  padding: 1rem;
-  text-align: center;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-.container { padding: 15px; }
-
-/* Bottom navigation */
-.bottom-nav {
-  position: fixed;
-  bottom: 0;
-  width: 100%;
-  background: white;
-  display: flex;
-  justify-content: space-around;
-  padding: 10px 0;
-  border-top: 1px solid #ddd;
-  box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
-  z-index: 99;
-}
-
-.nav-item {
-  border: none;
-  background: none;
-  color: #666;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  font-size: 12px;
-  cursor: pointer;
-  gap: 4px;
-}
-
-.nav-item.active { color: var(--primary); }
-
-/* Cards */
-.card {
-  background: white;
-  padding: 15px;
-  border-radius: 14px;
-  margin-bottom: 10px;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.06);
-}
-
-.list-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.badge {
-  background: #e0e7ff;
-  color: #4338ca;
-  padding: 2px 8px;
-  border-radius: 10px;
-  font-size: 12px;
-}
-
-/* Floating button */
-.fab {
-  position: fixed;
-  bottom: 85px;
-  right: 20px;
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: var(--primary);
-  color: white;
-  border: none;
-  font-size: 28px;
- 
-  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.35);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-  
-}
-
-/* Modal */
-.modal {
-  display: none; /* React controls display */
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.5);
-  z-index: 1000;
-  overflow-y: auto;
-}
-
-.modal-content {
-  background: white;
-  margin: 10% auto;
-  padding: 20px;
-  width: 90%;
-  border-radius: 15px;
-  max-width: 500px;
-}
-
-.form-group { margin-bottom: 15px; }
-label {
-  display: block;
-  font-weight: bold;
-  margin-bottom: 5px;
-  font-size: 14px;
-}
-
-input, select, textarea {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  box-sizing: border-box;
-}
-
-.btn-row { display: flex; gap: 10px; margin-top: 15px; }
-.btn {
-  padding: 10px 15px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  flex: 1;
-  font-weight: bold;
-}
-
-.btn-save { background: var(--success); color: white; }
-.btn-cancel { background: #666; color: white; }
-.btn-delete { background: var(--danger); color: white; }
-
-.parca-item { display: flex; gap: 5px; margin-bottom: 5px; }
-.search-bar {
-  width: 100%;
-  padding: 10px;
-  margin-bottom: 15px;
-  border-radius: 20px;
-  border: 1px solid #ddd;
-}
-
-.hidden { display: none; }
-
-.partLine{
-  display:flex;
-  justify-content:space-between;
-  background:#f9fafb;
-  padding:8px 10px;
-  border-radius:8px;
-  margin-bottom:6px;
-  font-size:13px;
-}
-
-.miniRow{
-  display:flex;
-  justify-content:space-between;
-  background:#f9fafb;
-  padding:8px 10px;
-  border-radius:8px;
-  font-size:13px;
-}
-
-.iconLike{
-  border:none;
-  background:transparent;
-  font-size:16px;
-  cursor:pointer;
-  color:#333;
-  padding:0 4px;
-}
-
-
-.header-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.header-left {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-}
-
-.header-title {
-  margin: 0;
-  font-size: 20px;
-  letter-spacing: 0.2px;
-}
-
-.header-sub {
-  font-size: 13px;
-  opacity: 0.95;
-  margin-top: 4px;
-}
-
-.logout-btn {
-  background: rgba(255, 255, 255, 0.18);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  padding: 6px 12px;
-  border-radius: 10px;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: 0.15s ease;
-}
-
-.logout-btn:hover {
-  background: rgba(255, 255, 255, 0.28);
-}
-
-
-.section-header {
-  padding: 10px 12px;
-  border-radius: 12px;
-}
-
-.section-header strong {
-  font-size: 14px;
-}
-
-
-`;
-
-/* ============================================================
-   Notes / Next Improvements (Optional)
-============================================================ */
-/**
- * - If you want jsPDF (real PDF file export) instead of print->PDF,
- *   tell me and I’ll swap shareAsPDF() to use jsPDF + autotable.
- * - We can also add “Prevent clock in if another is running” as a warning
- *   instead of auto-stopping the previous job.
- */
 
 
 

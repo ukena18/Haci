@@ -8,14 +8,24 @@ export async function ensureUserData(userId) {
   const snap = await getDoc(ref);
 
   if (!snap.exists()) {
-    await setDoc(ref, {
-  kasaName: "Ana Kasa",
-  kasaBalance: 0,
+   await setDoc(ref, {
+  kasalar: [
+    {
+      id: "kasa_ana",
+      name: "Ana Kasa",
+      balance: 0,
+      createdAt: Date.now(),
+    }
+  ],
+  activeKasaId: "kasa_ana",
+
   customers: [],
   jobs: [],
-  payments: [], // ✅ NEW
+  payments: [],
+
   createdAt: Date.now(),
-})
+});
+
   }
 }
 
