@@ -1385,7 +1385,7 @@ function CustomerDetailModal({
           {/* Payment / debt */}
           <div className="btn-row">
             <div style={{ flex: 1 }}>
-              <label>Tahsilat Al (₺)</label>
+              <label>Tutar (₺)</label>
               <input
                 type="number"
                 value={paymentAmount}
@@ -1401,16 +1401,27 @@ function CustomerDetailModal({
               >
                 Tahsilat Al
               </button>
+               <button
+                className="btn btn-delete"
+                style={{ marginTop: 8 }}
+                onClick={() => {
+                  onAddDebt(customer.id, paymentAmount);
+                  setPaymentAmount("");
+                }}
+              >
+                Borçlandır
+              </button>
             </div>
-
-            <div style={{ flex: 1 }}>
+            {/* this part is no longer needed you can delete it  */}
+            {/* <div style={{ flex: 1 }}>
               <label>Borçlandır (₺)</label>
               <input
                 type="number"
                 value={debtAmount}
                 onChange={(e) => setDebtAmount(e.target.value)}
               />
-              <button
+              
+               <button
                 className="btn btn-delete"
                 style={{ marginTop: 8 }}
                 onClick={() => {
@@ -1419,8 +1430,8 @@ function CustomerDetailModal({
                 }}
               >
                 Borçlandır
-              </button>
-            </div>
+              </button> 
+            </div> */}
           </div>
 
           <div className="btn-row">
