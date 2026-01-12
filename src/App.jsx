@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, signOut  } from "firebase/auth";
 import { ensureUserData, loadUserData, saveUserData  } from "./firestoreService";
 
 import { auth } from "./firebase";
@@ -390,71 +390,59 @@ const paymentWatchList = activeJobs
    * - Reduce customer's balance owed
    * - Increase cash register balance
    */
-  function makePayment(customerId, amount) {
+function makePayment(customerId, amount, note) {
   const amt = toNum(amount);
   if (amt <= 0) return;
 
-  const now = new Date();
-
   setState((s) => {
-    // 1️⃣ reduce customer debt
-    const nextCustomers = s.customers.map((c) =>
-      c.id === customerId
-        ? { ...c, balanceOwed: Math.max(0, toNum(c.balanceOwed) - amt) }
-        : c
-    );
-
-    // 2️⃣ create tahsilat history entry
-    const paymentJob = {
+    const payment = {
       id: uid(),
       customerId,
-      type: "payment", // 👈 IMPORTANT
-      date: now.toISOString().slice(0, 10),
+      type: "payment",
       amount: amt,
+      note: note || "Tahsilat",
+      date: new Date().toISOString().slice(0, 10),
       createdAt: Date.now(),
-      isCompleted: true,
     };
 
     return {
       ...s,
-      customers: nextCustomers,
-      jobs: [...s.jobs, paymentJob],
       kasaBalance: toNum(s.kasaBalance) + amt,
+      customers: s.customers.map((c) =>
+        c.id === customerId
+          ? { ...c, balanceOwed: Math.max(0, toNum(c.balanceOwed) - amt) }
+          : c
+      ),
+      payments: [...(s.payments || []), payment],
     };
   });
 }
 
 
   /** Add debt to a customer (does NOT affect cash) */
-function addDebt(customerId, amount) {
+function addDebt(customerId, amount, note) {
   const amt = toNum(amount);
   if (amt <= 0) return;
 
-  const now = new Date();
-
   setState((s) => {
-    // 1️⃣ add debt to customer balance
-    const nextCustomers = s.customers.map((c) =>
-      c.id === customerId
-        ? { ...c, balanceOwed: toNum(c.balanceOwed) + amt }
-        : c
-    );
-
-    // 2️⃣ add a "debt job" to history
-    const debtJob = {
+    const debt = {
       id: uid(),
       customerId,
-      type: "debt", // 👈 IMPORTANT
-      date: now.toISOString().slice(0, 10),
+      type: "debt",
       amount: amt,
+      note: note || "Borç",
+      date: new Date().toISOString().slice(0, 10),
       createdAt: Date.now(),
-      isCompleted: true,
     };
 
     return {
       ...s,
-      customers: nextCustomers,
-      jobs: [...s.jobs, debtJob],
+      customers: s.customers.map((c) =>
+        c.id === customerId
+          ? { ...c, balanceOwed: toNum(c.balanceOwed) + amt }
+          : c
+      ),
+      payments: [...(s.payments || []), debt],
     };
   });
 }
@@ -590,11 +578,24 @@ function addDebt(customerId, amount) {
     <>
       {/* Top header (sticky) */}
       <div className="header">
-        <h2 id="page-title">{headerTitle}</h2>
-        <div id="kasa-ozet" style={{ fontSize: "0.9rem", marginTop: 5 }}>
-          Kasa: <span id="main-kasa-val">{moneyTRY(state.kasaBalance)}</span>
-        </div>
-      </div>
+           <div className="header header-bar">
+  <div className="header-left">
+    <h2 id="page-title" className="header-title">{headerTitle}</h2>
+    <div id="kasa-ozet" className="header-sub">
+      Kasa: <strong id="main-kasa-val">{moneyTRY(state.kasaBalance)}</strong>
+    </div>
+  </div>
+
+  <button
+    className="logout-btn"
+    onClick={() => signOut(auth)}
+    title="Çıkış Yap"
+  >
+    Çıkış
+  </button>
+</div>
+
+</div>
 
       <div className="container">
         {/* Search bar */}
@@ -613,7 +614,7 @@ function addDebt(customerId, amount) {
             {/* 🔔 30 GÜNLÜK ÖDEME TAKİBİ */}
 <div className="card">
   <div
-    className="list-item"
+    className="list-item section-header"
     style={{ cursor: "pointer" }}
     onClick={() => setPaymentOpen(o => !o)}
   >
@@ -890,6 +891,7 @@ function addDebt(customerId, amount) {
         onClose={() => setCustDetailOpen(false)}
         customer={state.customers.find((c) => c.id === selectedCustomerId) || null}
         jobs={state.jobs}
+        payments={state.payments}
         kasaName={state.kasaName}
         onMakePayment={makePayment}
         onAddDebt={addDebt}
@@ -1149,6 +1151,14 @@ function CustomerSharePage({ state }) {
       .slice()
       .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   }, [state.jobs, id]);
+
+  const customerPayments = useMemo(() => {
+  if (!customer) return [];
+  return (state?.payments || [])
+    .filter((p) => p.customerId === customer.id)
+    .slice()
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+}, [state?.payments, customer]);
 
   return (
     <>
@@ -1601,6 +1611,7 @@ function CustomerDetailModal({
   customer,
   jobs,
   kasaName,
+    payments,   //ADD this
   onMakePayment,
   onAddDebt,
   onEditCustomer,
@@ -1609,14 +1620,15 @@ function CustomerDetailModal({
   onAddJob,
 }) {
   const [paymentAmount, setPaymentAmount] = useState("");
-  const [debtAmount, setDebtAmount] = useState("");
+const [paymentNote, setPaymentNote] = useState("");
   const printRef = useRef(null);
 
-  useEffect(() => {
-    if (!open) return;
-    setPaymentAmount("");
-    setDebtAmount("");
-  }, [open]);
+useEffect(() => {
+  if (!open) return;
+  setPaymentAmount("");
+  setPaymentNote("");
+}, [open]);
+
 
   const customerJobs = useMemo(() => {
     if (!customer) return [];
@@ -1625,6 +1637,16 @@ function CustomerDetailModal({
       .slice()
       .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   }, [jobs, customer]);
+
+ const customerPayments = useMemo(() => {
+  if (!customer) return [];
+  return (payments || [])
+    .filter((p) => p.customerId === customer.id)
+    .sort((a, b) => b.createdAt - a.createdAt);
+}, [payments, customer]);
+
+
+
 
   function shareAsPDF() {
     // This uses the browser print dialog. User can choose “Save as PDF”.
@@ -1696,13 +1718,21 @@ function CustomerDetailModal({
                 value={paymentAmount}
                 onChange={(e) => setPaymentAmount(e.target.value)}
               />
+              <label style={{ marginTop: 6 }}>Açıklama / Not</label>
+<input
+  type="text"
+  placeholder="Örn: Parça ücreti, Avans, Elden ödeme"
+  value={paymentNote}
+  onChange={(e) => setPaymentNote(e.target.value)}
+/>
               <button
                 className="btn btn-save"
                 style={{ marginTop: 8 }}
                 onClick={() => {
-                  onMakePayment(customer.id, paymentAmount);
-                  setPaymentAmount("");
-                }}
+  onMakePayment(customer.id, paymentAmount, paymentNote);
+  setPaymentAmount("");
+  setPaymentNote("");
+}}
               >
                 Tahsilat Al
               </button>
@@ -1710,9 +1740,10 @@ function CustomerDetailModal({
                 className="btn btn-delete"
                 style={{ marginTop: 8 }}
                 onClick={() => {
-                  onAddDebt(customer.id, paymentAmount);
-                  setPaymentAmount("");
-                }}
+  onAddDebt(customer.id, paymentAmount, paymentNote);
+  setPaymentAmount("");
+  setPaymentNote("");
+}}
               >
                 Borçlandır
               </button>
@@ -1766,87 +1797,63 @@ function CustomerDetailModal({
           </div>
 
           <div id="detail-history" style={{ marginTop: 12, fontSize: 14 }}>
-            {customerJobs.length === 0 ? (
-              <div className="card">Bu müşteriye ait iş yok.</div>
-            ) : (
-              customerJobs.map((j) => {
-  // 🔴 DEBT ENTRY
-  if (j.type === "debt") {
-    return (
-      <div
-        key={j.id}
-        className="card list-item"
-        style={{
-          background: "#fee2e2",
-          borderLeft: "6px solid #dc2626",
-        }}
-      >
-        <div>
-          <strong>Borç Eklendi</strong>
-          <br />
-          <small>{j.date}</small>
-        </div>
-        <div style={{ color: "#dc2626", fontWeight: 700 }}>
-          +{moneyTRY(j.amount)}
-        </div>
-      </div>
-    );
-  }
-  // 🟢 PAYMENT ENTRY (TAHSİLAT)
-if (j.type === "payment") {
-  return (
+
+  {/* 💰 Tahsilat / Borç Kayıtları */}
+  {customerPayments.map((p) => (
     <div
-      key={j.id}
-      className="card list-item"
+      key={p.id}
+      className="card"
       style={{
-        background: "#dcfce7",
-        borderLeft: "6px solid #16a34a",
+        borderLeft: `5px solid ${p.type === "payment" ? "#16a34a" : "#dc2626"}`
       }}
     >
-      <div>
-        <strong>Tahsilat Alındı</strong>
-        <br />
-        <small>{j.date}</small>
+      <strong>
+        {p.type === "payment" ? "💰 Tahsilat" : "🧾 Borç"}
+      </strong>{" "}
+      — {moneyTRY(p.amount)}
+
+      <div style={{ fontSize: 13, color: "#555", marginTop: 4 }}>
+        {p.note}
       </div>
-      <div style={{ color: "#16a34a", fontWeight: 700 }}>
-        −{moneyTRY(j.amount)}
+
+      <div style={{ fontSize: 12, color: "#777" }}>
+        {p.date}
       </div>
     </div>
-  );
-}
-  // 🟢 NORMAL JOB (existing logic)
-  const hours = calcHours(j.start, j.end);
-  const partsTotal = (j.parts || []).reduce(
-    (sum, p) => sum + toNum(p.price),
-    0
-  );
-  const total = hours * toNum(j.rate) + partsTotal;
+  ))}
 
-  return (
-    <div key={j.id} className="card list-item">
-      <div>
-        <strong>{j.date}</strong>
-        <br />
-        <small>
-          {j.start || "--:--"}-{j.end || "--:--"} | {hours.toFixed(2)} saat
-        </small>
-        <br />
-        <small style={{ color: "#666" }}>
-          Durum:{" "}
-          <b style={{ color: "var(--success)" }}>Tamamlandı</b>
-        </small>
-      </div>
-      <div style={{ textAlign: "right" }}>
-        <strong style={{ color: "var(--primary)" }}>
-          {moneyTRY(total)}
-        </strong>
-      </div>
-    </div>
-  );
-})
+  {/* 🧰 İşler */}
+  {customerJobs.length === 0 ? (
+    <div className="card">Bu müşteriye ait iş yok.</div>
+  ) : (
+    customerJobs.map((j) => {
+      const hours = calcHours(j.start, j.end);
+      const partsTotal = (j.parts || []).reduce(
+        (sum, p) => sum + toNum(p.price),
+        0
+      );
+      const total = hours * toNum(j.rate) + partsTotal;
 
-            )}
+      return (
+        <div key={j.id} className="card list-item">
+          <div>
+            <strong>{j.date}</strong>
+            <br />
+            <small>
+              {j.start || "--:--"}-{j.end || "--:--"} | {hours.toFixed(2)} saat
+            </small>
           </div>
+          <div style={{ textAlign: "right" }}>
+            <strong style={{ color: "var(--primary)" }}>
+              {moneyTRY(total)}
+            </strong>
+          </div>
+        </div>
+      );
+    })
+  )}
+</div>
+
 
           {/* Hidden print template for PDF */}
           <div className="hidden">
@@ -1873,33 +1880,25 @@ if (j.type === "payment") {
                     <th>Durum</th>
                   </tr>
                 </thead>
-                <tbody>
+               <tbody>
+  {/* 💰 Tahsilat / Borç */}
+  {customerPayments.map((p) => (
+    <tr key={p.id}>
+      <td>{p.date}</td>
+      <td colSpan="2">
+        {p.type === "payment" ? "Tahsilat" : "Borç"}
+      </td>
+      <td>
+        {p.type === "payment"
+          ? `-${moneyTRY(p.amount)}`
+          : moneyTRY(p.amount)}
+      </td>
+      <td>{p.note}</td>
+    </tr>
+  ))}
+
+  {/* ⚙️ İşler */}
   {customerJobs.map((j) => {
-    // 🔴 BORÇ
-    if (j.type === "debt") {
-      return (
-        <tr key={j.id}>
-          <td>{j.date}</td>
-          <td colSpan="2">Borçlandırma</td>
-          <td>{moneyTRY(j.amount)}</td>
-          <td>Borç</td>
-        </tr>
-      );
-    }
-
-    // 🟢 TAHSİLAT
-    if (j.type === "payment") {
-      return (
-        <tr key={j.id}>
-          <td>{j.date}</td>
-          <td colSpan="2">Tahsilat</td>
-          <td>−{moneyTRY(j.amount)}</td>
-          <td>Tahsilat</td>
-        </tr>
-      );
-    }
-
-    // ⚙️ NORMAL JOB
     const hours = calcHours(j.start, j.end);
     const partsTotal = (j.parts || []).reduce(
       (sum, p) => sum + toNum(p.price),
@@ -1918,6 +1917,7 @@ if (j.type === "payment") {
     );
   })}
 </tbody>
+
 
               </table>
             </div>
@@ -1992,9 +1992,9 @@ body {
 .card {
   background: white;
   padding: 15px;
-  border-radius: 10px;
+  border-radius: 14px;
   margin-bottom: 10px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.06);
 }
 
 .list-item {
@@ -2023,12 +2023,14 @@ body {
   color: white;
   border: none;
   font-size: 28px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+ 
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.35);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 100;
+  
 }
 
 /* Modal */
@@ -2121,6 +2123,59 @@ input, select, textarea {
   color:#333;
   padding:0 4px;
 }
+
+
+.header-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-left {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.header-title {
+  margin: 0;
+  font-size: 20px;
+  letter-spacing: 0.2px;
+}
+
+.header-sub {
+  font-size: 13px;
+  opacity: 0.95;
+  margin-top: 4px;
+}
+
+.logout-btn {
+  background: rgba(255, 255, 255, 0.18);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  padding: 6px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.15s ease;
+}
+
+.logout-btn:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+
+.section-header {
+  padding: 10px 12px;
+  border-radius: 12px;
+}
+
+.section-header strong {
+  font-size: 14px;
+}
+
+
 `;
 
 /* ============================================================
