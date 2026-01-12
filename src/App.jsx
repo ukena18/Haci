@@ -48,6 +48,11 @@ function persistState(state) {
    2) HELPERS
 ============================================================ */
 
+function daysBetween(a, b) {
+  const ms = 1000 * 60 * 60 * 24;
+  return Math.floor((b - a) / ms);
+}
+
 /** Pad to 2 digits (ex: 4 => "04") */
 function pad2(n) {
   return String(n).padStart(2, "0");
@@ -208,6 +213,10 @@ function MainApp({ state, setState }) {
   const [activeOpen, setActiveOpen] = useState(true);
   const [completedOpen, setCompletedOpen] = useState(false);
 
+  // 30-day payment tracking folder
+const [paymentOpen, setPaymentOpen] = useState(true);
+
+
   // Editing entities
   const [editingJobId, setEditingJobId] = useState(null);
   const [editingCustId, setEditingCustId] = useState(null);
@@ -254,6 +263,29 @@ function MainApp({ state, setState }) {
 
   const activeJobs = filteredJobs.filter(j => !j.isCompleted);
   const completedJobs = filteredJobs.filter(j => j.isCompleted);
+
+
+  // 🔔 30-day payment tracking (active jobs only)
+const paymentWatchList = activeJobs
+  .map((job) => {
+    if (!job.createdAt) return null;
+
+    const created = new Date(job.createdAt);
+    const now = new Date();
+
+    const daysPassed = daysBetween(created, now);
+    const daysLeft = 30 - daysPassed;
+
+    return {
+      job,
+      daysLeft,
+    };
+  })
+  .filter(Boolean)
+  .sort((a, b) => a.daysLeft - b.daysLeft); // closest first
+
+
+
   /**
    * Customers filtering by search (Customers tab)
    */
@@ -536,6 +568,73 @@ function addDebt(customerId, amount) {
         {page === "home" && (
           <div id="page-home">
             <div id="job-list">
+            {/* 🔔 30 GÜNLÜK ÖDEME TAKİBİ */}
+<div className="card">
+  <div
+    className="list-item"
+    style={{ cursor: "pointer" }}
+    onClick={() => setPaymentOpen(o => !o)}
+  >
+    <strong>🔔 30 Günlük Ödeme Takibi ({paymentWatchList.length})</strong>
+    <span>{paymentOpen ? "▾" : "▸"}</span>
+  </div>
+</div>
+
+{paymentOpen && (
+  paymentWatchList.length === 0 ? (
+    <div className="card" style={{ fontSize: 13, color: "#666" }}>
+      Takip edilecek aktif iş yok.
+    </div>
+  ) : (
+    paymentWatchList.map(({ job, daysLeft }) => {
+      const c = customersById.get(job.customerId);
+
+      return (
+        <div
+          key={job.id}
+          className="card list-item"
+          style={{
+            background:
+              daysLeft <= 0
+                ? "#fee2e2"
+                : daysLeft <= 5
+                ? "#fef3c7"
+                : "white",
+            borderLeft:
+              daysLeft <= 0
+                ? "6px solid #dc2626"
+                : daysLeft <= 5
+                ? "6px solid #f59e0b"
+                : "6px solid #16a34a",
+          }}
+        >
+          <div>
+            <strong>{c ? `${c.name} ${c.surname}` : "Bilinmeyen"}</strong>
+            <br />
+            <small>
+              {daysLeft <= 0
+                ? `⛔ ${Math.abs(daysLeft)} gün gecikmiş`
+                : `⏳ ${daysLeft} gün kaldı`}
+            </small>
+          </div>
+
+          <div style={{ fontWeight: 700 }}>
+            {moneyTRY(
+              calcHours(job.start, job.end) * toNum(job.rate) +
+                (job.parts || []).reduce(
+                  (s, p) => s + toNum(p.price),
+                  0
+                )
+            )}
+          </div>
+        </div>
+      );
+    })
+  )
+)}
+
+
+
               {/* ACTIVE JOBS FOLDER */}
 <div className="card">
   <div
