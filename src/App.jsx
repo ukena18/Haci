@@ -1894,6 +1894,88 @@ function methodLabel(m) {
   return "—";
 }
 
+function buildShareText() {
+  if (!customer) return "";
+
+  let text = "";
+
+  text += `MÜŞTERİ HESAP DÖKÜMÜ\n`;
+  text += `-------------------------\n`;
+  text += `Müşteri: ${customer.name} ${customer.surname}\n`;
+  text += `Telefon: ${customer.phone || "-"}\n`;
+  text += `E-posta: ${customer.email || "-"}\n`;
+  text += `Borç: ${money(customer.balanceOwed, currency)}\n`;
+  text += `Tarih: ${new Date().toLocaleDateString("tr-TR")}\n\n`;
+
+  /* 💰 PAYMENTS / DEBTS */
+  if (customerPayments.length > 0) {
+    text += `💰 TAHSİLAT / BORÇ KAYITLARI\n`;
+    text += `-------------------------\n`;
+
+    customerPayments.forEach((p) => {
+      const typeLabel = p.type === "payment" ? "Tahsilat" : "Borç";
+      const sign = p.type === "payment" ? "-" : "+";
+
+      text += `${p.date} | ${typeLabel}\n`;
+      text += `Tutar: ${sign}${money(p.amount, currency)}\n`;
+      text += `Kasa: ${kasaNameOf(p.kasaId)}\n`;
+      text += `Yöntem: ${methodLabel(p.method)}\n`;
+      if (p.note) text += `Not: ${p.note}\n`;
+      text += `\n`;
+    });
+  }
+
+  /* 🧰 JOBS */
+  if (customerJobs.length > 0) {
+    text += `🧰 İŞLER\n`;
+    text += `-------------------------\n`;
+
+    customerJobs.forEach((j) => {
+      const hours = calcHours(j.start, j.end);
+      const partsTotal = (j.parts || []).reduce(
+        (sum, p) => sum + toNum(p.price),
+        0
+      );
+      const total = hours * toNum(j.rate) + partsTotal;
+
+      text += `${j.date}\n`;
+      text += `${j.start || "--:--"} - ${j.end || "--:--"} | ${hours.toFixed(2)} saat\n`;
+      text += `Toplam: ${money(total, currency)}\n`;
+      text += `Durum: ${j.isCompleted ? "Tamamlandı" : "Açık"}\n\n`;
+    });
+  }
+
+  return text.trim();
+}
+
+
+function sendByEmail() {
+  if (!customer?.email) {
+    alert("Bu müşteri için e-posta adresi yok.");
+    return;
+  }
+
+  const subject = encodeURIComponent("Müşteri Hesap Dökümü");
+  const body = encodeURIComponent(buildShareText());
+
+  window.location.href = `mailto:${customer.email}?subject=${subject}&body=${body}`;
+}
+
+function sendByWhatsApp() {
+  if (!customer?.phone) {
+    alert("Bu müşteri için telefon numarası yok.");
+    return;
+  }
+
+  // WhatsApp needs digits only usually (removes spaces, dashes, parentheses)
+  const phone = customer.phone.replace(/[^\d+]/g, "");
+
+  const text = encodeURIComponent(buildShareText());
+
+  window.open(`https://wa.me/${phone}?text=${text}`, "_blank");
+}
+
+
 
   const customerJobs = useMemo(() => {
   if (!customer) return [];
@@ -2078,19 +2160,36 @@ const customerPayments = useMemo(() => {
             </div> */}
           </div>
 
-          <div className="btn-row">
-            <button
-              className="btn"
-              style={{ background: "#2563eb", color: "white" }}
-              onClick={shareAsPDF}
-            >
-              PDF Paylaş / Çıktı
-            </button>
-            <button className="btn btn-save" onClick={onEditCustomer}>
-              Müşteri Düzenle
-            </button>
-             
-          </div>
+<div className="btn-row" style={{ flexWrap: "wrap" }}>
+  <button
+    className="btn"
+    style={{ background: "#2563eb", color: "white" }}
+    onClick={shareAsPDF}
+  >
+    🖨 PDF / Yazdır
+  </button>
+
+  <button
+    className="btn"
+    style={{ background: "#0ea5e9", color: "white" }}
+    onClick={sendByEmail}
+  >
+    📧 E-posta Gönder
+  </button>
+
+  <button
+    className="btn"
+    style={{ background: "#22c55e", color: "white" }}
+    onClick={sendByWhatsApp}
+  >
+    💬 WhatsApp
+  </button>
+
+  <button className="btn btn-save" onClick={onEditCustomer}>
+    ✏️ Müşteri Düzenle
+  </button>
+</div>
+
 
           <hr />
 
