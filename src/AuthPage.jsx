@@ -1,0 +1,112 @@
+import { useState } from "react";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
+import { auth } from "./firebase";
+
+export default function AuthPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isRegister, setIsRegister] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError("");
+
+    try {
+      if (isRegister) {
+        await createUserWithEmailAndPassword(auth, email, password);
+      } else {
+        await signInWithEmailAndPassword(auth, email, password);
+      }
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  return (
+    <div style={styles.page}>
+      <form onSubmit={handleSubmit} style={styles.card}>
+        <h2>{isRegister ? "Kayıt Ol" : "Giriş Yap"}</h2>
+
+        <input
+          type="email"
+          placeholder="E-posta"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          style={styles.input}
+        />
+
+        <input
+          type="password"
+          placeholder="Şifre"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          style={styles.input}
+        />
+
+        {error && <div style={styles.error}>{error}</div>}
+
+        <button type="submit" style={styles.button}>
+          {isRegister ? "Kayıt Ol" : "Giriş Yap"}
+        </button>
+
+        <p style={{ marginTop: 10 }}>
+          {isRegister ? "Zaten hesabın var mı?" : "Hesabın yok mu?"}{" "}
+          <span
+            style={styles.link}
+            onClick={() => setIsRegister(!isRegister)}
+          >
+            {isRegister ? "Giriş Yap" : "Kayıt Ol"}
+          </span>
+        </p>
+      </form>
+    </div>
+  );
+}
+
+const styles = {
+  page: {
+    minHeight: "100vh",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    background: "#f3f4f6",
+  },
+  card: {
+    background: "white",
+    padding: 30,
+    borderRadius: 12,
+    width: 320,
+    boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+    textAlign: "center",
+  },
+  input: {
+    width: "100%",
+    padding: 10,
+    marginBottom: 10,
+    borderRadius: 6,
+    border: "1px solid #ddd",
+  },
+  button: {
+    width: "100%",
+    padding: 10,
+    background: "#2563eb",
+    color: "white",
+    border: "none",
+    borderRadius: 6,
+    fontWeight: "bold",
+    cursor: "pointer",
+  },
+  error: {
+    color: "red",
+    fontSize: 12,
+    marginBottom: 8,
+  },
+  link: {
+    color: "#2563eb",
+    cursor: "pointer",
+    fontWeight: "bold",
+  },
+};

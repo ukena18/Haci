@@ -1,4 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { onAuthStateChanged } from "firebase/auth";
+import { ensureUserData, loadUserData, saveUserData  } from "./firestoreService";
+
+import { auth } from "./firebase";
+import AuthPage from "./AuthPage";
 import {
   BrowserRouter,
   Routes,
@@ -157,26 +162,60 @@ function makeEmptyJob(customers) {
 ============================================================ */
 
 export default function App() {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      setLoading(false);
+    });
+    return () => unsub();
+  }, []);
+
+  if (loading) {
+    return <div style={{ padding: 20 }}>Yükleniyor...</div>;
+  }
+
+  if (!user) {
+    return <AuthPage />;
+  }
+
   return (
     <BrowserRouter>
-      <AppRoutes />
+      <AppRoutes user={user} />
       <style>{css}</style>
     </BrowserRouter>
   );
 }
 
-function AppRoutes() {
-  const [state, setState] = useState(loadState);
 
-  // Save any time state changes (session storage)
+function AppRoutes({ user }) {
+  const [state, setState] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [hydrated, setHydrated] = useState(false);
+
+
+  // Load user-specific data from Firestore
   useEffect(() => {
-    persistState(state);
-  }, [state]);
+    async function init() {
+      await ensureUserData(user.uid);
+      const data = await loadUserData(user.uid);
+      setState(data);
+      setLoading(false);
+      setHydrated(true);
+    }
+
+    init();
+  }, [user.uid]);
+
+  useEffect(() => {
+  if (!hydrated || !state) return;
+  saveUserData(user.uid, state);
+}, [state, hydrated, user.uid]);
 
   /**
-   * Live timer:
-   * We force a re-render once per second so running jobs show live time.
-   * We do this by updating a dummy value (tick) that triggers React render.
+   * Live timer (unchanged)
    */
   const [, setTick] = useState(0);
   useEffect(() => {
@@ -184,7 +223,10 @@ function AppRoutes() {
     return () => clearInterval(t);
   }, []);
 
-  // Routes
+  if (loading || !state) {
+    return <div style={{ padding: 20 }}>Kullanıcı verisi yükleniyor...</div>;
+  }
+
   return (
     <Routes>
       <Route path="/" element={<MainApp state={state} setState={setState} />} />
@@ -1235,24 +1277,51 @@ function CustomerModal({ open, onClose, customers, editingCustomerId, onSave }) 
     setDraft((d) => ({ ...d, [k]: v }));
   }
 
+
+  function isValidEmail(email) {
+  if (!email) return true; // optional field
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function isValidPhone(phone) {
+  if (!phone) return true; // optional field
+  return /^[0-9+\s()-]{7,20}$/.test(phone);
+}
+
+
   function save() {
-    // Basic validation
-    if (!draft.name.trim() || !draft.surname.trim()) {
-      alert("Ad ve Soyad zorunludur.");
-      return;
-    }
-
-    // Ensure unique ID (if user somehow duplicates)
-    const duplicate =
-      customers.some((c) => c.id === draft.id) && (!editing || editing.id !== draft.id);
-    if (duplicate) {
-      alert("Bu ID zaten var. Lütfen tekrar deneyin.");
-      return;
-    }
-
-    onSave({ ...draft });
-    onClose();
+  // Required fields
+  if (!draft.name.trim() || !draft.surname.trim()) {
+    alert("Ad ve Soyad zorunludur.");
+    return;
   }
+
+  // Phone validation
+  if (!isValidPhone(draft.phone)) {
+    alert("Lütfen geçerli bir telefon numarası girin.");
+    return;
+  }
+
+  // Email validation
+  if (!isValidEmail(draft.email)) {
+    alert("Lütfen geçerli bir e-posta adresi girin.");
+    return;
+  }
+
+  // Ensure unique ID
+  const duplicate =
+    customers.some((c) => c.id === draft.id) &&
+    (!editing || editing.id !== draft.id);
+
+  if (duplicate) {
+    alert("Bu ID zaten var. Lütfen tekrar deneyin.");
+    return;
+  }
+
+  onSave({ ...draft });
+  onClose();
+}
+
 
   return (
     <ModalBase
@@ -1284,17 +1353,22 @@ function CustomerModal({ open, onClose, customers, editingCustomerId, onSave }) 
       <div className="form-group">
         <label>Telefon</label>
         <input
-          value={draft.phone}
-          onChange={(e) => setField("phone", e.target.value)}
-        />
+  type="tel"
+  placeholder="+1 720 555 1234"
+  value={draft.phone}
+  onChange={(e) => setField("phone", e.target.value)}
+/>
+
       </div>
 
       <div className="form-group">
         <label>E-posta</label>
         <input
-          value={draft.email}
-          onChange={(e) => setField("email", e.target.value)}
-        />
+  type="email"
+  placeholder="example@email.com"
+  value={draft.email}
+  onChange={(e) => setField("email", e.target.value)}
+/>
       </div>
 
       <div className="form-group">
