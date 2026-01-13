@@ -718,6 +718,68 @@ function MainApp({ state, setState, user }) {
     });
   }
 
+  function updatePaymentTransaction(updated) {
+    setState((s) => {
+      const old = (s.payments || []).find((p) => p.id === updated.id);
+      if (!old) return s;
+
+      const oldAmt = toNum(old.amount);
+      const newAmt = toNum(updated.amount);
+
+      // diff = how much changed
+      const diff = newAmt - oldAmt;
+
+      // 1) update payments array
+      const nextPayments = (s.payments || []).map((p) =>
+        p.id === updated.id ? { ...p, ...updated, amount: newAmt } : p
+      );
+
+      // 2) update customer balance owed (depends on type)
+      const nextCustomers = (s.customers || []).map((c) => {
+        if (c.id !== old.customerId) return c;
+
+        // payment reduces debt, debt increases debt
+        if (old.type === "payment") {
+          return { ...c, balanceOwed: toNum(c.balanceOwed) - diff };
+        } else {
+          return { ...c, balanceOwed: toNum(c.balanceOwed) + diff };
+        }
+      });
+
+      // 3) update kasa balances
+      // ONLY change kasa if it’s a payment (borç does not touch kasa in your system)
+      let nextKasalar = s.kasalar || [];
+
+      if (old.type === "payment") {
+        const oldKasaId = old.kasaId || s.activeKasaId;
+        const newKasaId = updated.kasaId || oldKasaId;
+
+        // If kasa changed: remove old amount from old kasa and add new amount to new kasa
+        if (oldKasaId !== newKasaId) {
+          nextKasalar = nextKasalar.map((k) => {
+            if (k.id === oldKasaId)
+              return { ...k, balance: toNum(k.balance) - oldAmt };
+            if (k.id === newKasaId)
+              return { ...k, balance: toNum(k.balance) + newAmt };
+            return k;
+          });
+        } else {
+          // same kasa: adjust by diff only
+          nextKasalar = nextKasalar.map((k) =>
+            k.id === oldKasaId ? { ...k, balance: toNum(k.balance) + diff } : k
+          );
+        }
+      }
+
+      return {
+        ...s,
+        payments: nextPayments,
+        customers: nextCustomers,
+        kasalar: nextKasalar,
+      };
+    });
+  }
+
   /**
    * Mark job as completed:
    * - job.isCompleted = true
@@ -1644,6 +1706,7 @@ function MainApp({ state, setState, user }) {
             message: "Bu işi silmek istediğinize emin misiniz?",
           })
         }
+        onUpdatePayment={updatePaymentTransaction}
       />
 
       <PaymentActionModal
@@ -2746,6 +2809,7 @@ function CustomerDetailModal({
   onDeleteCustomer,
   onEditJob,
   onAddJob,
+  onUpdatePayment,
 }) {
   const [selectedKasaId, setSelectedKasaId] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
@@ -2753,6 +2817,12 @@ function CustomerDetailModal({
   const [paymentNote, setPaymentNote] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  const [editTx, setEditTx] = useState(null); // selected transaction to edit
+  const [editAmount, setEditAmount] = useState("");
+  const [editNote, setEditNote] = useState("");
+  const [editDate, setEditDate] = useState("");
+  const [editMethod, setEditMethod] = useState("cash");
+  const [editKasaId, setEditKasaId] = useState("");
 
   // "payment" | "debt"
   function isInRange(dateStr) {
@@ -3087,6 +3157,17 @@ function CustomerDetailModal({
                       isPayment ? "#16a34a" : "#dc2626"
                     }`,
                     background: isPayment ? "#f0fdf4" : "#fef2f2",
+                    cursor: "pointer",
+                  }}
+                  onClick={() => {
+                    setEditTx(p);
+                    setEditAmount(String(p.amount ?? ""));
+                    setEditNote(p.note || "");
+                    setEditDate(
+                      p.date || new Date().toISOString().slice(0, 10)
+                    );
+                    setEditMethod(p.method || "cash");
+                    setEditKasaId(p.kasaId || activeKasaId || "");
                   }}
                 >
                   {/* LEFT SIDE */}
@@ -3139,7 +3220,12 @@ function CustomerDetailModal({
                 const total = hours * toNum(j.rate) + partsTotal;
 
                 return (
-                  <div key={j.id} className="card list-item">
+                  <div
+                    key={j.id}
+                    className="card list-item"
+                    style={{ cursor: "pointer" }}
+                    onClick={() => onEditJob(j.id)}
+                  >
                     <div>
                       <strong>{j.date}</strong>
                       <br />
@@ -3227,6 +3313,107 @@ function CustomerDetailModal({
             </div>
           </div>
         </>
+      )}
+
+      {editTx && (
+        <div className="edit-modal-overlay">
+          <div className="edit-modal">
+            <h3 style={{ marginTop: 0 }}>
+              {editTx.type === "payment"
+                ? "💰 Tahsilat Düzenle"
+                : "🧾 Borç Düzenle"}
+            </h3>
+
+            {/* KASA (only for Tahsilat) */}
+            {editTx.type === "payment" && (
+              <div className="form-group">
+                <label>Kasa</label>
+                <select
+                  value={editKasaId}
+                  onChange={(e) => setEditKasaId(e.target.value)}
+                >
+                  {kasalar.map((k) => (
+                    <option key={k.id} value={k.id}>
+                      {k.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* DATE */}
+            <div className="form-group">
+              <label>Tarih</label>
+              <input
+                type="date"
+                value={editDate}
+                onChange={(e) => setEditDate(e.target.value)}
+              />
+            </div>
+
+            {/* METHOD */}
+            {editTx.type === "payment" && (
+              <div className="form-group">
+                <label>Yöntem</label>
+                <select
+                  value={editMethod}
+                  onChange={(e) => setEditMethod(e.target.value)}
+                >
+                  <option value="cash">💵 Nakit</option>
+                  <option value="card">💳 Kart</option>
+                  <option value="transfer">🏦 Havale</option>
+                </select>
+              </div>
+            )}
+
+            {/* AMOUNT */}
+            <div className="form-group">
+              <label>Tutar</label>
+              <input
+                type="number"
+                value={editAmount}
+                onChange={(e) => setEditAmount(e.target.value)}
+              />
+            </div>
+
+            {/* NOTE */}
+            <div className="form-group">
+              <label>Not</label>
+              <input
+                value={editNote}
+                onChange={(e) => setEditNote(e.target.value)}
+              />
+            </div>
+
+            {/* ACTIONS */}
+            <div className="modal-actions">
+              <button
+                className="btn btn-cancel"
+                onClick={() => setEditTx(null)}
+              >
+                İptal
+              </button>
+
+              <button
+                className="btn btn-save"
+                onClick={() => {
+                  onUpdatePayment({
+                    ...editTx,
+                    amount: toNum(editAmount),
+                    note: editNote,
+                    date: editDate,
+                    method: editTx.type === "payment" ? editMethod : null,
+                    kasaId:
+                      editTx.type === "payment" ? editKasaId : editTx.kasaId,
+                  });
+                  setEditTx(null);
+                }}
+              >
+                Kaydet
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </ModalBase>
   );

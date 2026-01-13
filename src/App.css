@@ -792,6 +792,62 @@ textarea {
   cursor: pointer;
 }
 
+.list-item {
+  transition: background 0.15s ease, transform 0.05s ease;
+}
+
+.list-item:active {
+  transform: scale(0.99);
+}
+
+.list-item:hover {
+  background: #f8fafc;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.modal {
+  background: white;
+  width: 92%;
+  max-width: 420px;
+  border-radius: 14px;
+  padding: 16px;
+}
+
+/* =========================
+   Edit Payment / Debt Modal
+========================= */
+
+.edit-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  z-index: 99999;
+}
+
+.edit-modal {
+  background: white;
+  width: 92%;
+  max-width: 420px;
+  border-radius: 14px;
+  padding: 16px;
+
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+}
+
 /* ============================================================
    Notes / Next Improvements (Optional)
 ============================================================ */
