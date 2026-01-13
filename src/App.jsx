@@ -967,15 +967,28 @@ function MainApp({ state, setState, user }) {
 
       <div className="container">
         {/* Search bar */}
+        {/* Search bar */}
         <div className="search-wrap">
-          <input
-            type="text"
-            className="search-bar"
-            placeholder="Ara..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{ flex: 1 }}
-          />
+          <div className="search-input-wrapper">
+            <input
+              type="text"
+              className="search-bar"
+              placeholder="Ara..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+
+            {search && (
+              <button
+                type="button"
+                className="search-clear-btn"
+                onClick={() => setSearch("")}
+                title="Temizle"
+              >
+                ✕
+              </button>
+            )}
+          </div>
 
           {page === "customers" && (
             <div className="sort-wrapper">

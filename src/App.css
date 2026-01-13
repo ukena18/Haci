@@ -315,11 +315,13 @@ textarea {
 }
 /* 🔍 search grows, but doesn't force wrap */
 .search-bar {
-  flex: 1;
+  width: 100%;
   height: 44px;
   padding: 10px;
+  padding-right: 34px; /* space for X button */
   border-radius: 20px;
   border: 1px solid #ddd;
+  flex: 1;
 }
 
 .search-wrap select:hover {
@@ -692,6 +694,9 @@ textarea {
   font-size: 12px;
   color: #6b7280;
   line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .admin-meta-right {
@@ -703,12 +708,6 @@ textarea {
   color: #6b7280;
   text-align: right;
   max-width: 45%;
-}
-
-.admin-meta {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .admin-row {
@@ -846,6 +845,36 @@ textarea {
   padding: 16px;
 
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+}
+
+/* Search input wrapper */
+.search-input-wrapper {
+  position: relative;
+  flex: 1;
+}
+
+/* Clear (X) button */
+.search-clear-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  font-size: 16px;
+  cursor: pointer;
+  color: #9ca3af;
+  padding: 4px;
+}
+
+.search-clear-btn:hover {
+  color: #374151;
+}
+
+.search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 /* ============================================================
