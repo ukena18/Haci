@@ -674,6 +674,10 @@ textarea {
   color: #9ca3af;
 }
 
+.btn-primary.green {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+}
+
 /* ============================================================
    Notes / Next Improvements (Optional)
 ============================================================ */

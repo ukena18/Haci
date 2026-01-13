@@ -1796,13 +1796,22 @@ function JobCard({
                 justifyContent: "flex-end",
               }}
             >
-              <button
-                className="btn btn-save"
-                disabled={job.isCompleted}
-                onClick={() => markJobComplete(job.id)}
-              >
-                İş Tamamla (Borç Ekle)
-              </button>
+              {!job.isCompleted && (
+                <button
+                  className="btn btn-save"
+                  onClick={() => markJobComplete(job.id)}
+                >
+                  İş Tamamla (Borç Ekle)
+                </button>
+              )}
+              {job.isCompleted && !job.isPaid && (
+                <button
+                  className="btn btn-primary green"
+                  onClick={() => markJobPaid(job.id)}
+                >
+                  Ödeme Tamamlandı
+                </button>
+              )}
             </div>
           </div>
         </div>
