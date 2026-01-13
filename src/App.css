@@ -427,6 +427,7 @@ textarea {
   display: flex;
   gap: 8px;
   align-items: center;
+  margin-bottom: 18px; /* ✅ FIX: space before Finansal Özet */
 }
 
 .search-wrap .search-bar {
