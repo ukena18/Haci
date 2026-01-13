@@ -339,6 +339,25 @@ function MainApp({ state, setState, user }) {
   const [search, setSearch] = useState("");
   const [customerSort, setCustomerSort] = useState("debt_desc");
 
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [paymentMode, setPaymentMode] = useState("payment");
+  const [paymentCustomer, setPaymentCustomer] = useState(null);
+
+  const [openCustomerFolders, setOpenCustomerFolders] = useState({});
+
+  function toggleCustomerFolder(customerId) {
+    setOpenCustomerFolders((s) => ({
+      ...s,
+      [customerId]: !s[customerId],
+    }));
+  }
+
+  function openPaymentModal(mode, customer) {
+    setPaymentMode(mode);
+    setPaymentCustomer(customer);
+    setPaymentModalOpen(true);
+  }
+
   const currency = state.currency || "TRY";
 
   const activeKasa = useMemo(() => {
@@ -408,6 +427,19 @@ function MainApp({ state, setState, user }) {
   }, [search, state.jobs, customersById]);
 
   const activeJobs = filteredJobs.filter((j) => !j.isCompleted);
+  const activeJobsByCustomer = useMemo(() => {
+    const map = new Map();
+
+    activeJobs.forEach((job) => {
+      if (!map.has(job.customerId)) {
+        map.set(job.customerId, []);
+      }
+      map.get(job.customerId).push(job);
+    });
+
+    return map;
+  }, [activeJobs]);
+
   const completedJobs = filteredJobs.filter((j) => j.isCompleted && !j.isPaid);
   // 📊 Financial summary (Home page)
 
@@ -1025,29 +1057,87 @@ function MainApp({ state, setState, user }) {
               </div>
 
               {activeOpen &&
-                (activeJobs.length === 0 ? (
+                (activeJobsByCustomer.size === 0 ? (
                   <div className="card">Aktif iş yok.</div>
                 ) : (
-                  activeJobs
-                    .slice()
-                    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
-                    .map((job) => (
-                      /* TEMP — job card stays same for now */
-                      <JobCard
-                        key={job.id}
-                        job={job}
-                        customersById={customersById}
-                        toggleJobOpen={toggleJobOpen}
-                        clockIn={clockIn}
-                        clockOut={clockOut}
-                        setEditingJobId={setEditingJobId}
-                        setJobModalOpen={setJobModalOpen}
-                        setConfirm={setConfirm}
-                        markJobComplete={markJobComplete}
-                        markJobPaid={markJobPaid} // ✅ THIS FIXES THE ERROR
-                        currency={currency} // ✅ ADD THIS
-                      />
-                    ))
+                  Array.from(activeJobsByCustomer.entries()).map(
+                    ([customerId, jobs]) => {
+                      const customer = customersById.get(customerId);
+
+                      const isOpen = openCustomerFolders[customerId] ?? false;
+
+                      const totalAmount = jobs.reduce((sum, j) => {
+                        const hours = calcHours(j.start, j.end);
+                        return sum + hours * toNum(j.rate) + partsTotalOf(j);
+                      }, 0);
+
+                      return (
+                        <div key={customerId}>
+                          {/* CUSTOMER FOLDER HEADER */}
+                          <div
+                            className="card list-item"
+                            style={{
+                              cursor: "pointer",
+                              background: "#f8fafc",
+                            }}
+                            onClick={() => toggleCustomerFolder(customerId)}
+                          >
+                            <div>
+                              <strong>
+                                {customer
+                                  ? `${customer.name} ${customer.surname}`
+                                  : "Bilinmeyen"}
+                              </strong>
+
+                              <div style={{ fontSize: 12, color: "#666" }}>
+                                {jobs.length} aktif iş
+                              </div>
+                            </div>
+
+                            <div
+                              style={{
+                                display: "flex",
+                                gap: 8,
+                                alignItems: "center",
+                              }}
+                            >
+                              <strong style={{ color: "var(--primary)" }}>
+                                {money(totalAmount, currency)}
+                              </strong>
+
+                              <span
+                                className={`folder-arrow ${
+                                  isOpen ? "open" : ""
+                                }`}
+                              >
+                                ▸
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* JOBS */}
+                          <div className={`job-folder ${isOpen ? "open" : ""}`}>
+                            {jobs.map((job) => (
+                              <div key={job.id} className="job-folder-item">
+                                <JobCard
+                                  job={job}
+                                  customersById={customersById}
+                                  toggleJobOpen={toggleJobOpen}
+                                  clockIn={clockIn}
+                                  clockOut={clockOut}
+                                  setEditingJobId={setEditingJobId}
+                                  setJobModalOpen={setJobModalOpen}
+                                  setConfirm={setConfirm}
+                                  markJobComplete={markJobComplete}
+                                  currency={currency}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    }
+                  )
                 ))}
 
               {/* COMPLETED JOBS FOLDER */}
@@ -1410,8 +1500,7 @@ function MainApp({ state, setState, user }) {
         payments={state.payments}
         kasalar={state.kasalar} // ✅ ADD
         activeKasaId={state.activeKasaId} // ✅ ADD
-        onMakePayment={makePayment}
-        onAddDebt={addDebt}
+        onOpenPayment={openPaymentModal}
         onEditCustomer={() => {
           setCustDetailOpen(false); // 🔴 CLOSE detail modal FIRST
           setEditingCustId(selectedCustomerId);
@@ -1436,6 +1525,24 @@ function MainApp({ state, setState, user }) {
           setCustDetailOpen(false); // ✅ close customer modal first
           setEditingJobId(null);
           setTimeout(() => setJobModalOpen(true), 0); // ✅ open job modal after
+        }}
+      />
+
+      <PaymentActionModal
+        open={paymentModalOpen}
+        mode={paymentMode}
+        customer={paymentCustomer}
+        kasalar={state.kasalar}
+        activeKasaId={state.activeKasaId}
+        onClose={() => setPaymentModalOpen(false)}
+        onSubmit={(amount, note, kasaId, method) => {
+          if (!paymentCustomer) return;
+
+          if (paymentMode === "payment") {
+            makePayment(paymentCustomer.id, amount, note, kasaId, method);
+          } else {
+            addDebt(paymentCustomer.id, amount, note, kasaId, method);
+          }
         }}
       />
 
@@ -1562,15 +1669,6 @@ function JobCard({
             <strong>{c ? `${c.name} ${c.surname}` : "Bilinmeyen"}</strong>
 
             {job.isRunning && <span className="badge">Çalışıyor</span>}
-            {job.isCompleted && !job.isPaid && (
-              <button
-                className="btn btn-save"
-                style={{ marginTop: 6 }}
-                onClick={() => markJobPaid(job.id)}
-              >
-                Ödeme Alındı
-              </button>
-            )}
           </div>
 
           <div style={{ marginTop: 6, fontSize: 12, color: "#555" }}>
@@ -1671,19 +1769,13 @@ function JobCard({
                 <div style={{ fontWeight: 700, marginBottom: 6 }}>
                   Kullanılan Parçalar
                 </div>
+
                 {job.parts.map((p) => (
                   <div key={p.id} className="partLine">
-                    {job.parts.map((p) => (
-                      <div key={p.id} className="partLine">
-                        <span>
-                          {p.name || "Parça"}{" "}
-                          {p.qty != null ? `× ${p.qty}` : ""}
-                        </span>
-                        <span>{money(partLineTotal(p), currency)}</span>
-                      </div>
-                    ))}
-
-                    <span>{money(p.qty * p.unitPrice, currency)}</span>
+                    <span>
+                      {p.name || "Parça"} {p.qty != null ? `× ${p.qty}` : ""}
+                    </span>
+                    <span>{money(partLineTotal(p), currency)}</span>
                   </div>
                 ))}
               </div>
@@ -1812,11 +1904,22 @@ function CustomerSharePage({ state }) {
  */
 function ModalBase({ open, title, onClose, children }) {
   if (!open) return null;
+
   return (
-    <div className="modal" style={{ display: "block" }}>
-      <div className="modal-content">
+    <div
+      className="modal"
+      onClick={onClose} // 👈 backdrop click closes modal
+    >
+      <div
+        className="modal-content"
+        onClick={(e) => e.stopPropagation()} // 👈 STOP bubbling
+      >
         <div
-          style={{ display: "flex", justifyContent: "space-between", gap: 10 }}
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            gap: 10,
+          }}
         >
           <h3 style={{ margin: 0 }}>{title}</h3>
           <button
@@ -1827,6 +1930,7 @@ function ModalBase({ open, title, onClose, children }) {
             Kapat
           </button>
         </div>
+
         <div style={{ marginTop: 14 }}>{children}</div>
       </div>
     </div>
@@ -1844,7 +1948,7 @@ function ConfirmModal({ open, message, onYes, onNo, requireText }) {
     if (!open) setTyped("");
   }, [open]);
 
-  const canConfirm = !requireText || typed === "DELETE";
+  const canConfirm = !requireText || typed === "SIL";
 
   return (
     <ModalBase open={open} title="Confirm" onClose={onNo}>
@@ -2072,7 +2176,7 @@ function JobModal({
       ...d,
       parts: [
         ...(d.parts || []),
-        { id: uid(), name: "", qty: 1, unitPrice: 0 },
+        { id: uid(), name: "", qty: null, unitPrice: null },
       ],
     }));
   }
@@ -2190,40 +2294,66 @@ function JobModal({
         <label>Kullanılan Parçalar</label>
 
         {(draft.parts || []).map((p) => (
-          <div key={p.id} className="parca-item">
+          <div
+            key={p.id}
+            className="parca-item"
+            style={{
+              flexDirection: "column",
+              background: "#f9fafb",
+              padding: 10,
+              borderRadius: 10,
+              marginBottom: 8,
+            }}
+          >
             <input
               type="text"
-              placeholder="Parça adı"
+              placeholder="Parça Adı (örn: Filtre)"
               value={p.name}
               onChange={(e) => updatePart(p.id, { name: e.target.value })}
             />
 
-            <input
-              type="number"
-              placeholder="Adet"
-              min="1"
-              value={p.qty}
-              onChange={(e) =>
-                updatePart(p.id, { qty: Number(e.target.value) || 1 })
-              }
-            />
+            <div style={{ display: "flex", gap: 6 }}>
+              <input
+                type="number"
+                placeholder="Adet"
+                min="1"
+                value={p.qty === null ? "" : p.qty}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  updatePart(p.id, {
+                    qty: v === "" ? null : Number(v),
+                  });
+                }}
+              />
 
-            <input
-              type="number"
-              placeholder="Birim Fiyat"
-              value={p.unitPrice}
-              onChange={(e) =>
-                updatePart(p.id, { unitPrice: Number(e.target.value) || 0 })
-              }
-            />
+              <input
+                type="number"
+                placeholder="Birim Fiyat"
+                value={p.unitPrice === null ? "" : p.unitPrice}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  updatePart(p.id, {
+                    unitPrice: v === "" ? null : Number(v),
+                  });
+                }}
+              />
 
-            <button
-              onClick={() => removePart(p.id)}
-              style={{ background: "none", border: "none", color: "red" }}
-              title="Remove part"
-            >
-              X
-            </button>
+              <button
+                onClick={() => removePart(p.id)}
+                title="Parçayı sil"
+                style={{
+                  background: "#fee2e2",
+                  border: "none",
+                  color: "#991b1b",
+                  borderRadius: 8,
+                  padding: "0 10px",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                ✕
+              </button>
+            </div>
           </div>
         ))}
       </div>
@@ -2291,14 +2421,14 @@ function JobModal({
 function CustomerDetailModal({
   open,
   onClose,
+  onOpenPayment,
   customer,
   jobs,
   currency, // ✅ ADD
   kasalar, // ✅ ADD
   activeKasaId, // ✅ ADD
   payments, //ADD this
-  onMakePayment,
-  onAddDebt,
+
   onEditCustomer,
   onDeleteCustomer,
   onEditJob,
@@ -2310,9 +2440,7 @@ function CustomerDetailModal({
   const [paymentNote, setPaymentNote] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
-  // 💳 Payment modal state
-  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
-  const [paymentMode, setPaymentMode] = useState("payment");
+
   // "payment" | "debt"
   function isInRange(dateStr) {
     if (!dateStr) return false;
@@ -2579,20 +2707,14 @@ function CustomerDetailModal({
               <div className="primary-actions">
                 <button
                   className="btn-primary green"
-                  onClick={() => {
-                    setPaymentMode("payment");
-                    setPaymentModalOpen(true);
-                  }}
+                  onClick={() => onOpenPayment("payment", customer)}
                 >
                   💰 Tahsilat
                 </button>
 
                 <button
                   className="btn-primary red"
-                  onClick={() => {
-                    setPaymentMode("debt");
-                    setPaymentModalOpen(true);
-                  }}
+                  onClick={() => onOpenPayment("debt", customer)}
                 >
                   🧾 Borç
                 </button>
@@ -2793,22 +2915,6 @@ function CustomerDetailModal({
           </div>
         </>
       )}
-
-      <PaymentActionModal
-        open={paymentModalOpen}
-        mode={paymentMode}
-        customer={customer}
-        kasalar={kasalar}
-        activeKasaId={activeKasaId}
-        onClose={() => setPaymentModalOpen(false)}
-        onSubmit={(amount, note, kasaId, method) => {
-          if (paymentMode === "payment") {
-            onMakePayment(customer.id, amount, note, kasaId, method);
-          } else {
-            onAddDebt(customer.id, amount, note, kasaId, method);
-          }
-        }}
-      />
     </ModalBase>
   );
 }
