@@ -633,21 +633,52 @@ function MainApp({ state, setState, user }) {
     if (amt <= 0) return;
 
     setState((s) => {
-      const oldCustomer = s.customers.find((c) => c.id === customerId);
-      const oldBalance = toNum(oldCustomer?.balanceOwed);
-      const newBalance = oldBalance - amt;
+      let remaining = amt;
 
+      // 1️⃣ Find unpaid completed jobs (oldest first)
+      const unpaidJobs = s.jobs
+        .filter(
+          (j) => j.customerId === customerId && j.isCompleted && !j.isPaid
+        )
+        .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+
+      // 2️⃣ Apply payment job by job
+      const nextJobs = s.jobs.map((job) => {
+        if (
+          job.customerId !== customerId ||
+          !job.isCompleted ||
+          job.isPaid ||
+          remaining <= 0
+        ) {
+          return job;
+        }
+
+        const hours =
+          job.timeMode === "clock"
+            ? (job.workedMs || 0) / 36e5
+            : calcHours(job.start, job.end);
+
+        const jobTotal = hours * toNum(job.rate) + partsTotalOf(job);
+
+        if (remaining >= jobTotal) {
+          remaining -= jobTotal;
+          return { ...job, isPaid: true };
+        }
+
+        return job; // partial payment → still unpaid
+      });
+
+      // 3️⃣ Create payment record
       const payment = {
         id: uid(),
         customerId,
         kasaId: kasaId || s.activeKasaId,
         type: "payment",
         amount: amt,
-        method, // ✅ NEW
+        method,
         note: note || "Tahsilat",
         date,
         createdAt: Date.now(),
-
         currency:
           (s.kasalar || []).find((k) => k.id === (kasaId || s.activeKasaId))
             ?.currency ||
@@ -655,28 +686,25 @@ function MainApp({ state, setState, user }) {
           "TRY",
       };
 
+      // 4️⃣ Update customer balance
+      const nextCustomers = s.customers.map((c) =>
+        c.id === customerId
+          ? { ...c, balanceOwed: toNum(c.balanceOwed) - amt }
+          : c
+      );
+
+      // 5️⃣ Update kasa balance
+      const nextKasalar = s.kasalar.map((k) =>
+        k.id === (kasaId || s.activeKasaId)
+          ? { ...k, balance: toNum(k.balance) + amt }
+          : k
+      );
+
       return {
         ...s,
-        kasalar: s.kasalar.map((k) =>
-          k.id === s.activeKasaId
-            ? { ...k, balance: toNum(k.balance) + amt }
-            : k
-        ),
-        customers: s.customers.map((c) =>
-          c.id === customerId
-            ? { ...c, balanceOwed: toNum(c.balanceOwed) - amt } //allow negatives
-            : c
-        ),
-        jobs: s.jobs.map((j) => {
-          if (j.customerId !== customerId) return j;
-
-          // If job is completed and customer is now fully paid (or negative), mark paid
-          if (j.isCompleted && newBalance <= 0) {
-            return { ...j, isPaid: true };
-          }
-          return j;
-        }),
-
+        jobs: nextJobs,
+        customers: nextCustomers,
+        kasalar: nextKasalar,
         payments: [...(s.payments || []), payment],
       };
     });
@@ -2983,6 +3011,59 @@ function CustomerDetailModal({
       .sort((a, b) => b.createdAt - a.createdAt);
   }, [payments, customer, fromDate, toDate]);
 
+  // ===============================
+  // 📊 CUSTOMER FINANCIAL STATS
+  // ===============================
+
+  // ===============================
+  // 📊 CUSTOMER FINANCIAL STATS
+  // ===============================
+
+  // helper: job total (manual + clock)
+  function jobTotalOf(j) {
+    const liveMs = j.isRunning && j.clockInAt ? Date.now() - j.clockInAt : 0;
+    const totalMs = (j.workedMs || 0) + liveMs;
+
+    const hours =
+      j.timeMode === "clock" ? totalMs / 36e5 : calcHours(j.start, j.end);
+
+    return hours * toNum(j.rate) + partsTotalOf(j);
+  }
+
+  // ✅ plus transactions (tahsilat button)
+  const paymentsPlusTotal = useMemo(() => {
+    return customerPayments
+      .filter((p) => p.type === "payment")
+      .reduce((sum, p) => sum + toNum(p.amount), 0);
+  }, [customerPayments]);
+
+  // ✅ minus transactions (borç button)
+  const paymentsMinusTotal = useMemo(() => {
+    return customerPayments
+      .filter((p) => p.type === "debt")
+      .reduce((sum, p) => sum + toNum(p.amount), 0);
+  }, [customerPayments]);
+
+  // ✅ jobs totals split by paid/unpaid
+  const paidJobsTotal = useMemo(() => {
+    if (!customer) return 0;
+    return jobs
+      .filter((j) => j.customerId === customer.id && j.isPaid)
+      .reduce((sum, j) => sum + jobTotalOf(j), 0);
+  }, [jobs, customer]);
+
+  const unpaidJobsTotal = useMemo(() => {
+    if (!customer) return 0;
+    return jobs
+      .filter((j) => j.customerId === customer.id && !j.isPaid)
+      .reduce((sum, j) => sum + jobTotalOf(j), 0);
+  }, [jobs, customer]);
+
+  // ✅ FINAL
+  const totalTahsilat = paymentsPlusTotal + paidJobsTotal; // all pluses
+  const totalBorc = paymentsMinusTotal + unpaidJobsTotal; // all minuses
+  const bakiye = totalTahsilat - totalBorc; // remaining
+
   async function shareAsPDF() {
     const html = printRef.current?.innerHTML;
     if (!html) return;
@@ -3080,10 +3161,6 @@ function CustomerDetailModal({
                   ID: <b style={{ fontFamily: "monospace" }}>{customer.id}</b>
                 </div>
               </div>
-
-              <div className="cust-balance">
-                {money(customer.balanceOwed, currency)}
-              </div>
             </div>
 
             <button
@@ -3092,6 +3169,27 @@ function CustomerDetailModal({
             >
               🌐 Müşteri Portalını Aç
             </button>
+          </div>
+          {/* 📊 QUICK CUSTOMER STATS */}
+          <div className="cust-stats">
+            <div className="cust-stat">
+              <div className="stat-label">Toplam Tahsilat</div>
+              <div className="stat-value green">
+                +{money(totalTahsilat, currency)}
+              </div>
+            </div>
+
+            <div className="cust-stat">
+              <div className="stat-label">Toplam Borç</div>
+              <div className="stat-value red">{money(totalBorc, currency)}</div>
+            </div>
+
+            <div className="cust-stat">
+              <div className="stat-label">Bakiye</div>
+              <div className={`stat-value ${bakiye >= 0 ? "green" : "red"}`}>
+                {money(bakiye, currency)}
+              </div>
+            </div>
           </div>
 
           <hr />

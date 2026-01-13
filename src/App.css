@@ -877,6 +877,59 @@ textarea {
   gap: 10px;
 }
 
+/* =========================
+   Customer Stats (Detail)
+========================= */
+
+.cust-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 12px 0 14px;
+}
+
+.cust-stat {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 10px 10px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+}
+
+.stat-label {
+  font-size: 11px;
+  color: #6b7280;
+  margin-bottom: 6px;
+  font-weight: 700;
+}
+
+.stat-value {
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.stat-value.green {
+  color: #16a34a;
+}
+
+.stat-value.red {
+  color: #dc2626;
+}
+
+/* Mobile: 3 boxes still fit but smaller */
+@media (max-width: 420px) {
+  .cust-stats {
+    gap: 8px;
+  }
+  .cust-stat {
+    padding: 9px;
+  }
+  .stat-value {
+    font-size: 12px;
+  }
+}
+
 /* ============================================================
    Notes / Next Improvements (Optional)
 ============================================================ */
