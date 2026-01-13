@@ -2019,8 +2019,9 @@ function JobCard({
 ============================================================ */
 
 function CustomerSharePage({ state }) {
+  const READ_ONLY = true;
   const { id } = useParams();
-  const navigate = useNavigate();
+
   const currency = state.currency || "TRY";
   const customer = state.customers.find((c) => c.id === id) || null;
 
@@ -2033,11 +2034,12 @@ function CustomerSharePage({ state }) {
 
   const customerPayments = useMemo(() => {
     if (!customer) return [];
-    return (state?.payments || [])
+
+    return (state.payments || [])
       .filter((p) => p.customerId === customer.id)
       .slice()
       .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-  }, [state?.payments, customer]);
+  }, [state.payments, customer]);
 
   return (
     <>
@@ -2056,11 +2058,61 @@ function CustomerSharePage({ state }) {
       </div>
 
       <div className="container">
-        <button className="btn btn-cancel" onClick={() => navigate("/")}>
-          Uygulamaya Dön
-        </button>
-
         <div style={{ marginTop: 12 }}>
+          {/* 💰 Tahsilat / Borç Geçmişi */}
+          {customerPayments.length > 0 && (
+            <div style={{ marginBottom: 16 }}>
+              <h3 style={{ marginTop: 0 }}>💰 Tahsilat / Borç Geçmişi</h3>
+
+              {customerPayments.map((p) => {
+                const isPayment = p.type === "payment";
+
+                return (
+                  <div
+                    key={p.id}
+                    className="card list-item"
+                    style={{
+                      borderLeft: `6px solid ${
+                        isPayment ? "#16a34a" : "#dc2626"
+                      }`,
+                      background: isPayment ? "#f0fdf4" : "#fef2f2",
+                    }}
+                  >
+                    <div>
+                      <strong
+                        style={{
+                          color: isPayment ? "#166534" : "#7f1d1d",
+                        }}
+                      >
+                        {isPayment ? "💰 Tahsilat" : "🧾 Borç"}
+                      </strong>
+
+                      {p.note && (
+                        <div style={{ fontSize: 12, color: "#555" }}>
+                          {p.note}
+                        </div>
+                      )}
+
+                      <div style={{ fontSize: 12, color: "#777" }}>
+                        {p.date}
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        fontWeight: 700,
+                        color: isPayment ? "#16a34a" : "#dc2626",
+                      }}
+                    >
+                      {isPayment ? "+" : "-"}
+                      {money(p.amount, p.currency || currency)}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
           {!customer ? (
             <div className="card">Bu ID ile müşteri bulunamadı.</div>
           ) : customerJobs.length === 0 ? (
@@ -2092,36 +2144,6 @@ function CustomerSharePage({ state }) {
                     >
                       {money(total, currency)}
                     </strong>
-
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: 6,
-                        justifyContent: "flex-end",
-                        marginTop: 8,
-                      }}
-                    >
-                      <button
-                        className="btn"
-                        style={{
-                          background: "#eee",
-                          color: "#333",
-                          padding: "6px 10px",
-                          flex: "unset",
-                        }}
-                        onClick={() => onEditJob(j.id)}
-                      >
-                        Düzenle
-                      </button>
-
-                      <button
-                        className="btn btn-delete"
-                        style={{ padding: "6px 10px", flex: "unset" }}
-                        onClick={() => onDeleteJob(j.id)}
-                      >
-                        Sil
-                      </button>
-                    </div>
                   </div>
                 </div>
               );
