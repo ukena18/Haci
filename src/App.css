@@ -688,6 +688,32 @@ textarea {
   background: linear-gradient(135deg, #22c55e, #16a34a);
 }
 
+.admin-meta {
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.admin-meta-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  font-size: 12px;
+  color: #6b7280;
+  text-align: right;
+  max-width: 45%;
+}
+
+.admin-meta {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-row {
+  align-items: center;
+}
 /* ============================================================
    Notes / Next Improvements (Optional)
 ============================================================ */

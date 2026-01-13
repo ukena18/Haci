@@ -1331,14 +1331,29 @@ function MainApp({ state, setState, user }) {
                     {user?.email?.[0]?.toUpperCase() || "A"}
                   </div>
 
-                  <div className="admin-info">
+                  <div className="admin-info" style={{ flex: 1 }}>
                     <strong className="admin-name">
                       {user?.displayName || "Yönetici"}
                     </strong>
+
                     <div className="admin-email">
                       {user?.email || "admin@example.com"}
                     </div>
+
                     <span className="admin-role">ADMIN</span>
+                  </div>
+
+                  {/* RIGHT SIDE */}
+                  <div className="admin-meta-right">
+                    {state.profile?.phone && (
+                      <div className="admin-meta">📞 {state.profile.phone}</div>
+                    )}
+
+                    {state.profile?.address && (
+                      <div className="admin-meta">
+                        📍 {state.profile.address}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1651,6 +1666,8 @@ function MainApp({ state, setState, user }) {
         open={profileOpen}
         onClose={() => setProfileOpen(false)}
         user={user}
+        profile={state.profile} // ✅ ADD THIS
+        setState={setState} // ✅ ADD THIS
       />
       {/* CONFIRMATION MODAL (Delete) */}
       <ConfirmModal
@@ -3299,8 +3316,10 @@ function PaymentActionModal({
   );
 }
 
-function ProfileModal({ open, onClose, user }) {
+function ProfileModal({ open, onClose, user, profile, setState }) {
   const [name, setName] = useState(user?.displayName || "");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
   const [email, setEmail] = useState(user?.email || "");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -3310,13 +3329,19 @@ function ProfileModal({ open, onClose, user }) {
 
   useEffect(() => {
     if (!open) return;
+
     setName(user?.displayName || "");
     setEmail(user?.email || "");
+
+    // ✅ LOAD FROM FIRESTORE
+    setPhone(profile?.phone || "");
+    setAddress(profile?.address || "");
+
     setCurrentPassword("");
     setNewPassword("");
     setConfirmPassword("");
     setError("");
-  }, [open, user]);
+  }, [open, user, profile]);
 
   async function reauthRequired() {
     if (!currentPassword) {
@@ -3370,6 +3395,24 @@ function ProfileModal({ open, onClose, user }) {
         await updatePassword(user, newPassword);
       }
 
+      // ✅ SAVE extra profile fields to Firestore
+      await saveUserData(user.uid, {
+        profile: {
+          phone,
+          address,
+        },
+      });
+
+      // ✅ UPDATE LOCAL STATE IMMEDIATELY
+      setState((s) => ({
+        ...s,
+        profile: {
+          ...(s.profile || {}),
+          phone,
+          address,
+        },
+      }));
+
       alert("Profil güncellendi ✅");
       onClose();
     } catch (err) {
@@ -3405,6 +3448,25 @@ function ProfileModal({ open, onClose, user }) {
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+        />
+      </div>
+      <div className="form-group">
+        <label>Telefon</label>
+        <input
+          type="tel"
+          placeholder="+90 5xx xxx xx xx"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+        />
+      </div>
+
+      <div className="form-group">
+        <label>Adres</label>
+        <textarea
+          rows={2}
+          placeholder="Adres"
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
         />
       </div>
 
