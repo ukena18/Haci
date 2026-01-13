@@ -318,7 +318,10 @@ function AppRoutes({ user }) {
 
   return (
     <Routes>
-      <Route path="/" element={<MainApp state={state} setState={setState} />} />
+      <Route
+        path="/"
+        element={<MainApp state={state} setState={setState} user={user} />}
+      />
       <Route
         path="/customer/:id"
         element={<CustomerSharePage state={state} />}
@@ -331,7 +334,7 @@ function AppRoutes({ user }) {
    5) MAIN APP UI (Home / Customers / Settings)
 ============================================================ */
 
-function MainApp({ state, setState }) {
+function MainApp({ state, setState, user }) {
   const [page, setPage] = useState("home"); // home | customers | settings
   const [search, setSearch] = useState("");
   const [customerSort, setCustomerSort] = useState("debt_desc");
@@ -1135,6 +1138,23 @@ function MainApp({ state, setState }) {
         {page === "settings" && (
           <div id="page-settings">
             <div className="card">
+              {/* 👤 ADMIN PROFILE */}
+              <div className="card admin-profile">
+                <div className="admin-row">
+                  <div className="admin-avatar">
+                    {user?.email?.[0]?.toUpperCase() || "A"}
+                  </div>
+
+                  <div className="admin-info">
+                    <strong className="admin-name">Yönetici</strong>
+                    <div className="admin-email">
+                      {user?.email || "admin@example.com"}
+                    </div>
+                    <span className="admin-role">ADMIN</span>
+                  </div>
+                </div>
+              </div>
+
               <h3>Kasa Yönetimi</h3>
               {/* CURRENCY SELECT */}
               <div className="card" style={{ marginBottom: 12 }}>
