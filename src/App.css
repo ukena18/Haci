@@ -714,6 +714,84 @@ textarea {
 .admin-row {
   align-items: center;
 }
+
+/* Compact sort button */
+.sort-select.compact {
+  height: 36px;
+  min-width: 10px;
+  padding: 0 8px;
+  font-size: 14px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ICON-ONLY SORT BUTTON */
+.sort-select.icon-only {
+  width: 42px; /* 👈 JUST ENOUGH FOR ICON */
+  min-width: 42px;
+  height: 36px;
+
+  padding: 0;
+  font-size: 16px;
+  font-weight: 600;
+
+  border-radius: 999px;
+  text-align: center;
+  text-align-last: center;
+
+  cursor: pointer;
+  appearance: none; /* 🔥 removes default arrow */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+
+  background-image: none; /* no arrow */
+}
+
+/* Center the ⇅ perfectly */
+.sort-select.icon-only option:first-child {
+  text-align: center;
+}
+
+/* When dropdown opens → full width menu */
+.sort-select.icon-only option {
+  text-align: left;
+  padding: 8px 12px;
+}
+
+/* Focus ring (nice mobile feel) */
+.sort-select.icon-only:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.35);
+}
+
+/* Sort wrapper */
+.sort-wrapper {
+  position: relative;
+  width: 42px;
+  height: 36px;
+}
+
+/* Small round icon button */
+.sort-icon-btn {
+  height: 36px;
+  width: 42px;
+  border-radius: 999px;
+  border: 1px solid #ddd;
+  background: white;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+/* Hidden select (but clickable programmatically) */
+.sort-hidden-select {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
 /* ============================================================
    Notes / Next Improvements (Optional)
 ============================================================ */

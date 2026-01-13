@@ -348,7 +348,7 @@ function AppRoutes({ user }) {
 function MainApp({ state, setState, user }) {
   const [page, setPage] = useState("home"); // home | customers | settings
   const [search, setSearch] = useState("");
-  const [customerSort, setCustomerSort] = useState("debt_desc");
+  const [customerSort, setCustomerSort] = useState("latest");
 
   const [profileOpen, setProfileOpen] = useState(false);
 
@@ -916,19 +916,29 @@ function MainApp({ state, setState, user }) {
           />
 
           {page === "customers" && (
-            <select
-              className="sort-select"
-              value={customerSort}
-              onChange={(e) => setCustomerSort(e.target.value)}
-              title="Sırala"
-            >
-              <option value="debt_desc">⇅</option>
-              <option value="debt_desc">💸 Borcu En Yüksek</option>
-              <option value="debt_asc">💰 Borcu En Düşük</option>
-              <option value="name_asc">🔤 İsim A → Z</option>
-              <option value="name_desc">🔤 İsim Z → A</option>
-              <option value="latest">🕒 Son İşlem (En Yeni)</option>
-            </select>
+            <div className="sort-wrapper">
+              <button
+                type="button"
+                className="sort-icon-btn"
+                title="Sırala"
+                onClick={() => document.getElementById("customer-sort").click()}
+              >
+                ⇅
+              </button>
+
+              <select
+                id="customer-sort"
+                value={customerSort}
+                onChange={(e) => setCustomerSort(e.target.value)}
+                className="sort-hidden-select"
+              >
+                <option value="debt_desc">💸 Borcu En Yüksek</option>
+                <option value="debt_asc">💰 Borcu En Düşük</option>
+                <option value="name_asc">🔤 İsim A → Z</option>
+                <option value="name_desc">🔤 İsim Z → A</option>
+                <option value="latest">🕒 Son İşlem (En Yeni)</option>
+              </select>
+            </div>
           )}
         </div>
 
@@ -2019,7 +2029,6 @@ function JobCard({
 ============================================================ */
 
 function CustomerSharePage({ state }) {
-  const READ_ONLY = true;
   const { id } = useParams();
 
   const currency = state.currency || "TRY";
