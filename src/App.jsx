@@ -855,7 +855,7 @@ function MainApp({ state, setState }) {
                   gridTemplateColumns: "1fr 1fr",
                   gap: 12,
                   marginBottom: 14,
-                  fontSize: 14,
+                  fontSize: 12,
                 }}
               >
                 <div
@@ -956,7 +956,7 @@ function MainApp({ state, setState }) {
 
               {paymentOpen &&
                 (paymentWatchList.length === 0 ? (
-                  <div className="card" style={{ fontSize: 13, color: "#666" }}>
+                  <div className="card" style={{ fontSize: 12, color: "#666" }}>
                     Takip edilecek aktif iş yok.
                   </div>
                 ) : (
@@ -1197,7 +1197,7 @@ function MainApp({ state, setState }) {
                             if (e.key === "Escape") setEditingKasaId(null);
                           }}
                           style={{
-                            fontSize: 14,
+                            fontSize: 12,
                             padding: "4px 6px",
                             width: "100%",
                           }}
@@ -1215,7 +1215,7 @@ function MainApp({ state, setState }) {
                         </strong>
                       )}
 
-                      <div style={{ fontSize: 13, color: "#555" }}>
+                      <div style={{ fontSize: 12, color: "#555" }}>
                         Bakiye: {money(kasa.balance, kasa.currency || currency)}
                         <div style={{ marginTop: 8 }}>
                           <div
@@ -1550,7 +1550,7 @@ function JobCard({
             )}
           </div>
 
-          <div style={{ marginTop: 6, fontSize: 13, color: "#555" }}>
+          <div style={{ marginTop: 6, fontSize: 12, color: "#555" }}>
             {job.isRunning ? (
               <>
                 ⏱ Süre:{" "}
@@ -1665,7 +1665,7 @@ function JobCard({
                 ))}
               </div>
             ) : (
-              <div style={{ color: "#666", fontSize: 13 }}>Parça yok.</div>
+              <div style={{ color: "#666", fontSize: 12 }}>Parça yok.</div>
             )}
 
             {job.notes && (
@@ -2436,37 +2436,78 @@ function CustomerDetailModal({
       .sort((a, b) => b.createdAt - a.createdAt);
   }, [payments, customer, fromDate, toDate]);
 
-  function shareAsPDF() {
-    // This uses the browser print dialog. User can choose “Save as PDF”.
+  async function shareAsPDF() {
     const html = printRef.current?.innerHTML;
     if (!html) return;
 
+    // Create a printable window
     const w = window.open("", "_blank");
     if (!w) {
       alert("Popup blocked. Please allow popups to export PDF.");
       return;
     }
+
     w.document.write(`
-      <!doctype html>
-      <html>
-      <head>
-        <meta charset="utf-8"/>
-        <title>Müşteri Döküm</title>
-        <style>
-          body{font-family:Segoe UI,system-ui,Arial; padding:24px;}
-          h1{font-size:18px;margin:0 0 8px 0;}
-          .muted{color:#555;}
-          table{width:100%;border-collapse:collapse;margin-top:16px;}
-          th,td{border:1px solid #ddd;padding:8px;font-size:12px;text-align:left;}
-          th{background:#f3f4f6;}
-        </style>
-      </head>
-      <body>${html}</body>
-      </html>
-    `);
+    <!doctype html>
+    <html>
+    <head>
+      <meta charset="utf-8"/>
+      <title>Müşteri Döküm</title>
+      <meta name="viewport" content="width=device-width, initial-scale=1"/>
+      <style>
+        body{font-family:Segoe UI,system-ui,Arial; padding:24px;}
+        h1{font-size:18px;margin:0 0 8px 0;}
+        .muted{color:#555;}
+        table{width:100%;border-collapse:collapse;margin-top:16px;}
+        th,td{border:1px solid #ddd;padding:8px;font-size:12px;text-align:left;}
+        th{background:#f3f4f6;}
+        @media print {
+          button { display:none !important; }
+        }
+      </style>
+    </head>
+    <body>
+      <div style="display:flex; gap:10px; margin-bottom:14px;">
+        <button id="btnPrint" style="
+          padding:10px 14px;border:none;border-radius:10px;
+          background:#2563eb;color:white;font-weight:700;cursor:pointer;">
+          Yazdır / PDF Kaydet
+        </button>
+
+        <button id="btnDownload" style="
+          padding:10px 14px;border:none;border-radius:10px;
+          background:#16a34a;color:white;font-weight:700;cursor:pointer;">
+          İndir (HTML)
+        </button>
+      </div>
+
+      ${html}
+
+      <script>
+        // Print button
+        document.getElementById("btnPrint").onclick = () => window.print();
+
+        // Simple download as HTML fallback (works everywhere)
+        document.getElementById("btnDownload").onclick = () => {
+          const blob = new Blob([document.documentElement.outerHTML], { type: "text/html;charset=utf-8" });
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(blob);
+          a.download = "musteri-dokumu.html";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+        };
+
+        // Auto-open print dialog (optional). Comment out if you only want buttons.
+         
+      </script>
+    </body>
+    </html>
+  `);
+
     w.document.close();
     w.focus();
-    w.print();
   }
 
   if (!open) return null;
@@ -2599,7 +2640,7 @@ function CustomerDetailModal({
             </div>
           </div>
 
-          <div id="detail-history" style={{ marginTop: 12, fontSize: 14 }}>
+          <div id="detail-history" style={{ marginTop: 12, fontSize: 12 }}>
             {/* 💰 Tahsilat / Borç Kayıtları */}
             {/* 💰 Tahsilat / Borç Kayıtları */}
             {customerPayments.map((p) => {
@@ -2626,7 +2667,7 @@ function CustomerDetailModal({
 
                     {p.note && (
                       <div
-                        style={{ fontSize: 13, color: "#555", marginTop: 4 }}
+                        style={{ fontSize: 12, color: "#555", marginTop: 4 }}
                       >
                         {p.note}
                       </div>
@@ -2646,7 +2687,7 @@ function CustomerDetailModal({
                     style={{
                       fontWeight: 700,
                       color: isPayment ? "#16a34a" : "#dc2626",
-                      fontSize: 15,
+                      fontSize: 12,
                     }}
                   >
                     {isPayment ? "+" : "-"}
