@@ -1727,7 +1727,7 @@ function JobCard({
 function CustomerSharePage({ state }) {
   const { id } = useParams();
   const navigate = useNavigate();
-
+  const currency = state.currency || "TRY";
   const customer = state.customers.find((c) => c.id === id) || null;
 
   const customerJobs = useMemo(() => {
@@ -2541,22 +2541,34 @@ function CustomerDetailModal({
         <div className="card">Müşteri bulunamadı.</div>
       ) : (
         <>
-          <h3 id="detail-cust-name" style={{ marginTop: 0 }}>
-            {customer.name} {customer.surname}
-          </h3>
+          <div className="cust-header-card">
+            <div className="cust-header-top">
+              <div>
+                <h3 className="cust-name">
+                  {customer.name} {customer.surname}
+                </h3>
 
-          <p id="detail-cust-info" style={{ marginTop: 0, color: "#444" }}>
-            {customer.phone || "-"} | {customer.address || "-"}
-            <br />
-            <small style={{ color: "#666" }}>
-              ID: <b style={{ fontFamily: "monospace" }}>{customer.id}</b> —
-              Paylaşım linki: <b>/customer/{customer.id}</b>
-            </small>
-            <br />
-            <small style={{ color: "#666" }}>
-              Borç: <b>{money(customer.balanceOwed, currency)}</b>
-            </small>
-          </p>
+                <div className="cust-sub">
+                  {customer.phone || "—"} • {customer.address || "—"}
+                </div>
+
+                <div className="cust-meta">
+                  ID: <b style={{ fontFamily: "monospace" }}>{customer.id}</b>
+                </div>
+              </div>
+
+              <div className="cust-balance">
+                {money(customer.balanceOwed, currency)}
+              </div>
+            </div>
+
+            <button
+              className="portal-btn"
+              onClick={() => window.open(`/customer/${customer.id}`, "_blank")}
+            >
+              🌐 Müşteri Portalını Aç
+            </button>
+          </div>
 
           <hr />
 
@@ -2564,87 +2576,46 @@ function CustomerDetailModal({
           {/* i basically add another button and havent changed payment amonut for debt button */}
           <div className="btn-row">
             <div style={{ flex: 1 }}>
-              <div className="btn-row">
+              <div className="primary-actions">
                 <button
-                  className="btn btn-save"
+                  className="btn-primary green"
                   onClick={() => {
                     setPaymentMode("payment");
                     setPaymentModalOpen(true);
                   }}
                 >
-                  💰 Tahsilat Al
+                  💰 Tahsilat
                 </button>
 
                 <button
-                  className="btn btn-delete"
+                  className="btn-primary red"
                   onClick={() => {
                     setPaymentMode("debt");
                     setPaymentModalOpen(true);
                   }}
                 >
-                  🧾 Borçlandır
+                  🧾 Borç
                 </button>
 
-                <button
-                  className="btn btn-save"
-                  style={{ background: "#16a34a" }}
-                  onClick={onAddJob}
-                >
-                  + İş Ekle
+                <button className="btn-primary blue" onClick={onAddJob}>
+                  ＋ İş
                 </button>
               </div>
             </div>
           </div>
 
-          <div className="btn-row" style={{ flexWrap: "wrap" }}>
-            <button
-              className="btn"
-              style={{ background: "#2563eb", color: "white" }}
-              onClick={shareAsPDF}
-            >
-              🖨 PDF / Yazdır
-            </button>
-
-            <button
-              className="btn"
-              style={{ background: "#0ea5e9", color: "white" }}
-              onClick={sendByEmail}
-            >
-              📧 E-posta Gönder
-            </button>
-
-            <button
-              className="btn"
-              style={{ background: "#22c55e", color: "white" }}
-              onClick={sendByWhatsApp}
-            >
-              💬 WhatsApp
-            </button>
-
-            <button className="btn btn-save" onClick={onEditCustomer}>
-              ✏️ Müşteri Düzenle
-            </button>
+          <div className="secondary-actions">
+            <button onClick={shareAsPDF}>🖨 PDF</button>
+            <button onClick={sendByEmail}>📧 Mail</button>
+            <button onClick={sendByWhatsApp}>💬 WA</button>
+            <button onClick={onEditCustomer}>✏️ Edit</button>
           </div>
 
           <hr />
 
-          {/* Jobs list for customer */}
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                gap: 10,
-              }}
-            >
-              <h4 style={{ margin: 0 }}>İş Geçmişi</h4>
+          <div className="history-card">
+            <div className="history-header">
+              <h4>İş Geçmişi</h4>
 
               <div style={{ display: "flex", gap: 6 }}>
                 <input
@@ -2661,9 +2632,12 @@ function CustomerDetailModal({
                 />
               </div>
             </div>
-          </div>
 
-          <div id="detail-history" style={{ marginTop: 12, fontSize: 12 }}>
+            <div
+              id="detail-history"
+              style={{ marginTop: 8, fontSize: 12 }}
+            ></div>
+
             {/* 💰 Tahsilat / Borç Kayıtları */}
             {/* 💰 Tahsilat / Borç Kayıtları */}
             {customerPayments.map((p) => {

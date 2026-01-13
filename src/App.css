@@ -514,6 +514,134 @@ textarea {
   font-size: 15px;
   font-weight: 700;
 }
+
+/* ================================
+   Customer Detail Modern UI
+================================ */
+
+.cust-header-card {
+  background: linear-gradient(135deg, #2563eb, #1e40af);
+  color: white;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 10px 26px rgba(37, 99, 235, 0.25);
+}
+
+.cust-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.cust-name {
+  margin: 0;
+  font-size: 18px;
+  letter-spacing: 0.2px;
+}
+
+.cust-sub {
+  font-size: 12px;
+  opacity: 0.9;
+  margin-top: 4px;
+  line-height: 1.35;
+}
+
+.cust-meta {
+  margin-top: 8px;
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.cust-balance {
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.portal-btn {
+  margin-top: 12px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.92);
+  color: #1e40af;
+  border: none;
+  border-radius: 12px;
+  padding: 11px 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.portal-btn:hover {
+  background: white;
+}
+
+.primary-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.btn-primary {
+  border-radius: 14px;
+  padding: 12px;
+  font-weight: 800;
+  color: white;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+}
+
+.btn-primary.green {
+  background: #16a34a;
+}
+.btn-primary.red {
+  background: #dc2626;
+}
+.btn-primary.blue {
+  background: #2563eb;
+}
+
+.secondary-actions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.secondary-actions button {
+  background: #f1f5f9;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 10px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.history-card {
+  background: white;
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+}
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.history-header h4 {
+  margin: 0;
+}
+
 /* ============================================================
    Notes / Next Improvements (Optional)
 ============================================================ */
