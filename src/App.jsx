@@ -3363,6 +3363,8 @@ function KasaDetailModal({ open, onClose, kasa, payments }) {
   // Filter only transactions belonging to this kasa
   const kasaPayments = (payments || []).filter((p) => p.kasaId === kasa.id);
 
+  const printRef = useRef(null);
+
   const totalTahsilat = kasaPayments
     .filter((p) => p.type === "payment")
     .reduce((sum, p) => sum + p.amount, 0);
@@ -3373,6 +3375,56 @@ function KasaDetailModal({ open, onClose, kasa, payments }) {
 
   const net = totalTahsilat - totalBorc;
 
+  function printKasa() {
+    const html = printRef.current?.innerHTML;
+    if (!html) return;
+
+    const w = window.open("", "_blank");
+    if (!w) {
+      alert("Popup engellendi");
+      return;
+    }
+
+    w.document.write(`
+    <!doctype html>
+    <html>
+    <head>
+      <meta charset="utf-8"/>
+      <title>Kasa Dökümü</title>
+      <style>
+        body{font-family:Segoe UI,system-ui;padding:24px}
+        h1{margin:0 0 6px}
+        table{width:100%;border-collapse:collapse;margin-top:16px}
+        th,td{border:1px solid #ddd;padding:8px;font-size:12px}
+        th{background:#f3f4f6}
+        .right{text-align:right}
+        @media print {
+          button { display:none }
+        }
+      </style>
+    </head>
+    <body>
+      <button onclick="window.print()" style="
+        margin-bottom:12px;
+        padding:10px 14px;
+        background:#2563eb;
+        color:white;
+        border:none;
+        border-radius:8px;
+        font-weight:700;
+        cursor:pointer;">
+        Yazdır / PDF Kaydet
+      </button>
+
+      ${html}
+    </body>
+    </html>
+  `);
+
+    w.document.close();
+    w.focus();
+  }
+
   return (
     <ModalBase open={open} title="Kasa Detayı" onClose={onClose}>
       {/* HEADER */}
@@ -3381,6 +3433,11 @@ function KasaDetailModal({ open, onClose, kasa, payments }) {
         <div style={{ fontSize: 12, color: "#666" }}>
           Para Birimi: <strong>{kasa.currency}</strong>
         </div>
+      </div>
+      <div className="btn-row" style={{ marginBottom: 12 }}>
+        <button className="btn btn-save" onClick={printKasa}>
+          🖨 Kasa Dökümü Yazdır
+        </button>
       </div>
 
       {/* STATS */}
@@ -3432,6 +3489,56 @@ function KasaDetailModal({ open, onClose, kasa, payments }) {
         style={{ marginTop: 12, fontSize: 12, color: "#555" }}
       >
         Toplam İşlem Sayısı: <strong>{kasaPayments.length}</strong>
+      </div>
+      <div className="hidden">
+        <div ref={printRef}>
+          <h1>Kasa Dökümü</h1>
+          <div style={{ color: "#555", marginBottom: 8 }}>
+            Kasa: <b>{kasa.name}</b>
+            <br />
+            Para Birimi: <b>{kasa.currency}</b>
+            <br />
+            Tarih: {new Date().toLocaleDateString("tr-TR")}
+          </div>
+
+          <hr />
+
+          <table>
+            <thead>
+              <tr>
+                <th>Tarih</th>
+                <th>Tür</th>
+                <th>Açıklama</th>
+                <th>Yöntem</th>
+                <th className="right">Tutar</th>
+              </tr>
+            </thead>
+            <tbody>
+              {kasaPayments.map((p) => (
+                <tr key={p.id}>
+                  <td>{p.date}</td>
+                  <td>{p.type === "payment" ? "Tahsilat" : "Borç"}</td>
+                  <td>{p.note || "-"}</td>
+                  <td>{p.method || "-"}</td>
+                  <td className="right">
+                    {p.type === "payment" ? "+" : "-"}
+                    {p.amount.toFixed(2)} {kasa.currency}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <hr />
+
+          <div style={{ marginTop: 12 }}>
+            <b>Toplam Tahsilat:</b> +{totalTahsilat.toFixed(2)} {kasa.currency}
+            <br />
+            <b>Toplam Borç:</b> -{totalBorc.toFixed(2)} {kasa.currency}
+            <br />
+            <b>Net Durum:</b> {net.toFixed(2)} {kasa.currency}
+          </div>
+        </div>
       </div>
     </ModalBase>
   );
