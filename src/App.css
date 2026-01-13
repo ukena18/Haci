@@ -8,7 +8,7 @@
   --primary-soft: #e0e7ff;
 
   /* 🌈 Gradients */
-  --grad-header: linear-gradient(135deg, #2563eb, #1e40af);
+  --grad-header: linear-gradient(180deg, #3b82f6 0%, #2563eb 45%, #1e40af 100%);
   --grad-success: linear-gradient(135deg, #22c55e, #16a34a);
   --grad-danger: linear-gradient(135deg, #ef4444, #dc2626);
   --grad-card: linear-gradient(180deg, #ffffff, #f8fafc);
@@ -38,7 +38,9 @@ body {
 }
 
 .header {
-  background: var(--grad-header);
+  background-color: #2563eb; /* ✅ fallback */
+  background-image: var(--grad-header);
+
   color: white;
   padding: 18px 16px;
   position: sticky;
@@ -46,6 +48,13 @@ body {
   z-index: 100;
 
   box-shadow: 0 6px 20px rgba(37, 99, 235, 0.35);
+}
+.header::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0.06));
+  pointer-events: none;
 }
 
 .header-title {

@@ -1219,6 +1219,8 @@ function MainApp({ state, setState, user }) {
                                   clockIn={clockIn}
                                   clockOut={clockOut}
                                   currency={currency}
+                                  markJobComplete={markJobComplete} // ✅ ADD THIS LINE
+                                  markJobPaid={markJobPaid} // ✅ (optional but good)
                                   hideActions // 👈 NEW PROP
                                 />
                               </div>
@@ -1808,7 +1810,10 @@ function JobCard({
             <button
               className="iconLike"
               title="Klasörü aç/kapat"
-              onClick={() => toggleJobOpen(job.id)}
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleJobOpen(job.id);
+              }}
             >
               {job.isOpen ? "▾" : "▸"}
             </button>
@@ -1854,14 +1859,20 @@ function JobCard({
               (job.isRunning ? (
                 <button
                   className="btn btn-delete"
-                  onClick={() => clockOut(job.id)}
+                  onClick={(e) => {
+                    e.stopPropagation(); // ✅ ADD THIS
+                    clockOut(job.id);
+                  }}
                 >
                   Clock Out
                 </button>
               ) : (
                 <button
                   className="btn btn-save"
-                  onClick={() => clockIn(job.id)}
+                  onClick={(e) => {
+                    e.stopPropagation(); // ✅ ADD THIS
+                    clockIn(job.id);
+                  }}
                 >
                   Clock In
                 </button>
@@ -1958,7 +1969,10 @@ function JobCard({
               {!job.isCompleted && (
                 <button
                   className="btn btn-save"
-                  onClick={() => markJobComplete(job.id)}
+                  onClick={(e) => {
+                    e.stopPropagation(); // ✅ ADD THIS
+                    markJobComplete(job.id);
+                  }}
                 >
                   İş Tamamla (Borç Ekle)
                 </button>
@@ -1966,7 +1980,10 @@ function JobCard({
               {job.isCompleted && !job.isPaid && (
                 <button
                   className="btn btn-primary green"
-                  onClick={() => markJobPaid(job.id)}
+                  onClick={(e) => {
+                    e.stopPropagation(); // ✅ ADD THIS
+                    markJobPaid(job.id);
+                  }}
                 >
                   Ödeme Tamamlandı
                 </button>
