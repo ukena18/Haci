@@ -10,7 +10,7 @@
 }
 
 body {
-  font-family: 'Segoe UI', sans-serif;
+  font-family: "Segoe UI", sans-serif;
   margin: 0;
   background: var(--bg);
   padding-bottom: 70px;
@@ -26,7 +26,9 @@ body {
   z-index: 100;
 }
 
-.container { padding: 15px; }
+.container {
+  padding: 15px;
+}
 
 /* Bottom navigation */
 .bottom-nav {
@@ -38,7 +40,7 @@ body {
   justify-content: space-around;
   padding: 10px 0;
   border-top: 1px solid #ddd;
-  box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
+  box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
   z-index: 99;
 }
 
@@ -54,7 +56,9 @@ body {
   gap: 4px;
 }
 
-.nav-item.active { color: var(--primary); }
+.nav-item.active {
+  color: var(--primary);
+}
 
 /* Cards */
 .card {
@@ -62,7 +66,7 @@ body {
   padding: 15px;
   border-radius: 14px;
   margin-bottom: 10px;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
 }
 
 .list-item {
@@ -91,25 +95,21 @@ body {
   color: white;
   border: none;
   font-size: 28px;
- 
+
   box-shadow: 0 12px 28px rgba(37, 99, 235, 0.35);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 100;
-  
 }
-
-
-
 
 /* Modal */
 .modal {
   display: block; /* React controls rendering, not CSS */
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0, 0, 0, 0.5);
   z-index: 1000;
 
   /* ✅ ADD THIS */
@@ -141,7 +141,9 @@ select {
   z-index: 1100;
 }
 
-.form-group { margin-bottom: 15px; }
+.form-group {
+  margin-bottom: 15px;
+}
 label {
   display: block;
   font-weight: bold;
@@ -149,7 +151,9 @@ label {
   font-size: 14px;
 }
 
-input, select, textarea {
+input,
+select,
+textarea {
   width: 100%;
   padding: 10px;
   border: 1px solid #ddd;
@@ -157,7 +161,11 @@ input, select, textarea {
   box-sizing: border-box;
 }
 
-.btn-row { display: flex; gap: 10px; margin-top: 15px; }
+.btn-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
 .btn {
   padding: 10px 15px;
   border: none;
@@ -166,7 +174,6 @@ input, select, textarea {
   flex: 1;
   font-weight: bold;
 }
-
 
 /* ===== KASA SELECT BUTTON FIX ===== */
 .kasa-select-btn {
@@ -177,49 +184,68 @@ input, select, textarea {
   font-size: 12px;
 }
 
-.btn-save { background: var(--success); color: white; }
-.btn-cancel { background: #666; color: white; }
-.btn-delete { background: var(--danger); color: white; }
+.btn-save {
+  background: var(--success);
+  color: white;
+}
+.btn-cancel {
+  background: #666;
+  color: white;
+}
+.btn-delete {
+  background: var(--danger);
+  color: white;
+}
 
-.parca-item { display: flex; gap: 5px; margin-bottom: 5px; }
+.parca-item {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 5px;
+}
+/* 🔍 search grows, but doesn't force wrap */
 .search-bar {
-  width: 100%;
+  flex: 1;
+  height: 44px;
   padding: 10px;
-  margin-bottom: 15px;
   border-radius: 20px;
   border: 1px solid #ddd;
 }
 
-.hidden { display: none; }
-
-.partLine{
-  display:flex;
-  justify-content:space-between;
-  background:#f9fafb;
-  padding:8px 10px;
-  border-radius:8px;
-  margin-bottom:6px;
-  font-size:13px;
+.search-wrap select:hover {
+  background: #f9fafb;
 }
 
-.miniRow{
-  display:flex;
-  justify-content:space-between;
-  background:#f9fafb;
-  padding:8px 10px;
-  border-radius:8px;
-  font-size:13px;
+.hidden {
+  display: none;
 }
 
-.iconLike{
-  border:none;
-  background:transparent;
-  font-size:16px;
-  cursor:pointer;
-  color:#333;
-  padding:0 4px;
+.partLine {
+  display: flex;
+  justify-content: space-between;
+  background: #f9fafb;
+  padding: 8px 10px;
+  border-radius: 8px;
+  margin-bottom: 6px;
+  font-size: 13px;
 }
 
+.miniRow {
+  display: flex;
+  justify-content: space-between;
+  background: #f9fafb;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.iconLike {
+  border: none;
+  background: transparent;
+  font-size: 16px;
+  cursor: pointer;
+  color: #333;
+  padding: 0 4px;
+}
 
 .header-bar {
   display: flex;
@@ -261,7 +287,6 @@ input, select, textarea {
   background: rgba(255, 255, 255, 0.28);
 }
 
-
 .section-header {
   padding: 10px 12px;
   border-radius: 12px;
@@ -288,17 +313,15 @@ input, select, textarea {
   justify-content: center;
 }
 
-
-
-
 .search-wrap {
-  position: relative;
-  margin-bottom: 15px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
 .search-wrap .search-bar {
   padding-right: 44px; /* room for the X button */
-  margin-bottom: 0;    /* since wrapper now has margin */
+  margin-bottom: 0; /* since wrapper now has margin */
 }
 
 .search-clear {
@@ -322,8 +345,6 @@ input, select, textarea {
   background: #ddd;
 }
 
-
-
 .bar-bg {
   height: 14px;
   background: #e5e7eb;
@@ -345,6 +366,30 @@ input, select, textarea {
   background: linear-gradient(90deg, #4ade80, #16a34a);
 }
 
+.search-wrap select {
+  background: white;
+  border: 1px solid #ddd;
+}
+/* 🔀 sort stays compact */
+.sort-select {
+  width: auto !important; /* 🔥 THIS IS THE FIX */
+  flex: 0 0 auto;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid #ddd;
+  background: white;
+  font-size: 14px;
+  cursor: pointer;
+
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+.sort-select option:first-child {
+  text-align: center;
+}
 
 /* ============================================================
    Notes / Next Improvements (Optional)
