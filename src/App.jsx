@@ -1316,9 +1316,12 @@ function MainApp({ state, setState }) {
       </div>
 
       {/* Floating Action Button */}
-      <button className="fab" id="fab-btn" onClick={onFabClick}>
-        +
-      </button>
+      {/* Floating Action Button */}
+      {page !== "settings" && (
+        <button className="fab" id="fab-btn" onClick={onFabClick}>
+          +
+        </button>
+      )}
 
       {/* Bottom navigation */}
       <nav className="bottom-nav">
