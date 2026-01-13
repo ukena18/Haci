@@ -55,6 +55,32 @@ function persistState(state) {
    2) HELPERS
 ============================================================ */
 
+
+// ✅ Weekend helpers (business day logic)
+
+function isWeekend(date) {
+  const day = date.getDay(); // 0 = Sunday, 6 = Saturday
+  return day === 0 || day === 6;
+}
+
+function moveToNextBusinessDay(date) {
+  const d = new Date(date);
+
+  while (isWeekend(d)) {
+    d.setDate(d.getDate() + 1);
+  }
+
+  return d;
+}
+
+function addDaysSkippingWeekend(startDate, days) {
+  const d = new Date(startDate);
+  d.setDate(d.getDate() + days);
+
+  // If due date falls on weekend → move forward
+  return moveToNextBusinessDay(d);
+}
+
 function daysBetween(a, b) {
   const ms = 1000 * 60 * 60 * 24;
   return Math.floor((b - a) / ms);
@@ -382,22 +408,25 @@ const [paymentOpen, setPaymentOpen] = useState(true);
 
 const unpaidCompletedJobs = filteredJobs.filter(j => j.isCompleted && !j.isPaid);
 
-// 🔔 30-day payment tracking (active jobs only)
 const paymentWatchList = filteredJobs
   .filter(j => j.isCompleted && !j.isPaid)
   .map(job => {
     const startDate = getJobStartDate(job);
     if (!startDate) return null;
 
-    const daysPassed = daysBetween(startDate, new Date());
+    // ✅ Due date = 30 days later, adjusted to weekday
+    const dueDate = addDaysSkippingWeekend(startDate, 30);
+
+    const daysLeft = daysBetween(new Date(), dueDate);
+
     return {
       job,
-      daysLeft: 30 - daysPassed,
+      daysLeft,
+      dueDate, // optional but useful
     };
   })
   .filter(Boolean)
   .sort((a, b) => a.daysLeft - b.daysLeft);
-
 
 
 
@@ -759,7 +788,7 @@ function markJobPaid(jobId) {
       Takip edilecek aktif iş yok.
     </div>
   ) : (
-    paymentWatchList.map(({ job, daysLeft }) => {
+    paymentWatchList.map(({ job, daysLeft, dueDate }) => {
       const c = customersById.get(job.customerId);
 
       return (
@@ -785,10 +814,12 @@ function markJobPaid(jobId) {
             <strong>{c ? `${c.name} ${c.surname}` : "Bilinmeyen"}</strong>
             <br />
             <small>
-              {daysLeft <= 0
-                ? `⛔ ${Math.abs(daysLeft)} gün gecikmiş`
-                : `⏳ ${daysLeft} gün kaldı`}
-            </small>
+  {daysLeft <= 0
+    ? `⛔ ${Math.abs(daysLeft)} gün gecikmiş`
+    : `⏳ ${daysLeft} gün kaldı`}
+  <br />
+  Son Ödeme: <b>{dueDate.toLocaleDateString("tr-TR")}</b>
+</small>
           </div>
 
           <div style={{ fontWeight: 700 }}>
