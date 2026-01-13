@@ -405,6 +405,23 @@ const [paymentOpen, setPaymentOpen] = useState(true);
   const completedJobs = filteredJobs.filter(
   j => j.isCompleted && !j.isPaid
 );
+// 📊 Financial summary (Home page)
+
+const totalDebt = useMemo(() => {
+  return state.customers.reduce(
+    (sum, c) => sum + Math.max(0, toNum(c.balanceOwed)),
+    0
+  );
+}, [state.customers]);
+
+const totalPayments = useMemo(() => {
+  return (state.payments || [])
+    .filter((p) => p.type === "payment")
+    .reduce((sum, p) => sum + toNum(p.amount), 0);
+}, [state.payments]);
+
+const netBalance = totalDebt - totalPayments;
+
 
 const unpaidCompletedJobs = filteredJobs.filter(j => j.isCompleted && !j.isPaid);
 
@@ -769,6 +786,98 @@ function markJobPaid(jobId) {
         {/* HOME PAGE */}
         {page === "home" && (
           <div id="page-home">
+{/* 📊 FINANSAL ÖZET */}
+<div className="card" style={{ marginBottom: 16 }}>
+  <h3 style={{ marginTop: 0, display: "flex", gap: 6, alignItems: "center" }}>
+    📊 Finansal Özet
+  </h3>
+
+  {/* NUMBERS */}
+  <div
+    style={{
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 12,
+      marginBottom: 14,
+      fontSize: 14,
+    }}
+  >
+    <div
+      style={{
+        padding: 10,
+        borderRadius: 10,
+        background: "#fef2f2",
+      }}
+    >
+      <div style={{ color: "#7f1d1d", fontSize: 12 }}>Toplam Borç</div>
+      <div style={{ fontWeight: 700, color: "#dc2626" }}>
+        {money(totalDebt, currency)}
+      </div>
+    </div>
+
+    <div
+      style={{
+        padding: 10,
+        borderRadius: 10,
+        background: "#f0fdf4",
+      }}
+    >
+      <div style={{ color: "#166534", fontSize: 12 }}>Toplam Tahsilat</div>
+      <div style={{ fontWeight: 700, color: "#16a34a" }}>
+        {money(totalPayments, currency)}
+      </div>
+    </div>
+  </div>
+
+  {/* NET */}
+  <div
+    style={{
+      marginBottom: 12,
+      padding: 10,
+      borderRadius: 10,
+      background: netBalance > 0 ? "#fef2f2" : "#f0fdf4",
+      color: netBalance > 0 ? "#7f1d1d" : "#166534",
+      fontWeight: 600,
+      textAlign: "center",
+    }}
+  >
+    Net Durum: {money(Math.abs(netBalance), currency)}{" "}
+    {netBalance > 0 ? "(Alacak)" : "(Fazla Tahsilat)"}
+  </div>
+
+  {/* BAR CHART */}
+  {(() => {
+    const max = Math.max(totalDebt, totalPayments, 1);
+    const debtPct = (totalDebt / max) * 100;
+    const payPct = (totalPayments / max) * 100;
+
+    return (
+      <div style={{ display: "grid", gap: 10 }}>
+        <div>
+          <div style={{ fontSize: 12, marginBottom: 4 }}>Borç</div>
+          <div className="bar-bg">
+            <div
+              className="bar-fill red"
+              style={{ width: `${debtPct}%` }}
+            />
+          </div>
+        </div>
+
+        <div>
+          <div style={{ fontSize: 12, marginBottom: 4 }}>Tahsilat</div>
+          <div className="bar-bg">
+            <div
+              className="bar-fill green"
+              style={{ width: `${payPct}%` }}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  })()}
+</div>
+
+
             <div id="job-list">
             {/* 🔔 30 GÜNLÜK ÖDEME TAKİBİ */}
 <div className="card">
@@ -2041,6 +2150,10 @@ const [paymentMethod, setPaymentMethod] = useState("cash");
 const [paymentNote, setPaymentNote] = useState("");
 const [fromDate, setFromDate] = useState("");
 const [toDate, setToDate] = useState("");
+// 💳 Payment modal state
+const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+const [paymentMode, setPaymentMode] = useState("payment"); 
+// "payment" | "debt"
 function isInRange(dateStr) {
   if (!dateStr) return false;
 
@@ -2260,89 +2373,38 @@ const customerPayments = useMemo(() => {
           {/* i basically add another button and havent changed payment amonut for debt button */}
           <div className="btn-row">
             <div style={{ flex: 1 }}>
-              <label>Kasa</label>
-                <select
-  value={selectedKasaId}
-  onChange={(e) => setSelectedKasaId(e.target.value)}
->
-  <option value="">Kasa seçin</option>
-  {kasalar.map((k) => (
-    <option key={k.id} value={k.id}>
-      {k.name}
-    </option>
-  ))}
-</select>
-
-              <label>Tutar (₺)</label>
-              <input
-                type="number"
-                value={paymentAmount}
-                onChange={(e) => setPaymentAmount(e.target.value)}
-              />
-              <label style={{ marginTop: 6 }}>Açıklama / Not</label>
-              <label style={{ marginTop: 6 }}>Ödeme Yöntemi</label>
-<select
-  value={paymentMethod}
-  onChange={(e) => setPaymentMethod(e.target.value)}
->
-  <option value="cash">💵 Nakit</option>
-  <option value="card">💳 Kart</option>
-  <option value="transfer">🏦 Havale / EFT</option>
-  <option value="other">📦 Diğer</option>
-</select>
-
-<input
-  type="text"
-  placeholder="Örn: Parça ücreti, Avans, Elden ödeme"
-  value={paymentNote}
-  onChange={(e) => setPaymentNote(e.target.value)}
-/>
-
-<div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+             
+              <div className="btn-row">
   <button
     className="btn btn-save"
-    style={{ flex: 1, marginTop: 0 }}
     onClick={() => {
-      onMakePayment(
-        customer.id,
-        paymentAmount,
-        paymentNote,
-        selectedKasaId,
-        paymentMethod
-      );
-      setPaymentAmount("");
-      setPaymentNote("");
+      setPaymentMode("payment");
+      setPaymentModalOpen(true);
     }}
   >
-    Tahsilat Al
+    💰 Tahsilat Al
   </button>
 
   <button
     className="btn btn-delete"
-    style={{ flex: 1, marginTop: 0 }}
     onClick={() => {
-      onAddDebt(
-        customer.id,
-        paymentAmount,
-        paymentNote,
-        selectedKasaId,
-        paymentMethod
-      );
-      setPaymentAmount("");
-      setPaymentNote("");
+      setPaymentMode("debt");
+      setPaymentModalOpen(true);
     }}
   >
-    Borçlandır
+    🧾 Borçlandır
   </button>
 
   <button
     className="btn btn-save"
-    style={{ flex: 1, marginTop: 0, background: "#16a34a" }}
-    onClick={() => onAddJob()}
+    style={{ background: "#16a34a" }}
+    onClick={onAddJob}
   >
     + İş Ekle
   </button>
 </div>
+
+ 
 
             </div>
  
@@ -2546,6 +2608,9 @@ const customerPayments = useMemo(() => {
     );
     const total = hours * toNum(j.rate) + partsTotal;
 
+
+
+
     return (
       <tr key={j.id}>
         <td>{j.date}</td>
@@ -2567,10 +2632,123 @@ const customerPayments = useMemo(() => {
           </div>
         </>
       )}
+      
+    <PaymentActionModal
+  open={paymentModalOpen}
+  mode={paymentMode}
+  customer={customer}
+  kasalar={kasalar}
+  activeKasaId={activeKasaId}
+  onClose={() => setPaymentModalOpen(false)}
+  onSubmit={(amount, note, kasaId, method) => {
+    if (paymentMode === "payment") {
+      onMakePayment(customer.id, amount, note, kasaId, method);
+    } else {
+      onAddDebt(customer.id, amount, note, kasaId, method);
+    }
+  }}
+/>
     </ModalBase>
   );
 }
 
+
+function PaymentActionModal({
+  open,
+  mode, // "payment" | "debt"
+  onClose,
+  customer,
+  kasalar,
+  activeKasaId,
+  onSubmit,
+}) {
+  const [amount, setAmount] = useState("");
+  const [note, setNote] = useState("");
+  const [kasaId, setKasaId] = useState(activeKasaId || "");
+  const [method, setMethod] = useState("cash");
+
+  useEffect(() => {
+    if (!open) return;
+    setAmount("");
+    setNote("");
+    setKasaId(activeKasaId || "");
+    setMethod("cash");
+  }, [open, activeKasaId]);
+
+  if (!open) return null;
+
+  return (
+    <ModalBase
+      open={open}
+      title={mode === "payment" ? "Tahsilat Al" : "Borçlandır"}
+      onClose={onClose}
+    >
+      <div className="form-group">
+        <label>Kasa</label>
+        <select value={kasaId} onChange={(e) => setKasaId(e.target.value)}>
+          <option value="">Kasa seçin</option>
+          {kasalar.map((k) => (
+            <option key={k.id} value={k.id}>
+              {k.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="form-group">
+        <label>Tutar</label>
+        <input
+          type="number"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+        />
+      </div>
+
+      {mode === "payment" && (
+  <div className="form-group">
+    <label>Ödeme Yöntemi</label>
+    <select value={method} onChange={(e) => setMethod(e.target.value)}>
+      <option value="cash">💵 Nakit</option>
+      <option value="card">💳 Kart</option>
+      <option value="transfer">🏦 Havale / EFT</option>
+      <option value="other">📦 Diğer</option>
+    </select>
+  </div>
+)}
+
+
+      <div className="form-group">
+        <label>Açıklama / Not</label>
+        <input
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="Örn: Avans, Parça ücreti"
+        />
+      </div>
+
+      <div className="btn-row">
+        <button className="btn btn-cancel" onClick={onClose}>
+          İptal
+        </button>
+
+        <button
+          className={mode === "payment" ? "btn btn-save" : "btn btn-delete"}
+          onClick={() => {
+            onSubmit(
+  amount,
+  note,
+  kasaId,
+  mode === "payment" ? method : null
+);
+            onClose();
+          }}
+        >
+          {mode === "payment" ? "Tahsilat Al" : "Borçlandır"}
+        </button>
+      </div>
+    </ModalBase>
+  );
+}
 
 
 
