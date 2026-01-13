@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
 
-import { onAuthStateChanged, signOut } from "firebase/auth";
 import { ensureUserData, loadUserData, saveUserData } from "./firestoreService";
 
 import { auth } from "./firebase";
@@ -13,6 +12,16 @@ import {
   useNavigate,
   useParams,
 } from "react-router-dom";
+
+import {
+  onAuthStateChanged,
+  signOut,
+  updateProfile,
+  updateEmail,
+  updatePassword,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+} from "firebase/auth";
 
 /**
  * ============================================================
@@ -341,9 +350,13 @@ function MainApp({ state, setState, user }) {
   const [search, setSearch] = useState("");
   const [customerSort, setCustomerSort] = useState("debt_desc");
 
+  const [profileOpen, setProfileOpen] = useState(false);
+
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [paymentMode, setPaymentMode] = useState("payment");
   const [paymentCustomer, setPaymentCustomer] = useState(null);
+  const [kasaDetailOpen, setKasaDetailOpen] = useState(false);
+  const [selectedKasaId, setSelectedKasaId] = useState(null);
 
   const [openCustomerFolders, setOpenCustomerFolders] = useState({});
 
@@ -1259,14 +1272,20 @@ function MainApp({ state, setState, user }) {
           <div id="page-settings">
             <div className="card">
               {/* 👤 ADMIN PROFILE */}
-              <div className="card admin-profile">
+              <div
+                className="card admin-profile"
+                style={{ cursor: "pointer" }}
+                onClick={() => setProfileOpen(true)}
+              >
                 <div className="admin-row">
                   <div className="admin-avatar">
                     {user?.email?.[0]?.toUpperCase() || "A"}
                   </div>
 
                   <div className="admin-info">
-                    <strong className="admin-name">Yönetici</strong>
+                    <strong className="admin-name">
+                      {user?.displayName || "Yönetici"}
+                    </strong>
                     <div className="admin-email">
                       {user?.email || "admin@example.com"}
                     </div>
@@ -1276,24 +1295,6 @@ function MainApp({ state, setState, user }) {
               </div>
 
               <h3>Kasa Yönetimi</h3>
-              {/* CURRENCY SELECT */}
-              <div className="card" style={{ marginBottom: 12 }}>
-                <label>Para Birimi</label>
-
-                <select
-                  value={state.currency || "TRY"}
-                  onChange={(e) =>
-                    setState((s) => ({
-                      ...s,
-                      currency: e.target.value,
-                    }))
-                  }
-                >
-                  <option value="TRY">₺ Türk Lirası</option>
-                  <option value="USD">$ US Dollar</option>
-                  <option value="EUR">€ Euro</option>
-                </select>
-              </div>
 
               {/* KASA LIST */}
               {state.kasalar.map((kasa) => {
@@ -1308,6 +1309,11 @@ function MainApp({ state, setState, user }) {
                         ? "6px solid #2563eb"
                         : "6px solid transparent",
                       background: isActive ? "#eff6ff" : "white",
+                      cursor: "pointer",
+                    }}
+                    onClick={() => {
+                      setSelectedKasaId(kasa.id);
+                      setKasaDetailOpen(true);
                     }}
                   >
                     <div>
@@ -1584,6 +1590,17 @@ function MainApp({ state, setState, user }) {
         }}
       />
 
+      <KasaDetailModal
+        open={kasaDetailOpen}
+        onClose={() => setKasaDetailOpen(false)}
+        kasa={state.kasalar.find((k) => k.id === selectedKasaId)}
+        payments={state.payments}
+      />
+      <ProfileModal
+        open={profileOpen}
+        onClose={() => setProfileOpen(false)}
+        user={user}
+      />
       {/* CONFIRMATION MODAL (Delete) */}
       <ConfirmModal
         open={confirm.open}
@@ -1600,6 +1617,7 @@ function MainApp({ state, setState, user }) {
           setCustDetailOpen(false);
         }}
       />
+
       {/* KASA DELETE CONFIRM MODAL */}
       {kasaDeleteConfirm.open && (
         <ModalBase
@@ -3175,6 +3193,245 @@ function PaymentActionModal({
         >
           {mode === "payment" ? "Tahsilat Al" : "Borçlandır"}
         </button>
+      </div>
+    </ModalBase>
+  );
+}
+
+function ProfileModal({ open, onClose, user }) {
+  const [name, setName] = useState(user?.displayName || "");
+  const [email, setEmail] = useState(user?.email || "");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    setName(user?.displayName || "");
+    setEmail(user?.email || "");
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+    setError("");
+  }, [open, user]);
+
+  async function reauthRequired() {
+    if (!currentPassword) {
+      throw new Error("Mevcut şifre zorunludur.");
+    }
+
+    const cred = EmailAuthProvider.credential(user.email, currentPassword);
+    await reauthenticateWithCredential(user, cred);
+  }
+
+  async function save() {
+    try {
+      setLoading(true);
+      setError("");
+
+      const emailChanged = email !== user.email;
+      const wantsPasswordChange = newPassword || confirmPassword;
+
+      // ✅ If changing email OR password → MUST reauth
+      if (emailChanged || wantsPasswordChange) {
+        await reauthRequired();
+      }
+
+      // ✅ Validate password change (if user typed anything)
+      if (wantsPasswordChange) {
+        if (!newPassword || !confirmPassword) {
+          throw new Error("Yeni şifreyi iki kez girin.");
+        }
+
+        if (newPassword.length < 6) {
+          throw new Error("Yeni şifre en az 6 karakter olmalıdır.");
+        }
+
+        if (newPassword !== confirmPassword) {
+          throw new Error("Yeni şifreler eşleşmiyor.");
+        }
+      }
+
+      // ✅ Update display name
+      if (name !== user.displayName) {
+        await updateProfile(user, { displayName: name });
+      }
+
+      // ✅ Update email
+      if (emailChanged) {
+        await updateEmail(user, email);
+      }
+
+      // ✅ Update password
+      if (wantsPasswordChange) {
+        await updatePassword(user, newPassword);
+      }
+
+      alert("Profil güncellendi ✅");
+      onClose();
+    } catch (err) {
+      // friendlier firebase messages
+      if (err?.code === "auth/wrong-password") {
+        setError("Mevcut şifre yanlış.");
+      } else if (err?.code === "auth/requires-recent-login") {
+        setError("Güvenlik için tekrar giriş yapmanız gerekiyor.");
+      } else {
+        setError(err?.message || "Bir hata oluştu.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (!open) return null;
+
+  return (
+    <ModalBase open={open} title="Profil Düzenle" onClose={onClose}>
+      <div className="form-group">
+        <label>Ad / Ünvan</label>
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Adınız"
+        />
+      </div>
+
+      <div className="form-group">
+        <label>E-posta</label>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+      </div>
+
+      <hr />
+
+      <div className="form-group">
+        <label>Mevcut Şifre (E-posta / Şifre değişimi için zorunlu)</label>
+        <input
+          type="password"
+          value={currentPassword}
+          onChange={(e) => setCurrentPassword(e.target.value)}
+          placeholder="••••••••"
+        />
+      </div>
+
+      <div className="form-group">
+        <label>Yeni Şifre</label>
+        <input
+          type="password"
+          value={newPassword}
+          onChange={(e) => setNewPassword(e.target.value)}
+          placeholder="Yeni şifre"
+        />
+        <div className="form-group">
+          <label>Yeni Şifre (Tekrar)</label>
+          <input
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            placeholder="Yeni şifreyi tekrar girin"
+          />
+        </div>
+
+        {error && (
+          <div style={{ color: "#dc2626", fontSize: 12, marginTop: 6 }}>
+            {error}
+          </div>
+        )}
+      </div>
+
+      <div className="btn-row">
+        <button className="btn btn-cancel" onClick={onClose}>
+          İptal
+        </button>
+
+        <button className="btn btn-save" onClick={save} disabled={loading}>
+          {loading ? "Kaydediliyor..." : "Kaydet"}
+        </button>
+      </div>
+    </ModalBase>
+  );
+}
+
+function KasaDetailModal({ open, onClose, kasa, payments }) {
+  if (!open || !kasa) return null;
+
+  // Filter only transactions belonging to this kasa
+  const kasaPayments = (payments || []).filter((p) => p.kasaId === kasa.id);
+
+  const totalTahsilat = kasaPayments
+    .filter((p) => p.type === "payment")
+    .reduce((sum, p) => sum + p.amount, 0);
+
+  const totalBorc = kasaPayments
+    .filter((p) => p.type === "debt")
+    .reduce((sum, p) => sum + p.amount, 0);
+
+  const net = totalTahsilat - totalBorc;
+
+  return (
+    <ModalBase open={open} title="Kasa Detayı" onClose={onClose}>
+      {/* HEADER */}
+      <div className="card">
+        <h3 style={{ marginTop: 0 }}>{kasa.name}</h3>
+        <div style={{ fontSize: 12, color: "#666" }}>
+          Para Birimi: <strong>{kasa.currency}</strong>
+        </div>
+      </div>
+
+      {/* STATS */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 12,
+          marginTop: 12,
+        }}
+      >
+        <div
+          className="card"
+          style={{ background: "#f0fdf4", color: "#166534" }}
+        >
+          <div style={{ fontSize: 12 }}>Toplam Tahsilat</div>
+          <strong>
+            +{totalTahsilat.toFixed(2)} {kasa.currency}
+          </strong>
+        </div>
+
+        <div
+          className="card"
+          style={{ background: "#fef2f2", color: "#7f1d1d" }}
+        >
+          <div style={{ fontSize: 12 }}>Toplam Borç</div>
+          <strong>
+            -{totalBorc.toFixed(2)} {kasa.currency}
+          </strong>
+        </div>
+      </div>
+
+      {/* NET */}
+      <div
+        className="card"
+        style={{
+          marginTop: 12,
+          textAlign: "center",
+          fontWeight: 700,
+          background: net >= 0 ? "#eff6ff" : "#fef2f2",
+        }}
+      >
+        Net Durum: {net.toFixed(2)} {kasa.currency}
+      </div>
+
+      {/* COUNT */}
+      <div
+        className="card"
+        style={{ marginTop: 12, fontSize: 12, color: "#555" }}
+      >
+        Toplam İşlem Sayısı: <strong>{kasaPayments.length}</strong>
       </div>
     </ModalBase>
   );
