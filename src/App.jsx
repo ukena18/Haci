@@ -358,6 +358,9 @@ function MainApp({ state, setState, user }) {
   const [kasaDetailOpen, setKasaDetailOpen] = useState(false);
   const [selectedKasaId, setSelectedKasaId] = useState(null);
 
+  const [jobActionOpen, setJobActionOpen] = useState(false);
+  const [jobActionJobId, setJobActionJobId] = useState(null);
+
   const [openCustomerFolders, setOpenCustomerFolders] = useState({});
 
   function toggleCustomerFolder(customerId) {
@@ -497,6 +500,25 @@ function MainApp({ state, setState, user }) {
     .filter(Boolean)
     .sort((a, b) => a.daysLeft - b.daysLeft);
 
+  function getLatestCustomerTransaction(customerId, jobs, payments) {
+    let latest = 0;
+
+    (payments || []).forEach((p) => {
+      if (p.customerId === customerId) {
+        const t = p.createdAt || new Date(p.date || 0).getTime() || 0;
+        latest = Math.max(latest, t);
+      }
+    });
+
+    (jobs || []).forEach((j) => {
+      if (j.customerId === customerId) {
+        latest = Math.max(latest, j.createdAt || 0);
+      }
+    });
+
+    return latest;
+  }
+
   /**
    * Customers filtering by search (Customers tab)
    */
@@ -512,7 +534,24 @@ function MainApp({ state, setState, user }) {
     });
 
     // 2) SORT
+    // 2) SORT
     switch (customerSort) {
+      case "latest":
+        list.sort((a, b) => {
+          const aDate = getLatestCustomerTransaction(
+            a.id,
+            state.jobs,
+            state.payments || []
+          );
+          const bDate = getLatestCustomerTransaction(
+            b.id,
+            state.jobs,
+            state.payments || []
+          );
+          return bDate - aDate; // newest first
+        });
+        break;
+
       case "debt_desc":
         list.sort((a, b) => toNum(b.balanceOwed) - toNum(a.balanceOwed));
         break;
@@ -536,7 +575,7 @@ function MainApp({ state, setState, user }) {
     }
 
     return list;
-  }, [search, state.customers, customerSort]);
+  }, [search, state.customers, customerSort, state.jobs, state.payments]);
 
   /* ============================================================
      ACTIONS (mutating state safely)
@@ -589,7 +628,7 @@ function MainApp({ state, setState, user }) {
    * - Reduce customer's balance owed
    * - Increase cash register balance
    */
-  function makePayment(customerId, amount, note, kasaId, method) {
+  function makePayment(customerId, amount, note, date, kasaId, method) {
     const amt = toNum(amount);
     if (amt <= 0) return;
 
@@ -606,7 +645,7 @@ function MainApp({ state, setState, user }) {
         amount: amt,
         method, // ✅ NEW
         note: note || "Tahsilat",
-        date: new Date().toISOString().slice(0, 10),
+        date,
         createdAt: Date.now(),
 
         currency:
@@ -644,7 +683,7 @@ function MainApp({ state, setState, user }) {
   }
 
   /** Add debt to a customer (does NOT affect cash) */
-  function addDebt(customerId, amount, note, kasaId, method) {
+  function addDebt(customerId, amount, note, date, kasaId, method) {
     const amt = toNum(amount);
     if (amt <= 0) return;
 
@@ -657,7 +696,7 @@ function MainApp({ state, setState, user }) {
         amount: amt,
         method, // ✅ SAVE METHOD
         note: note || "Borç",
-        date: new Date().toISOString().slice(0, 10),
+        date,
         createdAt: Date.now(),
 
         currency:
@@ -852,13 +891,15 @@ function MainApp({ state, setState, user }) {
             </div>
           </div>
 
-          <button
-            className="logout-btn"
-            onClick={() => signOut(auth)}
-            title="Çıkış Yap"
-          >
-            Çıkış
-          </button>
+          {page === "settings" && (
+            <button
+              className="logout-btn"
+              onClick={() => signOut(auth)}
+              title="Çıkış Yap"
+            >
+              Çıkış
+            </button>
+          )}
         </div>
       </div>
 
@@ -886,6 +927,7 @@ function MainApp({ state, setState, user }) {
               <option value="debt_asc">💰 Borcu En Düşük</option>
               <option value="name_asc">🔤 İsim A → Z</option>
               <option value="name_desc">🔤 İsim Z → A</option>
+              <option value="latest">🕒 Son İşlem (En Yeni)</option>
             </select>
           )}
         </div>
@@ -1161,18 +1203,23 @@ function MainApp({ state, setState, user }) {
                           {/* JOBS */}
                           <div className={`job-folder ${isOpen ? "open" : ""}`}>
                             {jobs.map((job) => (
-                              <div key={job.id} className="job-folder-item">
+                              <div
+                                key={job.id}
+                                className="job-folder-item"
+                                onClick={() => {
+                                  setJobActionJobId(job.id);
+                                  setJobActionOpen(true);
+                                }}
+                                style={{ cursor: "pointer" }}
+                              >
                                 <JobCard
                                   job={job}
                                   customersById={customersById}
                                   toggleJobOpen={toggleJobOpen}
                                   clockIn={clockIn}
                                   clockOut={clockOut}
-                                  setEditingJobId={setEditingJobId}
-                                  setJobModalOpen={setJobModalOpen}
-                                  setConfirm={setConfirm}
-                                  markJobComplete={markJobComplete}
                                   currency={currency}
+                                  hideActions // 👈 NEW PROP
                                 />
                               </div>
                             ))}
@@ -1579,13 +1626,15 @@ function MainApp({ state, setState, user }) {
         kasalar={state.kasalar}
         activeKasaId={state.activeKasaId}
         onClose={() => setPaymentModalOpen(false)}
-        onSubmit={(amount, note, kasaId, method) => {
+        onSubmit={(amount, note, kasaId, date, method) => {
           if (!paymentCustomer) return;
 
           if (paymentMode === "payment") {
-            makePayment(paymentCustomer.id, amount, note, kasaId, method);
+            // ✅ Tahsilat: kasa seçilebilir
+            makePayment(paymentCustomer.id, amount, note, date, kasaId, method);
           } else {
-            addDebt(paymentCustomer.id, amount, note, kasaId, method);
+            // ✅ Borç: kasa yok → active kasa kullanılır
+            addDebt(paymentCustomer.id, amount, note, date, null, null);
           }
         }}
       />
@@ -1617,6 +1666,42 @@ function MainApp({ state, setState, user }) {
           setCustDetailOpen(false);
         }}
       />
+
+      {jobActionOpen && (
+        <ModalBase
+          open={true}
+          title="İş Seçenekleri"
+          onClose={() => setJobActionOpen(false)}
+        >
+          <div style={{ display: "grid", gap: 10 }}>
+            <button
+              className="btn btn-save"
+              onClick={() => {
+                setEditingJobId(jobActionJobId);
+                setJobActionOpen(false);
+                setTimeout(() => setJobModalOpen(true), 0);
+              }}
+            >
+              ✏️ Düzenle
+            </button>
+
+            <button
+              className="btn btn-delete"
+              onClick={() => {
+                setJobActionOpen(false);
+                setConfirm({
+                  open: true,
+                  type: "job",
+                  id: jobActionJobId,
+                  message: "Bu işi silmek istediğinize emin misiniz?",
+                });
+              }}
+            >
+              🗑 Sil
+            </button>
+          </div>
+        </ModalBase>
+      )}
 
       {/* KASA DELETE CONFIRM MODAL */}
       {kasaDeleteConfirm.open && (
@@ -1781,31 +1866,6 @@ function JobCard({
                   Clock In
                 </button>
               ))}
-
-            <button
-              className="btn"
-              style={{ background: "#eee", color: "#333" }}
-              onClick={() => {
-                setEditingJobId(job.id);
-                setJobModalOpen(true);
-              }}
-            >
-              Düzenle
-            </button>
-
-            <button
-              className="btn btn-delete"
-              onClick={() =>
-                setConfirm({
-                  open: true,
-                  type: "job",
-                  id: job.id,
-                  message: "Are you sure you want to delete this?",
-                })
-              }
-            >
-              Sil
-            </button>
           </div>
         </div>
       </div>
@@ -3120,6 +3180,10 @@ function PaymentActionModal({
   const [note, setNote] = useState("");
   const [kasaId, setKasaId] = useState(activeKasaId || "");
   const [method, setMethod] = useState("cash");
+  // ✅ NEW: date picker state (today default)
+  const [paymentDate, setPaymentDate] = useState(
+    new Date().toISOString().slice(0, 10)
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -3127,6 +3191,7 @@ function PaymentActionModal({
     setNote("");
     setKasaId(activeKasaId || "");
     setMethod("cash");
+    setPaymentDate(new Date().toISOString().slice(0, 10));
   }, [open, activeKasaId]);
 
   if (!open) return null;
@@ -3137,38 +3202,51 @@ function PaymentActionModal({
       title={mode === "payment" ? "Tahsilat Al" : "Borçlandır"}
       onClose={onClose}
     >
+      {/* thisis for kasa secimi for borclandirma and tahsilat yap  */}
+      {mode === "payment" && (
+        <div className="form-group">
+          <label>Kasa</label>
+          <select value={kasaId} onChange={(e) => setKasaId(e.target.value)}>
+            <option value="">Kasa seçin</option>
+            {kasalar.map((k) => (
+              <option key={k.id} value={k.id}>
+                {k.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
       <div className="form-group">
-        <label>Kasa</label>
-        <select value={kasaId} onChange={(e) => setKasaId(e.target.value)}>
-          <option value="">Kasa seçin</option>
-          {kasalar.map((k) => (
-            <option key={k.id} value={k.id}>
-              {k.name}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="form-group">
-        <label>Tutar</label>
+        <label>Tarih</label>
         <input
-          type="number"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
+          type="date"
+          value={paymentDate}
+          onChange={(e) => setPaymentDate(e.target.value)}
         />
       </div>
 
+      {/* Ödeme Yöntemi */}
       {mode === "payment" && (
         <div className="form-group">
           <label>Ödeme Yöntemi</label>
           <select value={method} onChange={(e) => setMethod(e.target.value)}>
             <option value="cash">💵 Nakit</option>
             <option value="card">💳 Kart</option>
-            <option value="transfer">🏦 Havale / EFT</option>
-            <option value="other">📦 Diğer</option>
+            <option value="transfer">🏦 Havale</option>
           </select>
         </div>
       )}
+
+      {/* Tutar */}
+      <div className="form-group">
+        <label>Tutar</label>
+        <input
+          type="number"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          placeholder="0.00"
+        />
+      </div>
 
       <div className="form-group">
         <label>Açıklama / Not</label>
@@ -3187,7 +3265,13 @@ function PaymentActionModal({
         <button
           className={mode === "payment" ? "btn btn-save" : "btn btn-delete"}
           onClick={() => {
-            onSubmit(amount, note, kasaId, mode === "payment" ? method : null);
+            onSubmit(
+              amount,
+              note,
+              kasaId,
+              paymentDate,
+              mode === "payment" ? method : null
+            );
             onClose();
           }}
         >
