@@ -186,6 +186,7 @@ function makeEmptyJob(customers) {
 
     // Job lifecycle
     isCompleted: false, // mark completed
+    isPaid: false,   // ✅ NEW
   };
 }
 
@@ -310,6 +311,14 @@ function MainApp({ state, setState }) {
   const [custModalOpen, setCustModalOpen] = useState(false);
   const [custDetailOpen, setCustDetailOpen] = useState(false);
 
+  // KASA DELETE CONFIRM STATE
+const [kasaDeleteConfirm, setKasaDeleteConfirm] = useState({
+  open: false,
+  kasaId: null,
+  text: "",
+});
+
+
   const [editingKasaId, setEditingKasaId] = useState(null);
 const [editingKasaName, setEditingKasaName] = useState("");
 
@@ -367,24 +376,28 @@ const [paymentOpen, setPaymentOpen] = useState(true);
 
 
   const activeJobs = filteredJobs.filter(j => !j.isCompleted);
-  const completedJobs = filteredJobs.filter(j => j.isCompleted);
+  const completedJobs = filteredJobs.filter(
+  j => j.isCompleted && !j.isPaid
+);
 
+const unpaidCompletedJobs = filteredJobs.filter(j => j.isCompleted && !j.isPaid);
 
 // 🔔 30-day payment tracking (active jobs only)
-const paymentWatchList = activeJobs
-  .map((job) => {
+const paymentWatchList = filteredJobs
+  .filter(j => j.isCompleted && !j.isPaid)
+  .map(job => {
     const startDate = getJobStartDate(job);
     if (!startDate) return null;
 
-    const now = new Date();
-
-    const daysPassed = daysBetween(startDate, now);
-    const daysLeft = 30 - daysPassed;
-
-    return { job, daysLeft };
+    const daysPassed = daysBetween(startDate, new Date());
+    return {
+      job,
+      daysLeft: 30 - daysPassed,
+    };
   })
   .filter(Boolean)
   .sort((a, b) => a.daysLeft - b.daysLeft);
+
 
 
 
@@ -456,6 +469,10 @@ function makePayment(customerId, amount, note, kasaId, method) {
   if (amt <= 0) return;
 
   setState((s) => {
+    const oldCustomer = s.customers.find((c) => c.id === customerId);
+const oldBalance = toNum(oldCustomer?.balanceOwed);
+const newBalance = oldBalance - amt;
+
    const payment = {
   id: uid(),
   customerId,
@@ -482,8 +499,19 @@ return {
       ? { ...c, balanceOwed: toNum(c.balanceOwed) - amt } //allow negatives
       : c
   ),
+  jobs: s.jobs.map((j) => {
+  if (j.customerId !== customerId) return j;
+
+  // If job is completed and customer is now fully paid (or negative), mark paid
+  if (j.isCompleted && newBalance <= 0) {
+    return { ...j, isPaid: true };
+  }
+  return j;
+}),
+
   payments: [...(s.payments || []), payment],
 };
+
 
   });
 }
@@ -545,8 +573,10 @@ const debt = {
 
       // Update job
       const nextJobs = s.jobs.map((j) =>
-        j.id === jobId ? { ...j, isCompleted: true, isRunning: false } : j
-      );
+  j.id === jobId
+    ? { ...j, isCompleted: true, isPaid: false, isRunning: false } // ✅ add isPaid:false
+    : j
+);
 
       // Add to customer balance owed
       const nextCustomers = s.customers.map((c) => {
@@ -558,6 +588,17 @@ const debt = {
     });
   }
 
+
+function markJobPaid(jobId) {
+  setState((s) => ({
+    ...s,
+    jobs: s.jobs.map((j) =>
+      j.id === jobId ? { ...j, isPaid: true } : j
+    ),
+  }));
+}
+
+  
   /**
    * Clock In:
    * - Start job timer (only one running job at a time for safety)
@@ -673,13 +714,28 @@ const debt = {
 
       <div className="container">
         {/* Search bar */}
-        <input
-          type="text"
-          className="search-bar"
-          placeholder="Ara..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+        <div className="search-wrap">
+  <input
+    type="text"
+    className="search-bar"
+    placeholder="Ara..."
+    value={search}
+    onChange={(e) => setSearch(e.target.value)}
+  />
+
+  {search && (
+    <button
+      type="button"
+      className="search-clear"
+      onClick={() => setSearch("")}
+      aria-label="Aramayı temizle"
+      title="Temizle"
+    >
+      ✕
+    </button>
+  )}
+</div>
+
 
         {/* HOME PAGE */}
         {page === "home" && (
@@ -783,6 +839,7 @@ const debt = {
   setJobModalOpen={setJobModalOpen}
   setConfirm={setConfirm}
   markJobComplete={markJobComplete}
+  markJobPaid={markJobPaid}   // ✅ THIS FIXES THE ERROR
    currency={currency}   // ✅ ADD THIS
 />
 
@@ -807,9 +864,10 @@ const debt = {
     <div className="card">Tamamlanan iş yok.</div>
   ) : (
     completedJobs
-      .slice()
-      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
-      .map(job => (
+  .slice()
+  .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+  .slice(0, 10)   // ✅ SHOW ONLY 10
+  .map(job => (
          <JobCard
   key={job.id}
   job={job}
@@ -821,6 +879,7 @@ const debt = {
   setJobModalOpen={setJobModalOpen}
   setConfirm={setConfirm}
   markJobComplete={markJobComplete}
+  markJobPaid={markJobPaid}   // ✅ THIS FIXES THE ERROR
    currency={currency}   // ✅ ADD THIS
 />
       ))
@@ -961,31 +1020,34 @@ const debt = {
               </div>
             </div>
 
-            {isActive ? (
-             <div className="kasa-active-badge">
-    AKTİF
-  </div>
+          {isActive ? (
+  <div className="kasa-active-badge">AKTİF</div>
+) : (
+  <div style={{ display: "flex", gap: 6 }}>
+    <button
+      className="btn btn-save kasa-select-btn"
+      onClick={() =>
+        setState((s) => ({ ...s, activeKasaId: kasa.id }))
+      }
+    >
+      Seç
+    </button>
 
-            ) : (
-              <button
-                className="btn btn-save kasa-select-btn"
-                style={{
-    padding: "6px 12px",
-    fontSize: 12,
-    width: "auto",
-    flexShrink: 0,
-    minWidth: 70,
-  }}
-                onClick={() =>
-                  setState((s) => ({
-                    ...s,
-                    activeKasaId: kasa.id,
-                  }))
-                }
-              >
-                Seç
-              </button>
-            )}
+    <button
+      className="btn btn-delete kasa-select-btn"
+      onClick={() =>
+        setKasaDeleteConfirm({
+          open: true,
+          kasaId: kasa.id,
+          text: "",
+        })
+      }
+    >
+      Sil
+    </button>
+  </div>
+)}
+
           </div>
         );
       })}
@@ -1115,27 +1177,93 @@ const debt = {
           })
         }
         onEditJob={(jobId) => {
+           setCustDetailOpen(false);          // ✅ close customer modal first
           setEditingJobId(jobId);
-          setJobModalOpen(true);
+          setTimeout(() => setJobModalOpen(true), 0); // ✅ open job modal after
         }}
         onAddJob={() => {
+           setCustDetailOpen(false);          // ✅ close customer modal first
           setEditingJobId(null);
-          setJobModalOpen(true);
+          setTimeout(() => setJobModalOpen(true), 0); // ✅ open job modal after
         }}
       />
 
       {/* CONFIRMATION MODAL (Delete) */}
-      <ConfirmModal
-        open={confirm.open}
-        message={confirm.message}
-        onNo={() => setConfirm({ open: false, type: null, id: null, message: "" })}
-        onYes={() => {
-          if (confirm.type === "job") deleteJob(confirm.id);
-          if (confirm.type === "customer") deleteCustomer(confirm.id);
-          setConfirm({ open: false, type: null, id: null, message: "" });
-          setCustDetailOpen(false);
+<ConfirmModal
+  open={confirm.open}
+  message={confirm.message}
+  requireText={confirm.type === "customer"}   // ✅ IMPORTANT
+  onNo={() => setConfirm({ open: false, type: null, id: null, message: "" })}
+  onYes={() => {
+    if (confirm.type === "job") deleteJob(confirm.id);
+    if (confirm.type === "customer") deleteCustomer(confirm.id);
+
+    setConfirm({ open: false, type: null, id: null, message: "" });
+    setCustDetailOpen(false);
+  }}
+/>
+{/* KASA DELETE CONFIRM MODAL */}
+{ kasaDeleteConfirm.open && (
+  <ModalBase
+    open={true}
+    title="Kasa Silme Onayı"
+    onClose={() =>
+      setKasaDeleteConfirm({ open: false, kasaId: null, text: "" })
+    }
+  >
+    <p style={{ color: "#b91c1c", fontWeight: 600 }}>
+      ⚠️ Bu kasa kalıcı olarak silinecek.
+    </p>
+
+    <p>
+      Devam etmek için <b>SIL</b> yazın:
+    </p>
+
+    <input
+      value={kasaDeleteConfirm.text}
+      onChange={(e) =>
+        setKasaDeleteConfirm((s) => ({
+          ...s,
+          text: e.target.value,
+        }))
+      }
+      placeholder="SIL"
+    />
+
+    <div className="btn-row">
+      <button
+        className="btn btn-cancel"
+        onClick={() =>
+          setKasaDeleteConfirm({ open: false, kasaId: null, text: "" })
+        }
+      >
+        Vazgeç
+      </button>
+
+      <button
+        className="btn btn-delete"
+        disabled={kasaDeleteConfirm.text !== "SIL"}
+        onClick={() => {
+          setState((s) => ({
+            ...s,
+            kasalar: s.kasalar.filter(
+              (k) => k.id !== kasaDeleteConfirm.kasaId
+            ),
+          }));
+
+          setKasaDeleteConfirm({
+            open: false,
+            kasaId: null,
+            text: "",
+          });
         }}
-      />
+      >
+        Kalıcı Olarak Sil
+      </button>
+    </div>
+  </ModalBase>
+)}
+
     </>
   );
 }
@@ -1151,6 +1279,7 @@ function JobCard({
   setJobModalOpen,
   setConfirm,
   markJobComplete,
+    markJobPaid,     // ✅ ADD THIS
   currency,   // ✅ ADD THIS
 }) {
   const c = customersById.get(job.customerId);
@@ -1189,14 +1318,15 @@ function JobCard({
             </strong>
 
             {job.isRunning && <span className="badge">Çalışıyor</span>}
-            {job.isCompleted && (
-              <span
-                className="badge"
-                style={{ background: "#dcfce7", color: "#166534" }}
-              >
-                Tamamlandı
-              </span>
-            )}
+            {job.isCompleted && !job.isPaid && (
+  <button
+    className="btn btn-save"
+    style={{ marginTop: 6 }}
+    onClick={() => markJobPaid(job.id)}
+  >
+    Ödeme Alındı
+  </button>
+)}
           </div>
 
           <div style={{ marginTop: 6, fontSize: 13, color: "#555" }}>
@@ -1457,15 +1587,43 @@ function ModalBase({ open, title, onClose, children }) {
  * Confirm delete modal
  * - uses YES/NO question exactly as requested
  */
-function ConfirmModal({ open, message, onYes, onNo }) {
+function ConfirmModal({ open, message, onYes, onNo, requireText }) {
+  const [typed, setTyped] = useState("");
+
+  useEffect(() => {
+    if (!open) setTyped("");
+  }, [open]);
+
+  const canConfirm = !requireText || typed === "DELETE";
+
   return (
     <ModalBase open={open} title="Confirm" onClose={onNo}>
       <p style={{ marginTop: 0 }}>{message}</p>
+
+      {requireText && (
+        <div className="form-group">
+          <label>
+            Silmek için <b>DELETE</b> yazın
+          </label>
+          <input
+            value={typed}
+            onChange={(e) => setTyped(e.target.value)}
+            placeholder="DELETE"
+          />
+        </div>
+      )}
+
       <div className="btn-row">
         <button className="btn btn-cancel" onClick={onNo}>
           No
         </button>
-        <button className="btn btn-delete" onClick={onYes}>
+
+        <button
+          className="btn btn-delete"
+          disabled={!canConfirm}
+          style={{ opacity: canConfirm ? 1 : 0.5 }}
+          onClick={onYes}
+        >
           Yes
         </button>
       </div>
@@ -1914,7 +2072,7 @@ function buildShareText() {
 
     customerPayments.forEach((p) => {
       const typeLabel = p.type === "payment" ? "Tahsilat" : "Borç";
-      const sign = p.type === "payment" ? "-" : "+";
+      const sign = p.type === "payment" ? "+" : "-";
 
       text += `${p.date} | ${typeLabel}\n`;
       text += `Tutar: ${sign}${money(p.amount, currency)}\n`;
@@ -2109,55 +2267,54 @@ const customerPayments = useMemo(() => {
   onChange={(e) => setPaymentNote(e.target.value)}
 />
 
-              <button
-                className="btn btn-save"
-                style={{ marginTop: 8 }}
-                onClick={() => {
-  onMakePayment(
-  customer.id,
-  paymentAmount,
-  paymentNote,
-  selectedKasaId,
-  paymentMethod
-);
-  setPaymentAmount("");
-  setPaymentNote("");
-}}
-              >
-                Tahsilat Al
-              </button>
-               <button
-                className="btn btn-delete"
-                style={{ marginTop: 8 }}
-                onClick={() => {
-  onAddDebt(customer.id, paymentAmount, paymentNote);
-  setPaymentAmount("");
-  setPaymentNote("");
-}}
-              >
-                Borçlandır
-              </button>
+<div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+  <button
+    className="btn btn-save"
+    style={{ flex: 1, marginTop: 0 }}
+    onClick={() => {
+      onMakePayment(
+        customer.id,
+        paymentAmount,
+        paymentNote,
+        selectedKasaId,
+        paymentMethod
+      );
+      setPaymentAmount("");
+      setPaymentNote("");
+    }}
+  >
+    Tahsilat Al
+  </button>
+
+  <button
+    className="btn btn-delete"
+    style={{ flex: 1, marginTop: 0 }}
+    onClick={() => {
+      onAddDebt(
+        customer.id,
+        paymentAmount,
+        paymentNote,
+        selectedKasaId,
+        paymentMethod
+      );
+      setPaymentAmount("");
+      setPaymentNote("");
+    }}
+  >
+    Borçlandır
+  </button>
+
+  <button
+    className="btn btn-save"
+    style={{ flex: 1, marginTop: 0, background: "#16a34a" }}
+    onClick={() => onAddJob()}
+  >
+    + İş Ekle
+  </button>
+</div>
+
             </div>
-            {/* this part is no longer needed you can delete it  */}
-            {/* <div style={{ flex: 1 }}>
-              <label>Borçlandır (₺)</label>
-              <input
-                type="number"
-                value={debtAmount}
-                onChange={(e) => setDebtAmount(e.target.value)}
-              />
-              
-               <button
-                className="btn btn-delete"
-                style={{ marginTop: 8 }}
-                onClick={() => {
-                  onAddDebt(customer.id, debtAmount);
-                  setDebtAmount("");
-                }}
-              >
-                Borçlandır
-              </button> 
-            </div> */}
+ 
           </div>
 
 <div className="btn-row" style={{ flexWrap: "wrap" }}>
@@ -2214,9 +2371,7 @@ const customerPayments = useMemo(() => {
   </div>
 </div>
 
-            <button className="btn btn-save" onClick={onAddJob}>
-              + İş Ekle
-            </button>
+             
           </div>
 
           <div id="detail-history" style={{ marginTop: 12, fontSize: 14 }}>
@@ -2264,7 +2419,7 @@ const customerPayments = useMemo(() => {
           fontSize: 15
         }}
       >
-        {isPayment ? "-" : "+"}{money(p.amount, currency)}
+        {isPayment ? "+" : "-"}{money(p.amount, currency)}
       </div>
     </div>
   );
@@ -2342,10 +2497,10 @@ const customerPayments = useMemo(() => {
     <td>{kasaNameOf(p.kasaId)}</td>
     <td>{methodLabel(p.method)}</td>
     <td>
-      {p.type === "payment"
-        ? `-${money(p.amount, currency)}`
-        : money(p.amount, currency)}
-    </td>
+  {p.type === "payment"
+    ? `+${money(p.amount, currency)}`
+    : `-${money(p.amount, currency)}`}
+</td>
     <td>{p.note}</td>
   </tr>
 ))}

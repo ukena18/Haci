@@ -271,6 +271,39 @@ input, select, textarea {
 }
 
 
+
+
+.search-wrap {
+  position: relative;
+  margin-bottom: 15px;
+}
+
+.search-wrap .search-bar {
+  padding-right: 44px; /* room for the X button */
+  margin-bottom: 0;    /* since wrapper now has margin */
+}
+
+.search-clear {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 999px;
+  background: #eee;
+  color: #333;
+  cursor: pointer;
+  font-size: 16px;
+  display: grid;
+  place-items: center;
+}
+
+.search-clear:hover {
+  background: #ddd;
+}
+
 /* ============================================================
    Notes / Next Improvements (Optional)
 ============================================================ */
