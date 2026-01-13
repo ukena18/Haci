@@ -202,6 +202,7 @@ function makeEmptyJob(customers) {
     id: uid(),
     customerId: "", // ✅ no default customer
     date: new Date().toISOString().slice(0, 10), // yyyy-mm-dd
+    timeMode: "manual", // ✅ "manual" | "clock"
     start: "",
     end: "",
     rate: 0,
@@ -212,7 +213,8 @@ function makeEmptyJob(customers) {
     isRunning: false,
     clockInAt: null,
     clockOutAt: null,
-
+    workedMs: 0, // ✅ TOTAL accumulated work time
+    clockSessions: [], // ✅ NEW: history of clock in/out
     // Folder style UI (expanded/collapsed)
     isOpen: false,
 
@@ -682,9 +684,14 @@ function MainApp({ state, setState, user }) {
         0
       );
 
+      const liveMs =
+        job.isRunning && job.clockInAt ? Date.now() - job.clockInAt : 0;
+
+      const totalMs = (job.workedMs || 0) + liveMs;
+
       const hours =
-        job.isRunning && job.clockInAt
-          ? (Date.now() - job.clockInAt) / 36e5
+        job.timeMode === "clock"
+          ? totalMs / 36e5
           : calcHours(job.start, job.end);
 
       const labor = hours * toNum(job.rate);
@@ -746,27 +753,30 @@ function MainApp({ state, setState, user }) {
   function clockOut(jobId) {
     setState((s) => {
       const now = Date.now();
+
       const nextJobs = s.jobs.map((j) => {
         if (j.id !== jobId) return j;
         if (!j.clockInAt) return { ...j, isRunning: false };
 
-        const startDate = new Date(j.clockInAt);
-        const endDate = new Date(now);
-
-        // If user never entered start/end manually, we fill them in
-        const filledStart =
-          j.start ||
-          `${pad2(startDate.getHours())}:${pad2(startDate.getMinutes())}`;
-        const filledEnd = `${pad2(endDate.getHours())}:${pad2(
-          endDate.getMinutes()
-        )}`;
+        const sessionMs = now - j.clockInAt;
 
         return {
           ...j,
           isRunning: false,
           clockOutAt: now,
-          start: filledStart,
-          end: filledEnd,
+          clockInAt: null,
+
+          workedMs: (j.workedMs || 0) + sessionMs,
+
+          // ✅ SAVE SESSION HISTORY
+          clockSessions: [
+            ...(j.clockSessions || []),
+            {
+              in: j.clockInAt,
+              out: now,
+              ms: sessionMs,
+            },
+          ],
         };
       });
 
@@ -1033,11 +1043,18 @@ function MainApp({ state, setState, user }) {
                         </div>
 
                         <div style={{ fontWeight: 700 }}>
-                          {money(
-                            calcHours(job.start, job.end) * toNum(job.rate) +
-                              partsTotalOf(job),
-                            currency
-                          )}
+                          {(() => {
+                            const totalMs = job.workedMs || 0;
+                            const hours =
+                              job.timeMode === "clock"
+                                ? totalMs / 36e5
+                                : calcHours(job.start, job.end);
+
+                            return money(
+                              hours * toNum(job.rate) + partsTotalOf(job),
+                              currency
+                            );
+                          })()}
                         </div>
                       </div>
                     );
@@ -1067,7 +1084,20 @@ function MainApp({ state, setState, user }) {
                       const isOpen = openCustomerFolders[customerId] ?? false;
 
                       const totalAmount = jobs.reduce((sum, j) => {
-                        const hours = calcHours(j.start, j.end);
+                        const liveMs =
+                          j.isRunning && j.clockInAt
+                            ? Date.now() - j.clockInAt
+                            : 0;
+
+                        const totalMs =
+                          (j.workedMs || 0) +
+                          (j.isRunning && j.clockInAt ? liveMs : 0);
+
+                        const hours =
+                          j.timeMode === "clock"
+                            ? totalMs / 36e5
+                            : calcHours(j.start, j.end);
+
                         return sum + hours * toNum(j.rate) + partsTotalOf(j);
                       }, 0);
 
@@ -1526,6 +1556,14 @@ function MainApp({ state, setState, user }) {
           setEditingJobId(null);
           setTimeout(() => setJobModalOpen(true), 0); // ✅ open job modal after
         }}
+        onDeleteJob={(jobId) =>
+          setConfirm({
+            open: true,
+            type: "job",
+            id: jobId,
+            message: "Bu işi silmek istediğinize emin misiniz?",
+          })
+        }
       />
 
       <PaymentActionModal
@@ -1645,7 +1683,13 @@ function JobCard({
   const liveMs =
     job.isRunning && job.clockInAt ? Date.now() - job.clockInAt : 0;
 
-  const hours = job.isRunning ? liveMs / 36e5 : calcHours(job.start, job.end);
+  // ✅ TOTAL accumulated time (past sessions + current running session)
+  const totalMs =
+    (job.workedMs || 0) + (job.isRunning && job.clockInAt ? liveMs : 0);
+
+  // ✅ FINAL hours logic
+  const hours =
+    job.timeMode === "clock" ? totalMs / 36e5 : calcHours(job.start, job.end);
 
   const partsTotal = partsTotalOf(job);
 
@@ -1703,22 +1747,22 @@ function JobCard({
               flexWrap: "wrap",
             }}
           >
-            {job.isRunning ? (
-              <button
-                className="btn btn-delete"
-                onClick={() => clockOut(job.id)}
-              >
-                Clock Out
-              </button>
-            ) : (
-              <button
-                className="btn btn-save"
-                onClick={() => clockIn(job.id)}
-                disabled={job.isCompleted}
-              >
-                Clock In
-              </button>
-            )}
+            {job.timeMode === "clock" &&
+              (job.isRunning ? (
+                <button
+                  className="btn btn-delete"
+                  onClick={() => clockOut(job.id)}
+                >
+                  Clock Out
+                </button>
+              ) : (
+                <button
+                  className="btn btn-save"
+                  onClick={() => clockIn(job.id)}
+                >
+                  Clock In
+                </button>
+              ))}
 
             <button
               className="btn"
@@ -1786,6 +1830,43 @@ function JobCard({
             {job.notes && (
               <div style={{ marginTop: 8, color: "#333" }}>
                 <strong>Not:</strong> {job.notes}
+              </div>
+            )}
+            {/* ⏱️ CLOCK IN / OUT HISTORY */}
+            {job.timeMode === "clock" && job.clockSessions?.length > 0 && (
+              <div style={{ marginTop: 12 }}>
+                <div style={{ fontWeight: 700, marginBottom: 6 }}>
+                  ⏱️ Çalışma Geçmişi
+                </div>
+
+                {job.clockSessions.map((s, i) => {
+                  const start = new Date(s.in);
+                  const end = new Date(s.out);
+                  const hours = (s.ms / 36e5).toFixed(2);
+
+                  return (
+                    <div
+                      key={i}
+                      className="miniRow"
+                      style={{ fontSize: 12, color: "#444" }}
+                    >
+                      <span>
+                        #{i + 1} •{" "}
+                        {start.toLocaleTimeString("tr-TR", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}{" "}
+                        →{" "}
+                        {end.toLocaleTimeString("tr-TR", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+
+                      <strong>{hours} saat</strong>
+                    </div>
+                  );
+                })}
               </div>
             )}
 
@@ -1879,19 +1960,56 @@ function CustomerSharePage({ state }) {
               const total = hours * toNum(j.rate) + partsTotal;
 
               return (
-                <div key={j.id} className="card list-item">
-                  <div>
-                    <strong>{j.date || "Tarih yok"}</strong>
+                <div
+                  key={j.id}
+                  className="card list-item"
+                  style={{ alignItems: "center" }}
+                >
+                  <div style={{ flex: 1 }}>
+                    <strong>{j.date}</strong>
                     <br />
                     <small>
-                      {j.start || "--:--"} - {j.end || "--:--"} |{" "}
+                      {j.start || "--:--"}-{j.end || "--:--"} |{" "}
                       {hours.toFixed(2)} saat
                     </small>
                   </div>
-                  <div>
-                    <strong style={{ color: "var(--primary)" }}>
+
+                  <div style={{ textAlign: "right", minWidth: 110 }}>
+                    <strong
+                      style={{ color: "var(--primary)", display: "block" }}
+                    >
                       {money(total, currency)}
                     </strong>
+
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 6,
+                        justifyContent: "flex-end",
+                        marginTop: 8,
+                      }}
+                    >
+                      <button
+                        className="btn"
+                        style={{
+                          background: "#eee",
+                          color: "#333",
+                          padding: "6px 10px",
+                          flex: "unset",
+                        }}
+                        onClick={() => onEditJob(j.id)}
+                      >
+                        Düzenle
+                      </button>
+
+                      <button
+                        className="btn btn-delete"
+                        style={{ padding: "6px 10px", flex: "unset" }}
+                        onClick={() => onDeleteJob(j.id)}
+                      >
+                        Sil
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -1966,12 +2084,12 @@ function ConfirmModal({ open, message, onYes, onNo, requireText }) {
       {requireText && (
         <div className="form-group">
           <label>
-            Silmek için <b>DELETE</b> yazın
+            Silmek için <b>SIL</b> yazın
           </label>
           <input
             value={typed}
             onChange={(e) => setTyped(e.target.value)}
-            placeholder="DELETE"
+            placeholder="SIL"
           />
         </div>
       )}
@@ -2272,6 +2390,46 @@ function JobModal({
           onChange={(e) => setField("date", e.target.value)}
         />
       </div>
+      <div className="form-group">
+        <label>Çalışma Zamanı Girişi</label>
+
+        <div style={{ display: "flex", gap: 10 }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <input
+              type="radio"
+              name="timeMode"
+              checked={draft.timeMode === "manual"}
+              onChange={() =>
+                setDraft((d) => ({
+                  ...d,
+                  timeMode: "manual",
+                  isRunning: false,
+                  clockInAt: null,
+                  clockOutAt: null,
+                }))
+              }
+            />
+            Manuel
+          </label>
+
+          <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <input
+              type="radio"
+              name="timeMode"
+              checked={draft.timeMode === "clock"}
+              onChange={() =>
+                setDraft((d) => ({
+                  ...d,
+                  timeMode: "clock",
+                  start: "",
+                  end: "",
+                }))
+              }
+            />
+            Clock In / Out
+          </label>
+        </div>
+      </div>
 
       <div className="form-group">
         <label>Çalışma Saatleri (Başlangıç - Bitiş)</label>
@@ -2279,11 +2437,14 @@ function JobModal({
           <input
             type="time"
             value={draft.start}
+            disabled={draft.timeMode !== "manual"}
             onChange={(e) => setField("start", e.target.value)}
           />
+
           <input
             type="time"
             value={draft.end}
+            disabled={draft.timeMode !== "manual"}
             onChange={(e) => setField("end", e.target.value)}
           />
         </div>
@@ -2437,7 +2598,7 @@ function CustomerDetailModal({
   kasalar, // ✅ ADD
   activeKasaId, // ✅ ADD
   payments, //ADD this
-
+  onDeleteJob,
   onEditCustomer,
   onDeleteCustomer,
   onEditJob,
