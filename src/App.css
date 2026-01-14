@@ -248,6 +248,38 @@ body {
   z-index: 1;
 }
 
+/* =========================
+   Stacked Payment Modal
+   (opens on top of customer modal)
+========================= */
+
+.payment-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.18); /* light dim */
+  z-index: 1350; /* above CustomerDetailModal (1100) */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.payment-modal {
+  width: 420px;
+  max-width: 92vw;
+  background: #fff;
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.3);
+  z-index: 1400; /* above backdrop */
+}
+
+.payment-modal-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+
 .form-group {
   margin-bottom: 15px;
 }
@@ -519,7 +551,7 @@ textarea {
 ================================ */
 
 .cust-header-card {
-  background: linear-gradient(135deg, #2563eb, #1e40af);
+  background: linear-gradient(135deg, #6b8ff2, #5b7fe6);
   color: white;
   border-radius: 16px;
   padding: 16px;
@@ -595,14 +627,17 @@ textarea {
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
 }
 
+/* Softer primary actions */
 .btn-primary.green {
-  background: #16a34a;
+  background: linear-gradient(135deg, #22c55e, #15803d);
 }
+
 .btn-primary.red {
-  background: #dc2626;
+  background: linear-gradient(135deg, #f87171, #b91c1c);
 }
+
 .btn-primary.blue {
-  background: #2563eb;
+  background: linear-gradient(135deg, #3b82f6, #1e40af);
 }
 
 .secondary-actions {
@@ -909,12 +944,13 @@ textarea {
   line-height: 1.2;
 }
 
+/* Calm financial colors */
 .stat-value.green {
-  color: #16a34a;
+  color: #15803d; /* muted green */
 }
 
 .stat-value.red {
-  color: #dc2626;
+  color: #dc2626; /* muted red */
 }
 
 /* Mobile: 3 boxes still fit but smaller */
@@ -930,12 +966,260 @@ textarea {
   }
 }
 
-/* ============================================================
-   Notes / Next Improvements (Optional)
-============================================================ */
-/**
- * - If you want jsPDF (real PDF file export) instead of print->PDF,
- *   tell me and I’ll swap shareAsPDF() to use jsPDF + autotable.
- * - We can also add “Prevent clock in if another is running” as a warning
- *   instead of auto-stopping the previous job.
- */
+/* ================================
+   CONFIRM DELETE MODAL STYLING
+================================ */
+
+.confirm-modal .modal-content {
+  max-width: 420px;
+  width: calc(100% - 32px);
+  margin: auto;
+  border-radius: 16px;
+  padding: 20px;
+  animation: modalPop 0.2s ease-out;
+}
+
+/* Title row (ONLY confirm modal) */
+.confirm-modal .modal-content h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #991b1b; /* dark red */
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Message text */
+.modal .modal-content p {
+  margin-top: 12px;
+  font-size: 14px;
+  color: #444;
+  line-height: 1.4;
+}
+
+/* Buttons row */
+.modal .btn-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+/* Cancel button */
+.confirm-modal .btn-cancel {
+  flex: 1;
+  background: #e5e7eb;
+  color: #374151;
+  border-radius: 10px;
+  padding: 12px;
+  font-weight: 600;
+}
+
+/* Delete / Yes button */
+.confirm-modal .btn-delete {
+  flex: 1;
+  background: #dc2626;
+  color: white;
+  border-radius: 10px;
+  padding: 12px;
+  font-weight: 700;
+}
+
+.modal .btn-delete:hover {
+  background: #b91c1c;
+}
+
+/* Disabled delete */
+.modal .btn-delete:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Input (for SIL confirmation) */
+.confirm-modal input {
+  width: 100%;
+  margin-top: 8px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  font-size: 14px;
+}
+
+/* Animation */
+@keyframes modalPop {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ================================
+   CONFIRM MODAL (SCOPED — SAFE)
+================================ */
+
+/* only confirm modal overlay */
+.confirm-modal {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+/* confirm card */
+.confirm-modal .modal-content {
+  width: 100%;
+  max-width: 380px;
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+  animation: confirmPop 0.18s ease-out;
+}
+
+/* confirm title */
+.confirm-modal .modal-content h3 {
+  font-size: 17px;
+  font-weight: 800;
+  margin: 0;
+  color: #991b1b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ⚠️ only for confirm */
+.confirm-modal .modal-content h3::before {
+  content: "⚠️";
+}
+
+/* message */
+.confirm-modal .modal-content p {
+  margin-top: 12px;
+  font-size: 14px;
+  color: #444;
+}
+
+/* buttons */
+.confirm-modal .btn-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.confirm-modal .btn-cancel {
+  flex: 1;
+  background: #e5e7eb;
+  color: #374151;
+  border-radius: 10px;
+  padding: 10px;
+  font-weight: 700;
+}
+
+.confirm-modal .btn-delete {
+  flex: 1;
+  background: #dc2626;
+  color: white;
+  border-radius: 10px;
+  padding: 10px;
+  font-weight: 800;
+}
+
+.confirm-modal .btn-delete:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* animation */
+@keyframes confirmPop {
+  from {
+    transform: translateY(6px) scale(0.96);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+/* History amount text – calm */
+.history-card .list-item strong {
+  font-weight: 700;
+}
+
+.history-card .list-item .green {
+  color: #15803d;
+}
+
+.history-card .list-item .red {
+  color: #b91c1c;
+}
+
+/* Reduce visual noise */
+.card {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+}
+
+.cust-stat {
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+}
+
+/* =========================
+   Customer Edit Modal – Pretty UI (Scoped)
+   SAFE: affects ONLY customer edit modal
+========================= */
+
+.customer-edit-modal {
+  max-width: 520px;
+  border-radius: 20px;
+  padding: 20px;
+  background: linear-gradient(180deg, #ffffff, #f9fafb);
+}
+
+/* Header spacing */
+.customer-edit-modal h2,
+.customer-edit-modal h3 {
+  margin-top: 0;
+  margin-bottom: 12px;
+}
+
+/* Form layout */
+.customer-edit-modal .form-group {
+  margin-bottom: 12px;
+}
+
+/* Inputs */
+.customer-edit-modal input,
+.customer-edit-modal textarea {
+  width: 100%;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 14px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+}
+
+.customer-edit-modal input:focus,
+.customer-edit-modal textarea:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+/* ID field subtle */
+.customer-edit-modal input[readonly] {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+/* Buttons row */
+.customer-edit-modal .btn-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+/* Divider before delete */
+.customer-edit-modal .modal-divider {
+  margin: 18px 0;
+  border-top: 1px dashed #e5e7eb;
+}

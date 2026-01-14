@@ -190,9 +190,54 @@ function formatTimer(ms) {
   return `${pad2(h)}:${pad2(m)}:${pad2(s)}`;
 }
 
+/**
+ * ================= BUSINESS RULES =================
+ *
+ * CUSTOMER
+ * - balanceOwed:
+ *   > POSITIVE  = customer owes us money
+ *   > ZERO      = settled
+ *   > NEGATIVE  = customer overpaid (credit)
+ *
+ * JOB
+ * - A job does NOT affect money until it is marked completed
+ * - When completed:
+ *   → job total is ADDED to customer.balanceOwed
+ * - When paid:
+ *   → job is marked isPaid=true
+ *   → money is tracked via payments, not jobs
+ *
+ * PAYMENT / DEBT (payments array)
+ * - type: "payment" → money COMES IN (tahsilat)
+ * - type: "debt"    → money ADDS TO DEBT (borç)
+ *
+ * IMPORTANT:
+ * - Cash (kasa) is ONLY affected by "payment"
+ * - Debt NEVER touches kasa
+ *
+ * ===================================================
+ */
+
 /* ============================================================
    3) DEFAULT MODELS
 ============================================================ */
+
+/**
+ * Make Payment (TAHSİLAT)
+ *
+ * BUSINESS RULES:
+ * 1) Payment always REDUCES customer.balanceOwed
+ * 2) Payment always INCREASES kasa.balance
+ * 3) Payment is applied to UNPAID COMPLETED JOBS first
+ *    - Oldest job first
+ *    - If payment fully covers a job → job.isPaid = true
+ *    - Partial payments do NOT mark job paid
+ *
+ * IMPORTANT:
+ * - Jobs are NEVER partially paid
+ * - Job payment status is binary: paid / unpaid
+ * - Payment history is the source of truth
+ */
 
 function makeEmptyCustomer() {
   return {
@@ -710,6 +755,18 @@ function MainApp({ state, setState, user }) {
     });
   }
 
+  /**
+   * Add Debt (BORÇ)
+   *
+   * BUSINESS RULES:
+   * - Debt INCREASES customer.balanceOwed
+   * - Debt DOES NOT affect kasa balance
+   * - Debt exists only as a record (payments array)
+   *
+   * WHY:
+   * - Borç is an accounting adjustment, not real cash movement
+   */
+
   /** Add debt to a customer (does NOT affect cash) */
   function addDebt(customerId, amount, note, date, kasaId, method) {
     const amt = toNum(amount);
@@ -815,6 +872,22 @@ function MainApp({ state, setState, user }) {
    *
    * NOTE: This matches your request: “Mark as complete and add it to my balance”
    */
+
+  /**
+   * Mark Job as Completed
+   *
+   * BUSINESS RULES:
+   * - Completing a job:
+   *   → FREEZES its total (hours + parts)
+   *   → ADDS total to customer.balanceOwed
+   * - Job is NOT paid automatically
+   * - Job becomes eligible for payment allocation
+   *
+   * IMPORTANT:
+   * - Editing job AFTER completion will NOT auto-adjust balance
+   *   (manual correction via transactions is required)
+   */
+
   function markJobComplete(jobId) {
     setState((s) => {
       const job = s.jobs.find((j) => j.id === jobId);
@@ -856,6 +929,19 @@ function MainApp({ state, setState, user }) {
     });
   }
 
+  /**
+   * Mark Job Paid (MANUAL)
+   *
+   * BUSINESS RULES:
+   * - This only changes job state
+   * - NO money movement
+   * - NO kasa update
+   *
+   * WHY:
+   * - Actual money is tracked via payments
+   * - Job paid state is informational / reporting only
+   */
+
   function markJobPaid(jobId) {
     setState((s) => ({
       ...s,
@@ -868,6 +954,16 @@ function MainApp({ state, setState, user }) {
    * - Start job timer (only one running job at a time for safety)
    * If another job is running, we stop it automatically.
    */
+
+  /**
+   * CLOCK-IN / CLOCK-OUT RULES
+   *
+   * - Only ONE job can be running at a time
+   * - Starting a new job auto-stops the previous one
+   * - Time is accumulated into workedMs
+   * - Session history is preserved for audit
+   */
+
   function clockIn(jobId) {
     setState((s) => {
       const now = Date.now();
@@ -892,6 +988,16 @@ function MainApp({ state, setState, user }) {
    * - Auto-fill start/end manual times as a starting point
    *   (user can still adjust later manually)
    */
+
+  /**
+   * CLOCK-IN / CLOCK-OUT RULES
+   *
+   * - Only ONE job can be running at a time
+   * - Starting a new job auto-stops the previous one
+   * - Time is accumulated into workedMs
+   * - Session history is preserved for audit
+   */
+
   function clockOut(jobId) {
     setState((s) => {
       const now = Date.now();
@@ -1579,22 +1685,24 @@ function MainApp({ state, setState, user }) {
                       <div style={{ display: "flex", gap: 6 }}>
                         <button
                           className="btn btn-save kasa-select-btn"
-                          onClick={() =>
-                            setState((s) => ({ ...s, activeKasaId: kasa.id }))
-                          }
+                          onClick={(e) => {
+                            e.stopPropagation(); // 🔥 PREVENT kasa detail opening
+                            setState((s) => ({ ...s, activeKasaId: kasa.id }));
+                          }}
                         >
                           Seç
                         </button>
 
                         <button
                           className="btn btn-delete kasa-select-btn"
-                          onClick={() =>
+                          onClick={(e) => {
+                            e.stopPropagation(); // 🔥 PREVENT kasa detail opening
                             setKasaDeleteConfirm({
                               open: true,
                               kasaId: kasa.id,
                               text: "",
-                            })
-                          }
+                            });
+                          }}
                         >
                           Sil
                         </button>
@@ -1680,6 +1788,8 @@ function MainApp({ state, setState, user }) {
         editingJobId={editingJobId}
         onSave={(job) => upsertJob(job)}
         currency={currency} // ✅ ADD THIS
+        setConfirm={setConfirm} // ✅ ADD
+        zIndex={3000}
       />
 
       {/* CUSTOMER MODAL */}
@@ -1699,6 +1809,7 @@ function MainApp({ state, setState, user }) {
               "Bu müşteriyi ve tüm işlerini silmek istediğinize emin misiniz?",
           });
         }}
+        zIndex={1500} // ✅ ADD THIS LINE
       />
 
       {/* CUSTOMER DETAIL / STATEMENT MODAL */}
@@ -1715,11 +1826,8 @@ function MainApp({ state, setState, user }) {
         activeKasaId={state.activeKasaId} // ✅ ADD
         onOpenPayment={openPaymentModal}
         onEditCustomer={() => {
-          setCustDetailOpen(false); // 🔴 CLOSE detail modal FIRST
           setEditingCustId(selectedCustomerId);
-          setTimeout(() => {
-            setCustModalOpen(true); // 🟢 OPEN edit modal AFTER
-          }, 0);
+          setCustModalOpen(true);
         }}
         onDeleteCustomer={() =>
           setConfirm({
@@ -1730,14 +1838,12 @@ function MainApp({ state, setState, user }) {
           })
         }
         onEditJob={(jobId) => {
-          setCustDetailOpen(false); // ✅ close customer modal first
           setEditingJobId(jobId);
-          setTimeout(() => setJobModalOpen(true), 0); // ✅ open job modal after
+          setJobModalOpen(true); // ✅ just open job modal
         }}
         onAddJob={() => {
-          setCustDetailOpen(false); // ✅ close customer modal first
           setEditingJobId(null);
-          setTimeout(() => setJobModalOpen(true), 0); // ✅ open job modal after
+          setJobModalOpen(true); // ✅ just open job modal
         }}
         onDeleteJob={(jobId) =>
           setConfirm({
@@ -1748,6 +1854,7 @@ function MainApp({ state, setState, user }) {
           })
         }
         onUpdatePayment={updatePaymentTransaction}
+        setConfirm={setConfirm}
       />
 
       <PaymentActionModal
@@ -1795,8 +1902,14 @@ function MainApp({ state, setState, user }) {
           if (confirm.type === "job") deleteJob(confirm.id);
           if (confirm.type === "customer") deleteCustomer(confirm.id);
 
+          if (confirm.type === "payment") {
+            setState((s) => ({
+              ...s,
+              payments: (s.payments || []).filter((p) => p.id !== confirm.id),
+            }));
+          }
+
           setConfirm({ open: false, type: null, id: null, message: "" });
-          setCustDetailOpen(false);
         }}
       />
 
@@ -1986,12 +2099,14 @@ function JobCard({
               flexWrap: "wrap",
             }}
           >
+            {/* ⏱ Clock actions — ONLY for ACTIVE (not completed) jobs */}
             {job.timeMode === "clock" &&
+              !job.isCompleted &&
               (job.isRunning ? (
                 <button
                   className="btn btn-delete"
                   onClick={(e) => {
-                    e.stopPropagation(); // ✅ ADD THIS
+                    e.stopPropagation();
                     clockOut(job.id);
                   }}
                 >
@@ -2001,7 +2116,7 @@ function JobCard({
                 <button
                   className="btn btn-save"
                   onClick={(e) => {
-                    e.stopPropagation(); // ✅ ADD THIS
+                    e.stopPropagation();
                     clockIn(job.id);
                   }}
                 >
@@ -2276,29 +2391,39 @@ function CustomerSharePage({ state }) {
  * Modal base
  * - matches your overlay style
  */
-function ModalBase({ open, title, onClose, children }) {
+function ModalBase({
+  open,
+  title,
+  onClose,
+  children,
+  className = "",
+  zIndex = 1000,
+}) {
   if (!open) return null;
 
   return (
     <div
-      className="modal"
-      onClick={onClose} // 👈 backdrop click closes modal
+      className={`modal ${className}`}
+      style={{ zIndex }}
+      onClick={(e) => {
+        e.stopPropagation(); // ✅ prevents bubbling to modal behind
+        onClose(); // ✅ close this modal only
+      }}
     >
       <div
         className="modal-content"
-        onClick={(e) => e.stopPropagation()} // 👈 STOP bubbling
+        onClick={(e) => e.stopPropagation()} // ✅ stop inside clicks
       >
         <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            gap: 10,
-          }}
+          style={{ display: "flex", justifyContent: "space-between", gap: 10 }}
         >
           <h3 style={{ margin: 0 }}>{title}</h3>
           <button
             className="btn btn-cancel"
-            onClick={onClose}
+            onClick={(e) => {
+              e.stopPropagation(); // ✅ also prevents bubbling
+              onClose();
+            }}
             style={{ flex: "unset" }}
           >
             Kapat
@@ -2325,7 +2450,13 @@ function ConfirmModal({ open, message, onYes, onNo, requireText }) {
   const canConfirm = !requireText || typed === "SIL";
 
   return (
-    <ModalBase open={open} title="Confirm" onClose={onNo}>
+    <ModalBase
+      open={open}
+      title="Silme Onayı"
+      onClose={onNo}
+      className="confirm-modal"
+      zIndex={4000}
+    >
       <p style={{ marginTop: 0 }}>{message}</p>
 
       {requireText && (
@@ -2369,6 +2500,7 @@ function CustomerModal({
   editingCustomerId,
   onSave,
   onDeleteCustomer,
+  zIndex = 1000, // ✅ ADD THIS
 }) {
   const editing = editingCustomerId
     ? customers.find((c) => c.id === editingCustomerId)
@@ -2436,15 +2568,17 @@ function CustomerModal({
       open={open}
       title={editing ? "Müşteri Düzenle" : "Yeni Müşteri"}
       onClose={onClose}
+      zIndex={zIndex} // ✅ ADD THIS
     >
-      <div className="form-group">
-        <label>Müşteri ID</label>
-        <input value={draft.id} readOnly />
-        <small style={{ color: "#666" }}>
-          Bu ID paylaşım linki için kullanılır: <b>/customer/{draft.id}</b>
-        </small>
+      <div className="customer-edit-modal">
+        <div className="form-group">
+          <label>Müşteri ID</label>
+          <input value={draft.id} readOnly />
+          <small style={{ color: "#666" }}>
+            Bu ID paylaşım linki için kullanılır: <b>/customer/{draft.id}</b>
+          </small>
+        </div>
       </div>
-
       <div className="form-group">
         <label>Ad</label>
         <input
@@ -2530,6 +2664,7 @@ function JobModal({
   editingJobId,
   onSave,
   currency,
+  setConfirm, // ✅ ADD
 }) {
   const editing = editingJobId ? jobs.find((j) => j.id === editingJobId) : null;
 
@@ -2613,6 +2748,7 @@ function JobModal({
       open={open}
       title={editing ? "İşi Düzenle" : "Yeni İş Ekle"}
       onClose={onClose}
+      zIndex={1300} // ✅ add this
     >
       <div className="form-group">
         <label>Müşteri Seç</label>
@@ -2817,9 +2953,27 @@ function JobModal({
       </div>
 
       <div className="btn-row">
+        {editing && (
+          <button
+            className="btn btn-delete"
+            onClick={() => {
+              onClose();
+              setConfirm({
+                open: true,
+                type: "job",
+                id: editingJobId,
+                message: "Bu işi silmek istediğinize emin misiniz?",
+              });
+            }}
+          >
+            🗑 Sil
+          </button>
+        )}
+
         <button className="btn btn-cancel" onClick={onClose}>
           İptal
         </button>
+
         <button className="btn btn-save" onClick={save}>
           Kaydet
         </button>
@@ -2851,6 +3005,7 @@ function CustomerDetailModal({
   onEditJob,
   onAddJob,
   onUpdatePayment,
+  setConfirm, // ✅ ADD THIS
 }) {
   const [selectedKasaId, setSelectedKasaId] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
@@ -3011,13 +3166,64 @@ function CustomerDetailModal({
       .sort((a, b) => b.createdAt - a.createdAt);
   }, [payments, customer, fromDate, toDate]);
 
-  // ===============================
-  // 📊 CUSTOMER FINANCIAL STATS
-  // ===============================
+  const unifiedHistory = useMemo(() => {
+    if (!customer) return [];
 
-  // ===============================
-  // 📊 CUSTOMER FINANCIAL STATS
-  // ===============================
+    const jobItems = customerJobs.map((j) => ({
+      kind: "job",
+      date: j.date,
+      createdAt: j.createdAt || 0,
+      data: j,
+    }));
+
+    const paymentItems = customerPayments.map((p) => ({
+      kind: "payment",
+      date: p.date,
+      createdAt: p.createdAt || 0,
+      data: p,
+    }));
+
+    return [...jobItems, ...paymentItems].sort((a, b) => {
+      const da = new Date(a.date).getTime();
+      const db = new Date(b.date).getTime();
+
+      // 1) sort by date (newest first)
+      if (da !== db) return db - da;
+
+      // 2) if same date, sort by createdAt (newest first)
+      return (b.createdAt || 0) - (a.createdAt || 0);
+    });
+  }, [customerJobs, customerPayments, customer]);
+
+  function deleteTransaction(txId) {
+    setConfirm({
+      open: true,
+      type: "payment",
+      id: txId,
+      message: "Bu işlemi silmek istediğinize emin misiniz?",
+    });
+    setEditTx(null);
+  }
+
+  /**
+   * CUSTOMER FINANCIAL SUMMARY
+   *
+   * DEFINITIONS:
+   * - PLUS (+):
+   *   • Tahsilat transactions
+   *   • Paid jobs
+   *
+   * - MINUS (-):
+   *   • Borç transactions
+   *   • Unpaid completed jobs
+   *
+   * FORMULA:
+   *   bakiye = totalTahsilat - totalBorc
+   *
+   * INTERPRETATION:
+   * - bakiye > 0 → customer credit
+   * - bakiye < 0 → customer owes money
+   */
 
   // helper: job total (manual + clock)
   function jobTotalOf(j) {
@@ -3052,10 +3258,26 @@ function CustomerDetailModal({
       .reduce((sum, j) => sum + jobTotalOf(j), 0);
   }, [jobs, customer]);
 
+  /**
+   * UNCOLLECTED JOB VALUE
+   *
+   * Includes:
+   * - Active jobs (not completed yet)
+   * - Completed but unpaid jobs
+   *
+   * Excludes:
+   * - Paid jobs
+   */
   const unpaidJobsTotal = useMemo(() => {
     if (!customer) return 0;
+
     return jobs
-      .filter((j) => j.customerId === customer.id && !j.isPaid)
+      .filter(
+        (j) =>
+          j.customerId === customer.id &&
+          (!j.isCompleted || // 🟡 ACTIVE JOBS
+            (j.isCompleted && !j.isPaid)) // ⚙️ COMPLETED BUT UNPAID
+      )
       .reduce((sum, j) => sum + jobTotalOf(j), 0);
   }, [jobs, customer]);
 
@@ -3141,7 +3363,12 @@ function CustomerDetailModal({
   if (!open) return null;
 
   return (
-    <ModalBase open={open} title="Müşteri Detayı" onClose={onClose}>
+    <ModalBase
+      open={open}
+      title="Müşteri Detayı"
+      onClose={onClose}
+      zIndex={1100} // ✅ add this
+    >
       {!customer ? (
         <div className="card">Müşteri bulunamadı.</div>
       ) : (
@@ -3199,16 +3426,33 @@ function CustomerDetailModal({
           <div className="btn-row">
             <div style={{ flex: 1 }}>
               <div className="primary-actions">
+                {/* <button
+                  className="btn-primary green"
+                  onClick={() => {
+                    onClose(); // 🔴 CLOSE customer detail FIRST
+                    setTimeout(() => {
+                      onOpenPayment("payment", customer); // 🟢 OPEN payment modal
+                    }, 0);
+                  }}
+                >
+                  💰 Tahsilat
+                </button> */}
                 <button
                   className="btn-primary green"
-                  onClick={() => onOpenPayment("payment", customer)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenPayment("payment", customer);
+                  }}
                 >
                   💰 Tahsilat
                 </button>
 
                 <button
                   className="btn-primary red"
-                  onClick={() => onOpenPayment("debt", customer)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenPayment("debt", customer);
+                  }}
                 >
                   🧾 Borç
                 </button>
@@ -3256,77 +3500,95 @@ function CustomerDetailModal({
 
             {/* 💰 Tahsilat / Borç Kayıtları */}
             {/* 💰 Tahsilat / Borç Kayıtları */}
-            {customerPayments.map((p) => {
-              const isPayment = p.type === "payment";
-
-              return (
-                <div
-                  key={p.id}
-                  className="card list-item"
-                  style={{
-                    borderLeft: `6px solid ${
-                      isPayment ? "#16a34a" : "#dc2626"
-                    }`,
-                    background: isPayment ? "#f0fdf4" : "#fef2f2",
-                    cursor: "pointer",
-                  }}
-                  onClick={() => {
-                    setEditTx(p);
-                    setEditAmount(String(p.amount ?? ""));
-                    setEditNote(p.note || "");
-                    setEditDate(
-                      p.date || new Date().toISOString().slice(0, 10)
-                    );
-                    setEditMethod(p.method || "cash");
-                    setEditKasaId(p.kasaId || activeKasaId || "");
-                  }}
-                >
-                  {/* LEFT SIDE */}
-                  <div>
-                    <strong
-                      style={{ color: isPayment ? "#166534" : "#7f1d1d" }}
-                    >
-                      {isPayment ? "💰 Tahsilat" : "🧾 Borç"}
-                    </strong>
-
-                    {p.note && (
-                      <div
-                        style={{ fontSize: 12, color: "#555", marginTop: 4 }}
-                      >
-                        {p.note}
-                      </div>
-                    )}
-
-                    <div style={{ fontSize: 12, color: "#777" }}>
-                      {p.date}
-                      {" • "}
-                      Kasa: <b>{kasaNameOf(p.kasaId)}</b>
-                      {" • "}
-                      Yöntem: <b>{methodLabel(p.method)}</b>
-                    </div>
-                  </div>
-
-                  {/* RIGHT SIDE (amount) */}
-                  <div
-                    style={{
-                      fontWeight: 700,
-                      color: isPayment ? "#16a34a" : "#dc2626",
-                      fontSize: 12,
-                    }}
-                  >
-                    {isPayment ? "+" : "-"}
-                    {money(p.amount, p.currency || currency)}
-                  </div>
-                </div>
-              );
-            })}
-
-            {/* 🧰 İşler */}
-            {customerJobs.length === 0 ? (
-              <div className="card">Bu müşteriye ait iş yok.</div>
+            {unifiedHistory.length === 0 ? (
+              <div className="card">Kayıt yok.</div>
             ) : (
-              customerJobs.map((j) => {
-                const hours = calcHours(j.start, j.end);
+              unifiedHistory.map((item) => {
+                // ======================
+                // PAYMENT / DEBT ROW
+                // ======================
+                if (item.kind === "payment") {
+                  const p = item.data;
+                  const isPayment = p.type === "payment";
+
+                  return (
+                    <div
+                      key={p.id}
+                      className="card list-item"
+                      style={{
+                        borderLeft: `6px solid ${
+                          isPayment ? "#16a34a" : "#dc2626"
+                        }`,
+                        background: isPayment ? "#f0fdf4" : "#fef2f2",
+                        cursor: "pointer",
+                      }}
+                      onClick={() => {
+                        setEditTx(p);
+                        setEditAmount(String(p.amount ?? ""));
+                        setEditNote(p.note || "");
+                        setEditDate(
+                          p.date || new Date().toISOString().slice(0, 10)
+                        );
+                        setEditMethod(p.method || "cash");
+                        setEditKasaId(p.kasaId || activeKasaId || "");
+                      }}
+                    >
+                      <div>
+                        <strong
+                          style={{ color: isPayment ? "#166534" : "#7f1d1d" }}
+                        >
+                          {isPayment ? "💰 Tahsilat" : "🧾 Borç"}
+                        </strong>
+
+                        {p.note && (
+                          <div
+                            style={{
+                              fontSize: 12,
+                              color: "#555",
+                              marginTop: 4,
+                            }}
+                          >
+                            {p.note}
+                          </div>
+                        )}
+
+                        <div style={{ fontSize: 12, color: "#777" }}>
+                          {p.date}
+                          {" • "}
+                          Kasa: <b>{kasaNameOf(p.kasaId)}</b>
+                          {" • "}
+                          Yöntem: <b>{methodLabel(p.method)}</b>
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          fontWeight: 700,
+                          color: isPayment ? "#16a34a" : "#dc2626",
+                          fontSize: 12,
+                        }}
+                      >
+                        {isPayment ? "+" : "-"}
+                        {money(p.amount, p.currency || currency)}
+                      </div>
+                    </div>
+                  );
+                }
+
+                // ======================
+                // JOB ROW
+                // ======================
+                const j = item.data;
+
+                const liveMs =
+                  j.isRunning && j.clockInAt ? Date.now() - j.clockInAt : 0;
+                const totalMs = (j.workedMs || 0) + liveMs;
+
+                const hours =
+                  j.timeMode === "clock"
+                    ? totalMs / 36e5
+                    : calcHours(j.start, j.end);
+
                 const partsTotal = partsTotalOf(j);
                 const total = hours * toNum(j.rate) + partsTotal;
 
@@ -3345,6 +3607,7 @@ function CustomerDetailModal({
                         {hours.toFixed(2)} saat
                       </small>
                     </div>
+
                     <div style={{ textAlign: "right" }}>
                       <strong style={{ color: "var(--primary)" }}>
                         {money(total, currency)}
@@ -3499,6 +3762,13 @@ function CustomerDetailModal({
             {/* ACTIONS */}
             <div className="modal-actions">
               <button
+                className="btn btn-delete"
+                onClick={() => deleteTransaction(editTx.id)}
+              >
+                🗑 Sil
+              </button>
+
+              <button
                 className="btn btn-cancel"
                 onClick={() => setEditTx(null)}
               >
@@ -3560,88 +3830,109 @@ function PaymentActionModal({
   if (!open) return null;
 
   return (
-    <ModalBase
-      open={open}
-      title={mode === "payment" ? "Tahsilat Al" : "Borçlandır"}
-      onClose={onClose}
-    >
-      {/* thisis for kasa secimi for borclandirma and tahsilat yap  */}
-      {mode === "payment" && (
-        <div className="form-group">
-          <label>Kasa</label>
-          <select value={kasaId} onChange={(e) => setKasaId(e.target.value)}>
-            <option value="">Kasa seçin</option>
-            {kasalar.map((k) => (
-              <option key={k.id} value={k.id}>
-                {k.name}
-              </option>
-            ))}
-          </select>
+    <div className="payment-backdrop" onClick={onClose}>
+      <div className="payment-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="payment-modal-header">
+          <h3 style={{ margin: 0 }}>
+            {mode === "payment" ? "Tahsilat Al" : "Borçlandır"}
+          </h3>
+
+          <button
+            className="btn btn-cancel"
+            onClick={onClose}
+            style={{ flex: "unset" }}
+          >
+            Kapat
+          </button>
         </div>
-      )}
-      <div className="form-group">
-        <label>Tarih</label>
-        <input
-          type="date"
-          value={paymentDate}
-          onChange={(e) => setPaymentDate(e.target.value)}
-        />
-      </div>
 
-      {/* Ödeme Yöntemi */}
-      {mode === "payment" && (
-        <div className="form-group">
-          <label>Ödeme Yöntemi</label>
-          <select value={method} onChange={(e) => setMethod(e.target.value)}>
-            <option value="cash">💵 Nakit</option>
-            <option value="card">💳 Kart</option>
-            <option value="transfer">🏦 Havale</option>
-          </select>
+        <div style={{ marginTop: 14 }}>
+          {/* thisis for kasa secimi for borclandirma and tahsilat yap  */}
+          {mode === "payment" && (
+            <div className="form-group">
+              <label>Kasa</label>
+              <select
+                value={kasaId}
+                onChange={(e) => setKasaId(e.target.value)}
+              >
+                <option value="">Kasa seçin</option>
+                {kasalar.map((k) => (
+                  <option key={k.id} value={k.id}>
+                    {k.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div className="form-group">
+            <label>Tarih</label>
+            <input
+              type="date"
+              value={paymentDate}
+              onChange={(e) => setPaymentDate(e.target.value)}
+            />
+          </div>
+
+          {/* Ödeme Yöntemi */}
+          {mode === "payment" && (
+            <div className="form-group">
+              <label>Ödeme Yöntemi</label>
+              <select
+                value={method}
+                onChange={(e) => setMethod(e.target.value)}
+              >
+                <option value="cash">💵 Nakit</option>
+                <option value="card">💳 Kart</option>
+                <option value="transfer">🏦 Havale</option>
+              </select>
+            </div>
+          )}
+
+          {/* Tutar */}
+          <div className="form-group">
+            <label>Tutar</label>
+            <input
+              type="number"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="0.00"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Açıklama / Not</label>
+            <input
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Örn: Avans, Parça ücreti"
+            />
+          </div>
+
+          <div className="btn-row">
+            <button className="btn btn-cancel" onClick={onClose}>
+              İptal
+            </button>
+
+            <button
+              className={mode === "payment" ? "btn btn-save" : "btn btn-delete"}
+              onClick={() => {
+                onSubmit(
+                  amount,
+                  note,
+                  kasaId,
+                  paymentDate,
+                  mode === "payment" ? method : null
+                );
+                onClose();
+              }}
+            >
+              {mode === "payment" ? "Tahsilat Al" : "Borçlandır"}
+            </button>
+          </div>
         </div>
-      )}
-
-      {/* Tutar */}
-      <div className="form-group">
-        <label>Tutar</label>
-        <input
-          type="number"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          placeholder="0.00"
-        />
       </div>
-
-      <div className="form-group">
-        <label>Açıklama / Not</label>
-        <input
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          placeholder="Örn: Avans, Parça ücreti"
-        />
-      </div>
-
-      <div className="btn-row">
-        <button className="btn btn-cancel" onClick={onClose}>
-          İptal
-        </button>
-
-        <button
-          className={mode === "payment" ? "btn btn-save" : "btn btn-delete"}
-          onClick={() => {
-            onSubmit(
-              amount,
-              note,
-              kasaId,
-              paymentDate,
-              mode === "payment" ? method : null
-            );
-            onClose();
-          }}
-        >
-          {mode === "payment" ? "Tahsilat Al" : "Borçlandır"}
-        </button>
-      </div>
-    </ModalBase>
+    </div>
   );
 }
 
@@ -3761,7 +4052,12 @@ function ProfileModal({ open, onClose, user, profile, setState }) {
   if (!open) return null;
 
   return (
-    <ModalBase open={open} title="Profil Düzenle" onClose={onClose}>
+    <ModalBase
+      open={open}
+      title={editing ? "İşi Düzenle" : "Yeni İş Ekle"}
+      onClose={onClose}
+      zIndex={3000}
+    >
       <div className="form-group">
         <label>Ad / Ünvan</label>
         <input
@@ -3848,6 +4144,20 @@ function ProfileModal({ open, onClose, user, profile, setState }) {
     </ModalBase>
   );
 }
+
+/**
+ * KASA RULES
+ *
+ * - Kasa balance represents REAL CASH
+ * - Only "payment" transactions affect kasa
+ * - Debt transactions NEVER affect kasa
+ *
+ * Net:
+ *   net = totalTahsilat - totalBorc
+ *
+ * NOTE:
+ * - Kasa can go negative if manually adjusted
+ */
 
 function KasaDetailModal({ open, onClose, kasa, payments }) {
   if (!open || !kasa) return null;
