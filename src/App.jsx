@@ -180,6 +180,25 @@ function partsTotalOf(job) {
   return (job.parts || []).reduce((sum, p) => sum + partLineTotal(p), 0);
 }
 
+function jobTotalOf(job) {
+  const parts = partsTotalOf(job);
+
+  // ✅ Fixed-price job: total = fixedPrice + parts
+  if (job.timeMode === "fixed") {
+    return toNum(job.fixedPrice) + parts;
+  }
+
+  // ✅ Clock/manual jobs: total = hours * rate + parts
+  const liveMs =
+    job.isRunning && job.clockInAt ? Date.now() - job.clockInAt : 0;
+  const totalMs = (job.workedMs || 0) + liveMs;
+
+  const hours =
+    job.timeMode === "clock" ? totalMs / 36e5 : calcHours(job.start, job.end);
+
+  return hours * toNum(job.rate) + parts;
+}
+
 /** Calculate hours from "HH:MM" start/end (simple same-day logic) */
 function calcHours(start, end) {
   if (!start || !end) return 0;
@@ -266,9 +285,10 @@ function makeEmptyJob(customers) {
     id: uid(),
     customerId: "", // ✅ no default customer
     date: new Date().toISOString().slice(0, 10), // yyyy-mm-dd
-    timeMode: "manual", // ✅ "manual" | "clock"
+    timeMode: "manual", // "manual" | "clock" | "fixed"
     start: "",
     end: "",
+    fixedPrice: 0, // ✅ NEW: sabit iş ücreti
     rate: 0,
     parts: [], // { id, name, price }
     notes: "",
@@ -664,11 +684,15 @@ function MainApp({ state, setState, user }) {
     }, 0);
   }
 
-  function renameKasa(kasaId, newName) {
+  function renameKasa(kasaId, update) {
     setState((s) => ({
       ...s,
       kasalar: s.kasalar.map((k) =>
-        k.id === kasaId ? { ...k, name: newName } : k
+        k.id === kasaId
+          ? typeof update === "string"
+            ? { ...k, name: update } // old behavior
+            : { ...k, ...update } // new behavior (currency etc.)
+          : k
       ),
     }));
   }
@@ -1019,8 +1043,7 @@ function MainApp({ state, setState, user }) {
           ? totalMs / 36e5
           : calcHours(job.start, job.end);
 
-      const labor = hours * toNum(job.rate);
-      const total = labor + partsTotal;
+      const total = jobTotalOf(job);
 
       // Update job
       const nextJobs = s.jobs.map((j) =>
@@ -1068,7 +1091,7 @@ function MainApp({ state, setState, user }) {
           ? totalMs / 36e5
           : calcHours(job.start, job.end);
 
-      const jobTotal = hours * toNum(job.rate) + partsTotalOf(job);
+      const jobTotal = jobTotalOf(job);
 
       const kasaId = s.activeKasaId;
 
@@ -1537,23 +1560,10 @@ function MainApp({ state, setState, user }) {
 
                       const isOpen = openCustomerFolders[customerId] ?? false;
 
-                      const totalAmount = jobs.reduce((sum, j) => {
-                        const liveMs =
-                          j.isRunning && j.clockInAt
-                            ? Date.now() - j.clockInAt
-                            : 0;
-
-                        const totalMs =
-                          (j.workedMs || 0) +
-                          (j.isRunning && j.clockInAt ? liveMs : 0);
-
-                        const hours =
-                          j.timeMode === "clock"
-                            ? totalMs / 36e5
-                            : calcHours(j.start, j.end);
-
-                        return sum + hours * toNum(j.rate) + partsTotalOf(j);
-                      }, 0);
+                      const totalAmount = jobs.reduce(
+                        (sum, j) => sum + jobTotalOf(j),
+                        0
+                      );
 
                       return (
                         <div key={customerId}>
@@ -1863,36 +1873,6 @@ function MainApp({ state, setState, user }) {
 
                       <div style={{ fontSize: 12, color: "#555" }}>
                         Bakiye: {money(getKasaBalance(kasa.id), kasa.currency)}
-                        <div style={{ marginTop: 8 }}>
-                          <div
-                            style={{
-                              fontSize: 12,
-                              color: "#666",
-                              marginBottom: 4,
-                            }}
-                          >
-                            Kasa Para Birimi
-                          </div>
-
-                          <select
-                            value={kasa.currency || currency}
-                            onChange={(e) =>
-                              setState((s) => ({
-                                ...s,
-                                kasalar: s.kasalar.map((k) =>
-                                  k.id === kasa.id
-                                    ? { ...k, currency: e.target.value }
-                                    : k
-                                ),
-                              }))
-                            }
-                            style={{ height: 40 }}
-                          >
-                            <option value="TRY">₺ Türk Lirası</option>
-                            <option value="USD">$ US Dollar</option>
-                            <option value="EUR">€ Euro</option>
-                          </select>
-                        </div>
                       </div>
                     </div>
 
@@ -2270,8 +2250,7 @@ function JobCard({
 
   const partsTotal = partsTotalOf(job);
 
-  const laborTotal = hours * toNum(job.rate);
-  const total = laborTotal + partsTotal;
+  const total = jobTotalOf(job);
 
   let jobStatusClass = "job-card";
 
@@ -2322,10 +2301,16 @@ function JobCard({
             ) : (
               <>
                 <span>{job.date || "Tarih yok"}</span> |{" "}
-                <span>
-                  {job.start || "--:--"} - {job.end || "--:--"}
-                </span>{" "}
-                | <span>{hours.toFixed(2)} saat</span>
+                {job.timeMode === "fixed" ? (
+                  <span>💲 Sabit Ücret</span>
+                ) : (
+                  <>
+                    <span>
+                      {job.start || "--:--"} - {job.end || "--:--"}
+                    </span>{" "}
+                    | <span>{hours.toFixed(2)} saat</span>
+                  </>
+                )}
               </>
             )}
           </div>
@@ -2376,14 +2361,25 @@ function JobCard({
       {job.isOpen && (
         <div style={{ marginTop: 12 }}>
           <div style={{ display: "grid", gap: 8 }}>
-            <div className="miniRow">
-              <span>Saatlik Ücret:</span>
-              <strong>{money(job.rate, currency)}</strong>
-            </div>
-            <div className="miniRow">
-              <span>İşçilik:</span>
-              <strong>{money(laborTotal, currency)}</strong>
-            </div>
+            {job.timeMode === "fixed" ? (
+              <div className="miniRow">
+                <span>Sabit Ücret:</span>
+                <strong>{money(job.fixedPrice, currency)}</strong>
+              </div>
+            ) : (
+              <>
+                <div className="miniRow">
+                  <span>Saatlik Ücret:</span>
+                  <strong>{money(job.rate, currency)}</strong>
+                </div>
+
+                <div className="miniRow">
+                  <span>İşçilik:</span>
+                  <strong>{money(hours * toNum(job.rate), currency)}</strong>
+                </div>
+              </>
+            )}
+
             <div className="miniRow">
               <span>Parçalar:</span>
               <strong>{money(partsTotal, currency)}</strong>
@@ -3119,8 +3115,9 @@ function JobModal({
       ),
     [draft.parts]
   );
-  const laborTotal = hours * toNum(draft.rate);
-  const grandTotal = laborTotal + partsTotal;
+  const laborTotal = draft.timeMode === "fixed" ? 0 : hours * toNum(draft.rate);
+
+  const grandTotal = jobTotalOf(draft);
 
   function save() {
     if (!draft.customerId) {
@@ -3224,36 +3221,76 @@ function JobModal({
             />
             Clock In / Out
           </label>
+          <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <input
+              type="radio"
+              name="timeMode"
+              checked={draft.timeMode === "fixed"}
+              onChange={() =>
+                setDraft((d) => ({
+                  ...d,
+                  timeMode: "fixed",
+                  // optional cleanup:
+                  start: "",
+                  end: "",
+                  rate: 0,
+                  isRunning: false,
+                  clockInAt: null,
+                  clockOutAt: null,
+                }))
+              }
+            />
+            Sabit Ücret
+          </label>
         </div>
       </div>
 
-      <div className="form-group">
-        <label>Çalışma Saatleri (Başlangıç - Bitiş)</label>
-        <div style={{ display: "flex", gap: 5 }}>
-          <input
-            type="time"
-            value={draft.start}
-            disabled={draft.timeMode !== "manual"}
-            onChange={(e) => setField("start", e.target.value)}
-          />
+      {draft.timeMode !== "fixed" && (
+        <>
+          <div className="form-group">
+            <label>Çalışma Saatleri (Başlangıç - Bitiş)</label>
+            <div style={{ display: "flex", gap: 5 }}>
+              <input
+                type="time"
+                value={draft.start}
+                disabled={draft.timeMode !== "manual"}
+                onChange={(e) => setField("start", e.target.value)}
+              />
 
+              <input
+                type="time"
+                value={draft.end}
+                disabled={draft.timeMode !== "manual"}
+                onChange={(e) => setField("end", e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label>Saatlik Ücret ({currency})</label>
+            <input
+              type="number"
+              value={draft.rate}
+              onChange={(e) => setField("rate", e.target.value)}
+            />
+          </div>
+        </>
+      )}
+
+      {draft.timeMode === "fixed" && (
+        <div className="form-group">
+          <label>Sabit Ücret ({currency})</label>
           <input
-            type="time"
-            value={draft.end}
-            disabled={draft.timeMode !== "manual"}
-            onChange={(e) => setField("end", e.target.value)}
+            type="number"
+            value={draft.fixedPrice}
+            onChange={(e) => setField("fixedPrice", e.target.value)}
+            placeholder="Örn: 120"
           />
+          <small style={{ color: "#666" }}>
+            Bu işin toplamı zamandan bağımsızdır.
+          </small>
         </div>
-      </div>
-
-      <div className="form-group">
-        <label>Saatlik Ücret ({currency})</label>
-        <input
-          type="number"
-          value={draft.rate}
-          onChange={(e) => setField("rate", e.target.value)}
-        />
-      </div>
+      )}
 
       {/* Parts */}
       <div id="parca-container">
@@ -3335,14 +3372,24 @@ function JobModal({
 
       {/* Totals */}
       <div className="card" style={{ background: "#f9f9f9" }}>
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
-          <span>Çalışma Saati:</span>
-          <strong>{hours.toFixed(2)} saat</strong>
-        </div>
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
-          <span>İşçilik:</span>
-          <strong>{money(laborTotal, currency)}</strong>
-        </div>
+        {draft.timeMode !== "fixed" && (
+          <>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span>Çalışma Saati:</span>
+              <strong>{hours.toFixed(2)} saat</strong>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span>İşçilik:</span>
+              <strong>{money(laborTotal, currency)}</strong>
+            </div>
+          </>
+        )}
+        {draft.timeMode === "fixed" && (
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <span>Sabit Ücret:</span>
+            <strong>{money(draft.fixedPrice, currency)}</strong>
+          </div>
+        )}
         <div style={{ display: "flex", justifyContent: "space-between" }}>
           <span>Parçalar:</span>
           <strong>{money(partsTotal, currency)}</strong>
@@ -4729,8 +4776,32 @@ function KasaDetailModal({ open, onClose, kasa, payments, onRenameKasa }) {
           </div>
         )}
 
-        <div style={{ fontSize: 12, color: "#666" }}>
-          Para Birimi: <strong>{kasa.currency}</strong>
+        <div style={{ marginTop: 8 }}>
+          <div style={{ fontSize: 12, color: "#666", marginBottom: 4 }}>
+            Para Birimi
+          </div>
+
+          <select
+            value={kasa.currency}
+            onChange={(e) =>
+              onRenameKasa(kasa.id, {
+                ...kasa,
+                currency: e.target.value,
+              })
+            }
+            style={{
+              width: "100%",
+              height: 40,
+              borderRadius: 8,
+              border: "1px solid #ddd",
+              padding: "0 10px",
+              fontSize: 14,
+            }}
+          >
+            <option value="TRY">₺ Türk Lirası</option>
+            <option value="USD">$ US Dollar</option>
+            <option value="EUR">€ Euro</option>
+          </select>
         </div>
       </div>
       <div className="btn-row" style={{ marginBottom: 12 }}>
