@@ -1,7 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
 
-import { ensureUserData, loadUserData, saveUserData } from "./firestoreService";
+import {
+  ensureUserData,
+  loadUserData,
+  saveUserData,
+  publishCustomerSnapshot,
+} from "./firestoreService";
 
 import { auth } from "./firebase";
 import AuthPage from "./AuthPage";
@@ -11,6 +16,7 @@ import {
   Route,
   useNavigate,
   useParams,
+  useLocation, // ✅ ADD
 } from "react-router-dom";
 
 import {
@@ -22,6 +28,10 @@ import {
   EmailAuthProvider,
   reauthenticateWithCredential,
 } from "firebase/auth";
+
+import { doc, getDoc } from "firebase/firestore";
+
+import { db } from "./firebase";
 
 /**
  * ============================================================
@@ -283,6 +293,15 @@ function makeEmptyJob(customers) {
 ============================================================ */
 
 export default function App() {
+  return (
+    <BrowserRouter>
+      <AuthGate />
+    </BrowserRouter>
+  );
+}
+
+function AuthGate() {
+  const location = useLocation();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -294,19 +313,21 @@ export default function App() {
     return () => unsub();
   }, []);
 
-  if (loading) {
-    return <div style={{ padding: 20 }}>Yükleniyor...</div>;
+  if (loading) return <div style={{ padding: 20 }}>Yükleniyor...</div>;
+
+  // ✅ PUBLIC route: login istemez
+  if (location.pathname.startsWith("/customer/")) {
+    return (
+      <Routes>
+        <Route path="/customer/:id" element={<PublicCustomerSharePage />} />
+      </Routes>
+    );
   }
 
-  if (!user) {
-    return <AuthPage />;
-  }
+  // 🔒 Admin tarafı: login şart
+  if (!user) return <AuthPage />;
 
-  return (
-    <BrowserRouter>
-      <AppRoutes user={user} />
-    </BrowserRouter>
-  );
+  return <AppRoutes user={user} />;
 }
 
 function AppRoutes({ user }) {
@@ -377,10 +398,6 @@ function AppRoutes({ user }) {
       <Route
         path="/"
         element={<MainApp state={state} setState={setState} user={user} />}
-      />
-      <Route
-        path="/customer/:id"
-        element={<CustomerSharePage state={state} />}
       />
     </Routes>
   );
@@ -2469,6 +2486,147 @@ function JobCard({
   );
 }
 
+function PublicCustomerSharePage() {
+  const { id } = useParams();
+  const [snap, setSnap] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const ref = doc(db, "public_customers", id);
+        const s = await getDoc(ref);
+        if (!s.exists()) {
+          setSnap(null);
+          setLoading(false);
+          return;
+        }
+        setSnap(s.data());
+      } catch (e) {
+        console.error(e);
+        setSnap(null);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, [id]);
+
+  if (loading) return <div style={{ padding: 20 }}>Yükleniyor...</div>;
+  if (!snap) return <div style={{ padding: 20 }}>Müşteri bulunamadı.</div>;
+
+  const customer = snap.customer;
+  const jobs = snap.jobs || [];
+  const payments = (snap.payments || []).filter((p) => p.source !== "job"); // senin noiseyi gizleme mantığın
+
+  const currency = snap.currency || "TRY";
+
+  return (
+    <>
+      <div className="header">
+        <h2>Müşteri İş Geçmişi</h2>
+        <div style={{ fontSize: "0.9rem", marginTop: 5 }}>
+          {customer.name} {customer.surname} — Borç:{" "}
+          <strong>{money(customer.balanceOwed, currency)}</strong>
+        </div>
+      </div>
+
+      <div className="container">
+        <div style={{ marginTop: 12 }}>
+          {payments.length > 0 && (
+            <div style={{ marginBottom: 16 }}>
+              <h3 style={{ marginTop: 0 }}>💰 Tahsilat / Borç Geçmişi</h3>
+
+              {payments
+                .slice()
+                .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+                .map((p) => {
+                  const isPayment = p.type === "payment";
+                  return (
+                    <div
+                      key={p.id}
+                      className="card list-item"
+                      style={{
+                        borderLeft: `6px solid ${
+                          isPayment ? "#16a34a" : "#dc2626"
+                        }`,
+                        background: isPayment ? "#f0fdf4" : "#fef2f2",
+                      }}
+                    >
+                      <div>
+                        <strong
+                          style={{ color: isPayment ? "#166534" : "#7f1d1d" }}
+                        >
+                          {isPayment ? "💰 Tahsilat" : "🧾 Borç"}
+                        </strong>
+
+                        {p.note && (
+                          <div style={{ fontSize: 12, color: "#555" }}>
+                            {p.note}
+                          </div>
+                        )}
+                        <div style={{ fontSize: 12, color: "#777" }}>
+                          {p.date}
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          fontWeight: 700,
+                          color: isPayment ? "#16a34a" : "#dc2626",
+                        }}
+                      >
+                        {isPayment ? "+" : "-"}
+                        {money(p.amount, p.currency || currency)}
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          )}
+
+          {jobs.length === 0 ? (
+            <div className="card">İş kaydı yok.</div>
+          ) : (
+            jobs
+              .slice()
+              .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+              .map((j) => {
+                const hours = calcHours(j.start, j.end);
+                const total = hours * toNum(j.rate) + partsTotalOf(j);
+
+                return (
+                  <div
+                    key={j.id}
+                    className="card list-item"
+                    style={{ alignItems: "center" }}
+                  >
+                    <div style={{ flex: 1 }}>
+                      <strong>{j.date}</strong>
+                      <br />
+                      <small>
+                        {j.start || "--:--"}-{j.end || "--:--"} |{" "}
+                        {hours.toFixed(2)} saat
+                      </small>
+                    </div>
+
+                    <div style={{ textAlign: "right", minWidth: 110 }}>
+                      <strong
+                        style={{ color: "var(--primary)", display: "block" }}
+                      >
+                        {money(total, currency)}
+                      </strong>
+                    </div>
+                  </div>
+                );
+              })
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
 /* ============================================================
    6) CUSTOMER SHARE PAGE (Read-only)
    URL: /customer/:id
@@ -3639,8 +3797,19 @@ function CustomerDetailModal({
                   {customer.name} {customer.surname}
                 </h3>
 
-                <div className="cust-sub">
-                  {customer.phone || "—"} • {customer.address || "—"}
+                <div className="customer-meta">
+                  <a
+                    href={`tel:${customer.phone}`}
+                    style={{
+                      color: "inherit",
+                      textDecoration: "none",
+                      fontWeight: 600,
+                    }}
+                  >
+                    📞 {customer.phone}
+                  </a>
+                  {" · "}
+                  {customer.address}
                 </div>
 
                 <div className="cust-meta">
@@ -3651,7 +3820,19 @@ function CustomerDetailModal({
 
             <button
               className="portal-btn"
-              onClick={() => window.open(`/customer/${customer.id}`, "_blank")}
+              onClick={async () => {
+                if (!customer) return;
+
+                // customerJobs ve customerPayments zaten CustomerDetailModal içinde var
+                await publishCustomerSnapshot(customer.id, {
+                  customer,
+                  jobs: customerJobs,
+                  payments: customerPayments,
+                  currency,
+                });
+
+                window.open(`/customer/${customer.id}`, "_blank");
+              }}
             >
               🌐 Müşteri Portalını Aç
             </button>

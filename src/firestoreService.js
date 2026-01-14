@@ -51,3 +51,15 @@ export async function saveUserData(userId, data) {
     { merge: true }
   );
 }
+
+export async function publishCustomerSnapshot(customerId, payload) {
+  const ref = doc(db, "public_customers", customerId);
+  await setDoc(
+    ref,
+    {
+      ...payload,
+      updatedAt: Date.now(),
+    },
+    { merge: true }
+  );
+}
