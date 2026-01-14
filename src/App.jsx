@@ -408,6 +408,46 @@ function MainApp({ state, setState, user }) {
 
   const [openCustomerFolders, setOpenCustomerFolders] = useState({});
 
+  useAndroidBackHandler({
+    page,
+    setPage,
+    closeAllModals: () => {
+      if (jobModalOpen) {
+        setJobModalOpen(false);
+        return true;
+      }
+      if (custModalOpen) {
+        setCustModalOpen(false);
+        return true;
+      }
+      if (custDetailOpen) {
+        setCustDetailOpen(false);
+        return true;
+      }
+      if (paymentModalOpen) {
+        setPaymentModalOpen(false);
+        return true;
+      }
+      if (profileOpen) {
+        setProfileOpen(false);
+        return true;
+      }
+      if (kasaDetailOpen) {
+        setKasaDetailOpen(false);
+        return true;
+      }
+      if (jobActionOpen) {
+        setJobActionOpen(false);
+        return true;
+      }
+      if (confirm.open) {
+        setConfirm({ open: false });
+        return true;
+      }
+      return false;
+    },
+  });
+
   function toggleCustomerFolder(customerId) {
     setOpenCustomerFolders((s) => ({
       ...s,
@@ -1047,6 +1087,59 @@ function MainApp({ state, setState, user }) {
         payments: [...(s.payments || []), payment],
       };
     });
+  }
+
+  function useAndroidBackHandler({ page, setPage, closeAllModals }) {
+    const lastBack = useRef(0);
+
+    useEffect(() => {
+      // ✅ Push guard ONLY once
+      if (!window.history.state?.pwa) {
+        window.history.pushState({ pwa: true }, "");
+      }
+
+      const onBack = () => {
+        // 🔴 FIX #1: Allow React Router to handle non-root routes
+        if (window.location.pathname !== "/") {
+          return;
+        }
+
+        // 1️⃣ Close modals first
+        if (closeAllModals()) {
+          if (!window.history.state?.pwa) {
+            window.history.pushState({ pwa: true }, "");
+          }
+          return;
+        }
+
+        // 2️⃣ Navigate to home instead of exiting
+        if (page !== "home") {
+          setPage("home");
+
+          if (!window.history.state?.pwa) {
+            window.history.pushState({ pwa: true }, "");
+          }
+          return;
+        }
+
+        // 3️⃣ Double back to exit
+        const now = Date.now();
+        if (now - lastBack.current < 1500) {
+          window.history.back(); // allow exit
+          return;
+        }
+
+        lastBack.current = now;
+        alert("Çıkmak için tekrar geri basın");
+
+        if (!window.history.state?.pwa) {
+          window.history.pushState({ pwa: true }, "");
+        }
+      };
+
+      window.addEventListener("popstate", onBack);
+      return () => window.removeEventListener("popstate", onBack);
+    }, [page, setPage, closeAllModals]);
   }
 
   /**
