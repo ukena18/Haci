@@ -1268,48 +1268,11 @@ function MainApp({ state, setState, user }) {
     }
   }
 
-  const headerTitle =
-    page === "home"
-      ? "İş Listesi"
-      : page === "customers"
-      ? "Müşteriler"
-      : "Ayarlar";
-
   /* ============================================================
      RENDER
   ============================================================ */
   return (
     <>
-      {/* Top header (sticky) */}
-      <div className="header">
-        <div className="header header-bar">
-          <div className="header-left">
-            <h2 id="page-title" className="header-title">
-              {headerTitle}
-            </h2>
-            <div id="kasa-ozet" className="header-sub">
-              Kasa ({activeKasa?.name || "—"}):
-              <strong id="main-kasa-val">
-                {money(
-                  activeKasa ? getKasaBalance(activeKasa.id) : 0,
-                  activeKasa?.currency || currency
-                )}
-              </strong>
-            </div>
-          </div>
-
-          {page === "settings" && (
-            <button
-              className="logout-btn"
-              onClick={() => signOut(auth)}
-              title="Çıkış Yap"
-            >
-              Çıkış
-            </button>
-          )}
-        </div>
-      </div>
-
       <div className="container">
         {/* Search bar */}
         {/* Search bar */}
@@ -1716,37 +1679,66 @@ function MainApp({ state, setState, user }) {
               {filteredCustomers.length === 0 ? (
                 <div className="card">Henüz müşteri yok.</div>
               ) : (
-                filteredCustomers.map((c) => (
-                  <div
-                    key={c.id}
-                    className="card list-item"
-                    style={{ cursor: "pointer" }}
-                    onClick={() => {
-                      setSelectedCustomerId(c.id);
-                      setCustDetailOpen(true);
-                    }}
-                  >
-                    <div>
-                      <strong>
-                        {c.name} {c.surname}
-                      </strong>
-                      <br />
-                      <small>{c.phone || "Telefon yok"}</small>
+                filteredCustomers.map((c) => {
+                  const bakiye = -toNum(c.balanceOwed); // ✅ THIS WAS MISSING
+
+                  return (
+                    <div
+                      key={c.id}
+                      className="card list-item"
+                      style={{ cursor: "pointer" }}
+                      onClick={() => {
+                        setSelectedCustomerId(c.id);
+                        setCustDetailOpen(true);
+                      }}
+                    >
                       <div
-                        style={{ marginTop: 4, fontSize: 12, color: "#666" }}
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          width: "100%",
+                        }}
                       >
-                        ID:{" "}
-                        <span style={{ fontFamily: "monospace" }}>{c.id}</span>
-                      </div>
-                      <div
-                        style={{ marginTop: 4, fontSize: 12, color: "#666" }}
-                      >
-                        Borç: <strong>{money(c.balanceOwed, currency)}</strong>
+                        {/* LEFT */}
+                        <div>
+                          <strong>
+                            {c.name} {c.surname}
+                          </strong>
+                          <br />
+                          <small>{c.phone || "Telefon yok"}</small>
+
+                          <div
+                            style={{
+                              marginTop: 4,
+                              fontSize: 12,
+                              color: "#666",
+                            }}
+                          >
+                            ID:{" "}
+                            <span style={{ fontFamily: "monospace" }}>
+                              {c.id}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* RIGHT — BAKİYE */}
+                        <div
+                          style={{
+                            fontWeight: 700,
+                            fontSize: 14,
+                            color: bakiye >= 0 ? "#16a34a" : "#dc2626",
+                            minWidth: 90,
+                            textAlign: "right",
+                          }}
+                        >
+                          {bakiye >= 0 ? "+" : "-"}
+                          {Math.abs(bakiye).toFixed(2)} {currency}
+                        </div>
                       </div>
                     </div>
-                    <div style={{ color: "#999" }}>›</div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>
@@ -1756,6 +1748,14 @@ function MainApp({ state, setState, user }) {
         {page === "settings" && (
           <div id="page-settings">
             <div className="card">
+              {/* 🔓 LOGOUT BUTTON */}
+              <button
+                className="logout-btn"
+                onClick={() => signOut(auth)}
+                style={{ marginTop: 12, width: "100%" }}
+              >
+                🚪 Çıkış Yap
+              </button>
               {/* 👤 ADMIN PROFILE */}
               <div
                 className="card admin-profile"
@@ -1977,22 +1977,24 @@ function MainApp({ state, setState, user }) {
           className={`nav-item ${page === "home" ? "active" : ""}`}
           onClick={() => setPage("home")}
         >
-          <span style={{ fontSize: 18 }}>🏠</span>
-          Anasayfa
+          <span className="nav-icon">🏠</span>
+          <span className="nav-label">Anasayfa</span>
         </button>
+
         <button
           className={`nav-item ${page === "customers" ? "active" : ""}`}
           onClick={() => setPage("customers")}
         >
-          <span style={{ fontSize: 18 }}>👥</span>
-          Müşteriler
+          <span className="nav-icon">👥</span>
+          <span className="nav-label">Müşteriler</span>
         </button>
+
         <button
           className={`nav-item ${page === "settings" ? "active" : ""}`}
           onClick={() => setPage("settings")}
         >
-          <span style={{ fontSize: 18 }}>⚙️</span>
-          Ayarlar
+          <span className="nav-icon">⚙️</span>
+          <span className="nav-label">Ayarlar</span>
         </button>
       </nav>
 
