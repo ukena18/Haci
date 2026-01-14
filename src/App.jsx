@@ -512,32 +512,34 @@ function MainApp({ state, setState, user }) {
     let totalTahsilat = 0;
     let totalBorc = 0;
 
-    // 1️⃣ Transactions (payments array = source of truth)
+    // 🟢 1) REAL MONEY IN (Tahsilat)
     (state.payments || []).forEach((p) => {
       if (p.type === "payment") {
         totalTahsilat += toNum(p.amount);
-      } else if (p.type === "debt") {
+      }
+
+      if (p.type === "debt") {
         totalBorc += toNum(p.amount);
       }
     });
 
-    // 2️⃣ Unpaid completed jobs → debt
+    // 🔴 2) JOB VALUE THAT IS NOT PAID YET
     state.jobs.forEach((job) => {
-      if (job.isCompleted && !job.isPaid) {
-        const liveMs =
-          job.isRunning && job.clockInAt ? Date.now() - job.clockInAt : 0;
+      if (job.isPaid) return; // ❌ paid jobs NEVER count as borç
 
-        const totalMs = (job.workedMs || 0) + liveMs;
+      const liveMs =
+        job.isRunning && job.clockInAt ? Date.now() - job.clockInAt : 0;
 
-        const hours =
-          job.timeMode === "clock"
-            ? totalMs / 36e5
-            : calcHours(job.start, job.end);
+      const totalMs = (job.workedMs || 0) + liveMs;
 
-        const jobTotal = hours * toNum(job.rate) + partsTotalOf(job);
+      const hours =
+        job.timeMode === "clock"
+          ? totalMs / 36e5
+          : calcHours(job.start, job.end);
 
-        totalBorc += jobTotal;
-      }
+      const jobTotal = hours * toNum(job.rate) + partsTotalOf(job);
+
+      totalBorc += jobTotal;
     });
 
     return {
@@ -994,10 +996,57 @@ function MainApp({ state, setState, user }) {
    */
 
   function markJobPaid(jobId) {
-    setState((s) => ({
-      ...s,
-      jobs: s.jobs.map((j) => (j.id === jobId ? { ...j, isPaid: true } : j)),
-    }));
+    setState((s) => {
+      const job = s.jobs.find((j) => j.id === jobId);
+      if (!job || job.isPaid) return s;
+
+      // 🔹 calculate job total
+      const liveMs =
+        job.isRunning && job.clockInAt ? Date.now() - job.clockInAt : 0;
+
+      const totalMs = (job.workedMs || 0) + liveMs;
+
+      const hours =
+        job.timeMode === "clock"
+          ? totalMs / 36e5
+          : calcHours(job.start, job.end);
+
+      const jobTotal = hours * toNum(job.rate) + partsTotalOf(job);
+
+      const kasaId = s.activeKasaId;
+
+      // 🔹 create tahsilat record
+      const payment = {
+        id: uid(),
+        customerId: job.customerId,
+        kasaId,
+        type: "payment",
+        amount: jobTotal,
+        method: "cash",
+        note: "İş ödemesi (manuel)",
+        date: new Date().toISOString().slice(0, 10),
+        createdAt: Date.now(),
+        source: "job", // ✅ ADD THIS LINE
+        currency:
+          s.kasalar.find((k) => k.id === kasaId)?.currency ||
+          s.currency ||
+          "TRY",
+      };
+
+      return {
+        ...s,
+        jobs: s.jobs.map((j) => (j.id === jobId ? { ...j, isPaid: true } : j)),
+        customers: s.customers.map((c) =>
+          c.id === job.customerId
+            ? { ...c, balanceOwed: toNum(c.balanceOwed) - jobTotal }
+            : c
+        ),
+        kasalar: s.kasalar.map((k) =>
+          k.id === kasaId ? { ...k, balance: toNum(k.balance) + jobTotal } : k
+        ),
+        payments: [...(s.payments || []), payment],
+      };
+    });
   }
 
   /**
@@ -2112,8 +2161,18 @@ function JobCard({
   const laborTotal = hours * toNum(job.rate);
   const total = laborTotal + partsTotal;
 
+  let jobStatusClass = "job-card";
+
+  if (!job.isCompleted) {
+    jobStatusClass += " job-active";
+  } else if (job.isCompleted && !job.isPaid) {
+    jobStatusClass += " job-unpaid";
+  } else if (job.isCompleted && job.isPaid) {
+    jobStatusClass += " job-paid";
+  }
+
   return (
-    <div className="card">
+    <div className={jobStatusClass}>
       {/* Folder header row */}
       <div className="list-item" style={{ gap: 10 }}>
         <div style={{ flex: 1 }}>
@@ -2130,6 +2189,14 @@ function JobCard({
             </button>
 
             <strong>{c ? `${c.name} ${c.surname}` : "Bilinmeyen"}</strong>
+
+            <span className="job-status-badge">
+              {!job.isCompleted
+                ? "Borç"
+                : job.isCompleted && !job.isPaid
+                ? "Bekleyen Ödeme"
+                : "Ödendi"}
+            </span>
 
             {job.isRunning && <span className="badge">Çalışıyor</span>}
           </div>
@@ -2332,6 +2399,7 @@ function CustomerSharePage({ state }) {
 
     return (state.payments || [])
       .filter((p) => p.customerId === customer.id)
+      .filter((p) => p.source !== "job") // ✅ hide job-generated tahsilat
       .slice()
       .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   }, [state.payments, customer]);
@@ -2375,9 +2443,7 @@ function CustomerSharePage({ state }) {
                   >
                     <div>
                       <strong
-                        style={{
-                          color: isPayment ? "#166534" : "#7f1d1d",
-                        }}
+                        style={{ color: isPayment ? "#166534" : "#7f1d1d" }}
                       >
                         {isPayment ? "💰 Tahsilat" : "🧾 Borç"}
                       </strong>
@@ -3270,12 +3336,14 @@ function CustomerDetailModal({
       data: j,
     }));
 
-    const paymentItems = customerPayments.map((p) => ({
-      kind: "payment",
-      date: p.date,
-      createdAt: p.createdAt || 0,
-      data: p,
-    }));
+    const paymentItems = customerPayments
+      .filter((p) => p.source !== "job") // ✅ HIDE job-paid tahsilat rows
+      .map((p) => ({
+        kind: "payment",
+        date: p.date,
+        createdAt: p.createdAt || 0,
+        data: p,
+      }));
 
     return [...jobItems, ...paymentItems].sort((a, b) => {
       const da = new Date(a.date).getTime();
@@ -3376,7 +3444,11 @@ function CustomerDetailModal({
   }, [jobs, customer]);
 
   // ✅ FINAL
-  const totalTahsilat = paymentsPlusTotal + paidJobsTotal; // all pluses
+  // i changed this because everytime i complete and paid  a job it will create a tahsialt on the background for it i wll not see it .
+  // so i dont need total jobs for this any more it will create dublicate
+  // const totalTahsilat = paymentsPlusTotal + paidJobsTotal; // all pluses
+  const totalTahsilat = paymentsPlusTotal; // ✅ only payments
+
   const totalBorc = paymentsMinusTotal + unpaidJobsTotal; // all minuses
   const bakiye = totalTahsilat - totalBorc; // remaining
 
@@ -3673,6 +3745,15 @@ function CustomerDetailModal({
                 // JOB ROW
                 // ======================
                 const j = item.data;
+                let jobStatusClass = "job-card";
+
+                if (!j.isCompleted) {
+                  jobStatusClass += " job-active"; // 🔴 active
+                } else if (j.isCompleted && !j.isPaid) {
+                  jobStatusClass += " job-unpaid"; // 🟠 completed unpaid
+                } else if (j.isCompleted && j.isPaid) {
+                  jobStatusClass += " job-paid"; // 🟢 paid
+                }
 
                 const liveMs =
                   j.isRunning && j.clockInAt ? Date.now() - j.clockInAt : 0;
@@ -3689,7 +3770,7 @@ function CustomerDetailModal({
                 return (
                   <div
                     key={j.id}
-                    className="card list-item"
+                    className={jobStatusClass}
                     style={{ cursor: "pointer" }}
                     onClick={() => onEditJob(j.id)}
                   >
