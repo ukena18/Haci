@@ -504,22 +504,46 @@ function MainApp({ state, setState, user }) {
   }, [activeJobs]);
 
   const completedJobs = filteredJobs.filter((j) => j.isCompleted && !j.isPaid);
-  // 📊 Financial summary (Home page)
 
-  const totalDebt = useMemo(() => {
-    return state.customers.reduce(
-      (sum, c) => sum + Math.max(0, toNum(c.balanceOwed)),
-      0
-    );
-  }, [state.customers]);
+  // 📊 Financial summary (Home page) — DERIVED (correct)
+  const financialSummary = useMemo(() => {
+    let totalTahsilat = 0;
+    let totalBorc = 0;
 
-  const totalPayments = useMemo(() => {
-    return (state.payments || [])
-      .filter((p) => p.type === "payment")
-      .reduce((sum, p) => sum + toNum(p.amount), 0);
-  }, [state.payments]);
+    // 1️⃣ Transactions (payments array = source of truth)
+    (state.payments || []).forEach((p) => {
+      if (p.type === "payment") {
+        totalTahsilat += toNum(p.amount);
+      } else if (p.type === "debt") {
+        totalBorc += toNum(p.amount);
+      }
+    });
 
-  const netBalance = totalDebt - totalPayments;
+    // 2️⃣ Unpaid completed jobs → debt
+    state.jobs.forEach((job) => {
+      if (job.isCompleted && !job.isPaid) {
+        const liveMs =
+          job.isRunning && job.clockInAt ? Date.now() - job.clockInAt : 0;
+
+        const totalMs = (job.workedMs || 0) + liveMs;
+
+        const hours =
+          job.timeMode === "clock"
+            ? totalMs / 36e5
+            : calcHours(job.start, job.end);
+
+        const jobTotal = hours * toNum(job.rate) + partsTotalOf(job);
+
+        totalBorc += jobTotal;
+      }
+    });
+
+    return {
+      totalTahsilat,
+      totalBorc,
+      net: totalTahsilat - totalBorc,
+    };
+  }, [state.payments, state.jobs]);
 
   const unpaidCompletedJobs = filteredJobs.filter(
     (j) => j.isCompleted && !j.isPaid
@@ -562,6 +586,21 @@ function MainApp({ state, setState, user }) {
     });
 
     return latest;
+  }
+  function getKasaBalance(kasaId) {
+    return (state.payments || []).reduce((sum, p) => {
+      if (p.kasaId !== kasaId) return sum;
+
+      if (p.type === "payment") {
+        return sum + toNum(p.amount);
+      }
+
+      if (p.type === "debt") {
+        return sum - toNum(p.amount);
+      }
+
+      return sum;
+    }, 0);
   }
 
   function renameKasa(kasaId, newName) {
@@ -660,12 +699,13 @@ function MainApp({ state, setState, user }) {
     });
   }
 
-  /** Delete customer + their jobs */
+  /** Delete customer + their jobs  + payments */
   function deleteCustomer(customerId) {
     setState((s) => ({
       ...s,
       customers: s.customers.filter((c) => c.id !== customerId),
       jobs: s.jobs.filter((j) => j.customerId !== customerId),
+      payments: (s.payments || []).filter((p) => p.customerId !== customerId),
     }));
   }
 
@@ -1089,7 +1129,7 @@ function MainApp({ state, setState, user }) {
               Kasa ({activeKasa?.name || "—"}):
               <strong id="main-kasa-val">
                 {money(
-                  activeKasa?.balance || 0,
+                  activeKasa ? getKasaBalance(activeKasa.id) : 0,
                   activeKasa?.currency || currency
                 )}
               </strong>
@@ -1197,7 +1237,7 @@ function MainApp({ state, setState, user }) {
                     Toplam Borç
                   </div>
                   <div style={{ fontWeight: 700, color: "#dc2626" }}>
-                    {money(totalDebt, currency)}
+                    {money(financialSummary.totalBorc, currency)}
                   </div>
                 </div>
 
@@ -1212,7 +1252,7 @@ function MainApp({ state, setState, user }) {
                     Toplam Tahsilat
                   </div>
                   <div style={{ fontWeight: 700, color: "#16a34a" }}>
-                    {money(totalPayments, currency)}
+                    {money(financialSummary.totalTahsilat, currency)}
                   </div>
                 </div>
               </div>
@@ -1223,21 +1263,27 @@ function MainApp({ state, setState, user }) {
                   marginBottom: 12,
                   padding: 10,
                   borderRadius: 10,
-                  background: netBalance > 0 ? "#fef2f2" : "#f0fdf4",
-                  color: netBalance > 0 ? "#7f1d1d" : "#166534",
+                  background: financialSummary.net > 0 ? "#fef2f2" : "#f0fdf4",
+                  color: financialSummary.net > 0 ? "#7f1d1d" : "#166534",
                   fontWeight: 600,
                   textAlign: "center",
                 }}
               >
-                Net Durum: {money(Math.abs(netBalance), currency)}{" "}
-                {netBalance > 0 ? "(Alacak)" : "(Fazla Tahsilat)"}
+                Net Durum: {money(Math.abs(financialSummary.net), currency)}{" "}
+                {financialSummary.net > 0 ? "(Alacak)" : "(Fazla Tahsilat)"}
               </div>
 
               {/* BAR CHART */}
               {(() => {
-                const max = Math.max(totalDebt, totalPayments, 1);
-                const debtPct = (totalDebt / max) * 100;
-                const payPct = (totalPayments / max) * 100;
+                const max = Math.max(
+                  financialSummary.totalBorc,
+                  financialSummary.totalTahsilat,
+                  1
+                );
+
+                const debtPct = (financialSummary.totalBorc / max) * 100;
+
+                const payPct = (financialSummary.totalTahsilat / max) * 100;
 
                 return (
                   <div style={{ display: "grid", gap: 10 }}>
@@ -1654,7 +1700,7 @@ function MainApp({ state, setState, user }) {
                       )}
 
                       <div style={{ fontSize: 12, color: "#555" }}>
-                        Bakiye: {money(kasa.balance, kasa.currency || currency)}
+                        Bakiye: {money(getKasaBalance(kasa.id), kasa.currency)}
                         <div style={{ marginTop: 8 }}>
                           <div
                             style={{
@@ -2005,6 +2051,9 @@ function MainApp({ state, setState, user }) {
                   ...s,
                   kasalar: s.kasalar.filter(
                     (k) => k.id !== kasaDeleteConfirm.kasaId
+                  ),
+                  payments: (s.payments || []).filter(
+                    (p) => p.kasaId !== kasaDeleteConfirm.kasaId
                   ),
                 }));
 
