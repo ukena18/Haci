@@ -564,6 +564,15 @@ function MainApp({ state, setState, user }) {
     return latest;
   }
 
+  function renameKasa(kasaId, newName) {
+    setState((s) => ({
+      ...s,
+      kasalar: s.kasalar.map((k) =>
+        k.id === kasaId ? { ...k, name: newName } : k
+      ),
+    }));
+  }
+
   /**
    * Customers filtering by search (Customers tab)
    */
@@ -1881,6 +1890,7 @@ function MainApp({ state, setState, user }) {
         open={kasaDetailOpen}
         onClose={() => setKasaDetailOpen(false)}
         kasa={state.kasalar.find((k) => k.id === selectedKasaId)}
+        onRenameKasa={renameKasa}
         payments={state.payments}
       />
       <ProfileModal
@@ -4159,13 +4169,21 @@ function ProfileModal({ open, onClose, user, profile, setState }) {
  * - Kasa can go negative if manually adjusted
  */
 
-function KasaDetailModal({ open, onClose, kasa, payments }) {
+function KasaDetailModal({ open, onClose, kasa, payments, onRenameKasa }) {
+  const [editingName, setEditingName] = useState(false);
+  const [kasaName, setKasaName] = useState("");
+  const printRef = useRef(null);
+
+  useEffect(() => {
+    if (open && kasa) {
+      setKasaName(kasa.name);
+      setEditingName(false);
+    }
+  }, [open, kasa]);
   if (!open || !kasa) return null;
 
   // Filter only transactions belonging to this kasa
   const kasaPayments = (payments || []).filter((p) => p.kasaId === kasa.id);
-
-  const printRef = useRef(null);
 
   const totalTahsilat = kasaPayments
     .filter((p) => p.type === "payment")
@@ -4231,7 +4249,45 @@ function KasaDetailModal({ open, onClose, kasa, payments }) {
     <ModalBase open={open} title="Kasa Detayı" onClose={onClose}>
       {/* HEADER */}
       <div className="card">
-        <h3 style={{ marginTop: 0 }}>{kasa.name}</h3>
+        {!editingName ? (
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <h3 style={{ margin: 0 }}>{kasa.name}</h3>
+            <button
+              className="btn btn-cancel"
+              style={{ padding: "4px 10px", fontSize: 12 }}
+              onClick={() => setEditingName(true)}
+            >
+              ✏️ Düzenle
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: "flex", gap: 8 }}>
+            <input
+              value={kasaName}
+              onChange={(e) => setKasaName(e.target.value)}
+              style={{ flex: 1 }}
+            />
+            <button
+              className="btn btn-save"
+              onClick={() => {
+                onRenameKasa(kasa.id, kasaName);
+                setEditingName(false);
+              }}
+            >
+              Kaydet
+            </button>
+            <button
+              className="btn btn-cancel"
+              onClick={() => {
+                setKasaName(kasa.name);
+                setEditingName(false);
+              }}
+            >
+              İptal
+            </button>
+          </div>
+        )}
+
         <div style={{ fontSize: 12, color: "#666" }}>
           Para Birimi: <strong>{kasa.currency}</strong>
         </div>
