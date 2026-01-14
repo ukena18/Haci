@@ -430,6 +430,8 @@ function MainApp({ state, setState, user }) {
   }, [state?.kasalar, state?.activeKasaId]);
   // Modals
   const [jobModalOpen, setJobModalOpen] = useState(false);
+  const [jobFixedCustomerId, setJobFixedCustomerId] = useState(null);
+
   const [custModalOpen, setCustModalOpen] = useState(false);
   const [custDetailOpen, setCustDetailOpen] = useState(false);
 
@@ -1099,6 +1101,7 @@ function MainApp({ state, setState, user }) {
   function onFabClick() {
     if (page === "home") {
       setEditingJobId(null);
+      setJobFixedCustomerId(null); // ✅ allow selecting custome
       setJobModalOpen(true);
     } else if (page === "customers") {
       setEditingCustId(null);
@@ -1837,13 +1840,17 @@ function MainApp({ state, setState, user }) {
       {/* JOB MODAL */}
       <JobModal
         open={jobModalOpen}
-        onClose={() => setJobModalOpen(false)}
+        onClose={() => {
+          setJobModalOpen(false);
+          setJobFixedCustomerId(null);
+        }}
         customers={state.customers}
         jobs={state.jobs}
         editingJobId={editingJobId}
         onSave={(job) => upsertJob(job)}
         currency={currency} // ✅ ADD THIS
         setConfirm={setConfirm} // ✅ ADD
+        fixedCustomerId={jobFixedCustomerId} // ✅ ADD
         zIndex={3000}
       />
 
@@ -1898,6 +1905,7 @@ function MainApp({ state, setState, user }) {
         }}
         onAddJob={() => {
           setEditingJobId(null);
+          setJobFixedCustomerId(selectedCustomerId); // ✅ lock customer
           setJobModalOpen(true); // ✅ just open job modal
         }}
         onDeleteJob={(jobId) =>
@@ -2724,6 +2732,7 @@ function JobModal({
   onSave,
   currency,
   setConfirm, // ✅ ADD
+  fixedCustomerId = null, // ✅ ADD THIS
 }) {
   const editing = editingJobId ? jobs.find((j) => j.id === editingJobId) : null;
 
@@ -2731,9 +2740,22 @@ function JobModal({
 
   useEffect(() => {
     if (!open) return;
-    if (editing) setDraft({ ...editing, parts: editing.parts || [] });
-    else setDraft(makeEmptyJob(customers));
-  }, [open, editingJobId]); // eslint-disable-line
+
+    if (editing) {
+      // when editing, keep job's customerId
+      setDraft({ ...editing, parts: editing.parts || [] });
+    } else {
+      // when creating new job
+      const fresh = makeEmptyJob(customers);
+
+      // ✅ if opened from customer detail, lock customerId
+      if (fixedCustomerId) {
+        fresh.customerId = fixedCustomerId;
+      }
+
+      setDraft(fresh);
+    }
+  }, [open, editingJobId, fixedCustomerId]); // ✅ include fixedCustomerId
 
   function setField(k, v) {
     setDraft((d) => ({ ...d, [k]: v }));
@@ -2809,20 +2831,33 @@ function JobModal({
       onClose={onClose}
       zIndex={1300} // ✅ add this
     >
-      <div className="form-group">
-        <label>Müşteri Seç</label>
-        <select
-          value={draft.customerId}
-          onChange={(e) => setField("customerId", e.target.value)}
-        >
-          <option value="">Müşteri seçin</option>
-          {customers.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name} {c.surname}
-            </option>
-          ))}
-        </select>
-      </div>
+      {!fixedCustomerId ? (
+        <div className="form-group">
+          <label>Müşteri Seç</label>
+          <select
+            value={draft.customerId}
+            onChange={(e) => setField("customerId", e.target.value)}
+          >
+            <option value="">Müşteri seçin</option>
+            {customers.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name} {c.surname}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : (
+        <div className="form-group">
+          <label>Müşteri</label>
+          <input
+            value={(() => {
+              const c = customers.find((x) => x.id === fixedCustomerId);
+              return c ? `${c.name} ${c.surname}` : "—";
+            })()}
+            readOnly
+          />
+        </div>
+      )}
 
       <div className="form-group">
         <label>Tarih</label>
