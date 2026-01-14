@@ -4054,7 +4054,7 @@ function ProfileModal({ open, onClose, user, profile, setState }) {
   return (
     <ModalBase
       open={open}
-      title={editing ? "İşi Düzenle" : "Yeni İş Ekle"}
+      title="Profil Ayarları"
       onClose={onClose}
       zIndex={3000}
     >
