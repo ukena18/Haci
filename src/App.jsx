@@ -1153,932 +1153,980 @@ function MainApp({ state, setState, user }) {
   ============================================================ */
   return (
     <>
-      <div className="container">
-        {/* Search bar */}
-        {/* Search bar */}
-        <div className="search-wrap">
-          <div className="search-input-wrapper">
-            <input
-              type="text"
-              className="search-bar"
-              placeholder="Ara..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+      <div className="app-shell">
+        <div className="app-frame">
+          <div className="container">
+            {/* Search bar */}
+            {/* Search bar */}
+            <div className="search-wrap">
+              <div className="search-input-wrapper">
+                <input
+                  type="text"
+                  className="search-bar"
+                  placeholder="Ara..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
 
-            {search && (
-              <button
-                type="button"
-                className="search-clear-btn"
-                onClick={() => setSearch("")}
-                title="Temizle"
-              >
-                <i className="fa-solid fa-xmark"></i>
-              </button>
-            )}
-          </div>
+                {search && (
+                  <button
+                    type="button"
+                    className="search-clear-btn"
+                    onClick={() => setSearch("")}
+                    title="Temizle"
+                  >
+                    <i className="fa-solid fa-xmark"></i>
+                  </button>
+                )}
+              </div>
 
-          {page === "customers" && (
-            <div className="sort-wrapper">
-              <button
-                type="button"
-                className="sort-icon-btn"
-                title="Sırala"
-                onClick={() => document.getElementById("customer-sort").click()}
-              >
-                <i className="fa-solid fa-arrow-up-wide-short"></i>
-              </button>
+              {page === "customers" && (
+                <div className="sort-wrapper">
+                  <button
+                    type="button"
+                    className="sort-icon-btn"
+                    title="Sırala"
+                    onClick={() =>
+                      document.getElementById("customer-sort").click()
+                    }
+                  >
+                    <i className="fa-solid fa-arrow-up-wide-short"></i>
+                  </button>
 
-              <select
-                id="customer-sort"
-                value={customerSort}
-                onChange={(e) => setCustomerSort(e.target.value)}
-                className="sort-hidden-select"
-              >
-                <option value="debt_desc">💸 Borcu En Yüksek</option>
-                <option value="debt_asc">💰 Borcu En Düşük</option>
-                <option value="name_asc">🔤 İsim A → Z</option>
-                <option value="name_desc">🔤 İsim Z → A</option>
-                <option value="latest">🕒 Son İşlem (En Yeni)</option>
-              </select>
+                  <select
+                    id="customer-sort"
+                    value={customerSort}
+                    onChange={(e) => setCustomerSort(e.target.value)}
+                    className="sort-hidden-select"
+                  >
+                    <option value="debt_desc">💸 Borcu En Yüksek</option>
+                    <option value="debt_asc">💰 Borcu En Düşük</option>
+                    <option value="name_asc">🔤 İsim A → Z</option>
+                    <option value="name_desc">🔤 İsim Z → A</option>
+                    <option value="latest">🕒 Son İşlem (En Yeni)</option>
+                  </select>
+                </div>
+              )}
             </div>
-          )}
-        </div>
 
-        {/* HOME PAGE */}
-        {page === "home" && (
-          <div id="page-home">
-            {/* 📊 FINANSAL ÖZET */}
-            <div className="card" style={{ marginBottom: 16 }}>
-              <h3
-                style={{
-                  marginTop: 0,
-                  display: "flex",
-                  gap: 6,
-                  alignItems: "center",
-                }}
-              >
-                📊 Finansal Özet
-              </h3>
+            {/* HOME PAGE */}
+            {page === "home" && (
+              <div id="page-home">
+                {/* 📊 FINANSAL ÖZET */}
+                <div className="card" style={{ marginBottom: 16 }}>
+                  <h3
+                    style={{
+                      marginTop: 0,
+                      display: "flex",
+                      gap: 6,
+                      alignItems: "center",
+                    }}
+                  >
+                    📊 Finansal Özet
+                  </h3>
 
-              {/* NUMBERS */}
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 12,
-                  marginBottom: 14,
-                  fontSize: 12,
-                }}
-              >
-                <div
-                  style={{
-                    padding: 10,
-                    borderRadius: 10,
-                    background: "#fef2f2",
-                  }}
-                >
-                  <div style={{ color: "#7f1d1d", fontSize: 12 }}>
-                    Toplam Borç
-                  </div>
-                  <div style={{ fontWeight: 700, color: "#dc2626" }}>
-                    {money(financialSummary.totalBorc, currency)}
-                  </div>
-                </div>
-
-                <div
-                  style={{
-                    padding: 10,
-                    borderRadius: 10,
-                    background: "#f0fdf4",
-                  }}
-                >
-                  <div style={{ color: "#166534", fontSize: 12 }}>
-                    Toplam Tahsilat
-                  </div>
-                  <div style={{ fontWeight: 700, color: "#16a34a" }}>
-                    {money(financialSummary.totalTahsilat, currency)}
-                  </div>
-                </div>
-              </div>
-
-              {/* NET */}
-              <div
-                style={{
-                  marginBottom: 12,
-                  padding: 10,
-                  borderRadius: 10,
-                  background: financialSummary.net > 0 ? "#fef2f2" : "#f0fdf4",
-                  color: financialSummary.net > 0 ? "#7f1d1d" : "#166534",
-                  fontWeight: 600,
-                  textAlign: "center",
-                }}
-              >
-                Net Durum: {money(Math.abs(financialSummary.net), currency)}{" "}
-                {financialSummary.net > 0 ? "(Alacak)" : "(Fazla Tahsilat)"}
-              </div>
-
-              {/* BAR CHART */}
-              {(() => {
-                const max = Math.max(
-                  financialSummary.totalBorc,
-                  financialSummary.totalTahsilat,
-                  1
-                );
-
-                const debtPct = (financialSummary.totalBorc / max) * 100;
-
-                const payPct = (financialSummary.totalTahsilat / max) * 100;
-
-                return (
-                  <div style={{ display: "grid", gap: 10 }}>
-                    <div>
-                      <div style={{ fontSize: 12, marginBottom: 4 }}>Borç</div>
-                      <div className="bar-bg">
-                        <div
-                          className="bar-fill red"
-                          style={{ width: `${debtPct}%` }}
-                        />
+                  {/* NUMBERS */}
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr 1fr",
+                      gap: 12,
+                      marginBottom: 14,
+                      fontSize: 12,
+                    }}
+                  >
+                    <div
+                      style={{
+                        padding: 10,
+                        borderRadius: 10,
+                        background: "#fef2f2",
+                      }}
+                    >
+                      <div style={{ color: "#7f1d1d", fontSize: 12 }}>
+                        Toplam Borç
+                      </div>
+                      <div style={{ fontWeight: 700, color: "#dc2626" }}>
+                        {money(financialSummary.totalBorc, currency)}
                       </div>
                     </div>
 
-                    <div>
-                      <div style={{ fontSize: 12, marginBottom: 4 }}>
-                        Tahsilat
+                    <div
+                      style={{
+                        padding: 10,
+                        borderRadius: 10,
+                        background: "#f0fdf4",
+                      }}
+                    >
+                      <div style={{ color: "#166534", fontSize: 12 }}>
+                        Toplam Tahsilat
                       </div>
-                      <div className="bar-bg">
-                        <div
-                          className="bar-fill green"
-                          style={{ width: `${payPct}%` }}
-                        />
+                      <div style={{ fontWeight: 700, color: "#16a34a" }}>
+                        {money(financialSummary.totalTahsilat, currency)}
                       </div>
                     </div>
                   </div>
-                );
-              })()}
-            </div>
 
-            <div id="job-list">
-              {/* 🔔 30 GÜNLÜK ÖDEME TAKİBİ */}
-              <div className="card">
-                <div
-                  className="list-item section-header"
-                  style={{ cursor: "pointer" }}
-                  onClick={() => setPaymentOpen((o) => !o)}
-                >
-                  <strong>
-                    <i className="fa-solid fa-bell"></i> 30 Günlük Ödeme Takibi
-                    ({paymentWatchList.length})
-                  </strong>
-                  <span>{paymentOpen ? "▾" : "▸"}</span>
-                </div>
-              </div>
-
-              {paymentOpen &&
-                (paymentWatchList.length === 0 ? (
-                  <div className="card" style={{ fontSize: 12, color: "#666" }}>
-                    Takip edilecek aktif iş yok.
+                  {/* NET */}
+                  <div
+                    style={{
+                      marginBottom: 12,
+                      padding: 10,
+                      borderRadius: 10,
+                      background:
+                        financialSummary.net > 0 ? "#fef2f2" : "#f0fdf4",
+                      color: financialSummary.net > 0 ? "#7f1d1d" : "#166534",
+                      fontWeight: 600,
+                      textAlign: "center",
+                    }}
+                  >
+                    Net Durum: {money(Math.abs(financialSummary.net), currency)}{" "}
+                    {financialSummary.net > 0 ? "(Alacak)" : "(Fazla Tahsilat)"}
                   </div>
-                ) : (
-                  paymentWatchList.map(({ job, daysLeft, dueDate }) => {
-                    const c = customersById.get(job.customerId);
+
+                  {/* BAR CHART */}
+                  {(() => {
+                    const max = Math.max(
+                      financialSummary.totalBorc,
+                      financialSummary.totalTahsilat,
+                      1
+                    );
+
+                    const debtPct = (financialSummary.totalBorc / max) * 100;
+
+                    const payPct = (financialSummary.totalTahsilat / max) * 100;
 
                     return (
-                      <div
-                        key={job.id}
-                        className="card list-item"
-                        style={{
-                          background:
-                            daysLeft <= 0
-                              ? "#fee2e2"
-                              : daysLeft <= 5
-                              ? "#fef3c7"
-                              : "white",
-                          borderLeft:
-                            daysLeft <= 0
-                              ? "6px solid #dc2626"
-                              : daysLeft <= 5
-                              ? "6px solid #f59e0b"
-                              : "6px solid #16a34a",
-                        }}
-                      >
+                      <div style={{ display: "grid", gap: 10 }}>
                         <div>
-                          <strong>
-                            {c ? `${c.name} ${c.surname}` : "Bilinmeyen"}
-                          </strong>
-                          <br />
-                          <small>
-                            {daysLeft <= 0
-                              ? `⛔ ${Math.abs(daysLeft)} gün gecikmiş`
-                              : `⏳ ${daysLeft} gün kaldı`}
-                            <br />
-                            Son Ödeme:{" "}
-                            <b>{dueDate.toLocaleDateString("tr-TR")}</b>
-                          </small>
+                          <div style={{ fontSize: 12, marginBottom: 4 }}>
+                            Borç
+                          </div>
+                          <div className="bar-bg">
+                            <div
+                              className="bar-fill red"
+                              style={{ width: `${debtPct}%` }}
+                            />
+                          </div>
                         </div>
 
-                        <div style={{ fontWeight: 700 }}>
-                          {(() => {
-                            const totalMs = job.workedMs || 0;
-                            const hours =
-                              job.timeMode === "clock"
-                                ? totalMs / 36e5
-                                : calcHours(job.start, job.end);
-
-                            return money(
-                              hours * toNum(job.rate) + partsTotalOf(job),
-                              currency
-                            );
-                          })()}
+                        <div>
+                          <div style={{ fontSize: 12, marginBottom: 4 }}>
+                            Tahsilat
+                          </div>
+                          <div className="bar-bg">
+                            <div
+                              className="bar-fill green"
+                              style={{ width: `${payPct}%` }}
+                            />
+                          </div>
                         </div>
                       </div>
                     );
-                  })
-                ))}
-
-              {/* ACTIVE JOBS FOLDER */}
-              <div className="card">
-                <div
-                  className="list-item"
-                  style={{ cursor: "pointer" }}
-                  onClick={() => setActiveOpen((o) => !o)}
-                >
-                  <strong>🟢 Aktif İşler ({activeJobs.length})</strong>
-                  <span>{activeOpen ? "▾" : "▸"}</span>
+                  })()}
                 </div>
-              </div>
 
-              {activeOpen &&
-                (activeJobsByCustomer.size === 0 ? (
-                  <div className="card">Aktif iş yok.</div>
-                ) : (
-                  Array.from(activeJobsByCustomer.entries()).map(
-                    ([customerId, jobs]) => {
-                      const customer = customersById.get(customerId);
+                <div id="job-list">
+                  {/* 🔔 30 GÜNLÜK ÖDEME TAKİBİ */}
+                  <div className="card">
+                    <div
+                      className="list-item section-header"
+                      style={{ cursor: "pointer" }}
+                      onClick={() => setPaymentOpen((o) => !o)}
+                    >
+                      <strong>
+                        <i className="fa-solid fa-bell"></i> 30 Günlük Ödeme
+                        Takibi ({paymentWatchList.length})
+                      </strong>
+                      <span>{paymentOpen ? "▾" : "▸"}</span>
+                    </div>
+                  </div>
 
-                      const isOpen = openCustomerFolders[customerId] ?? false;
+                  {paymentOpen &&
+                    (paymentWatchList.length === 0 ? (
+                      <div
+                        className="card"
+                        style={{ fontSize: 12, color: "#666" }}
+                      >
+                        Takip edilecek aktif iş yok.
+                      </div>
+                    ) : (
+                      paymentWatchList.map(({ job, daysLeft, dueDate }) => {
+                        const c = customersById.get(job.customerId);
 
-                      const totalAmount = jobs.reduce(
-                        (sum, j) => sum + jobTotalOf(j),
-                        0
-                      );
-
-                      return (
-                        <div key={customerId}>
-                          {/* CUSTOMER FOLDER HEADER */}
+                        return (
                           <div
+                            key={job.id}
                             className="card list-item"
                             style={{
-                              cursor: "pointer",
-                              background: "#f8fafc",
+                              background:
+                                daysLeft <= 0
+                                  ? "#fee2e2"
+                                  : daysLeft <= 5
+                                  ? "#fef3c7"
+                                  : "white",
+                              borderLeft:
+                                daysLeft <= 0
+                                  ? "6px solid #dc2626"
+                                  : daysLeft <= 5
+                                  ? "6px solid #f59e0b"
+                                  : "6px solid #16a34a",
                             }}
-                            onClick={() => toggleCustomerFolder(customerId)}
                           >
                             <div>
                               <strong>
-                                {customer
-                                  ? `${customer.name} ${customer.surname}`
-                                  : "Bilinmeyen"}
+                                {c ? `${c.name} ${c.surname}` : "Bilinmeyen"}
                               </strong>
-
-                              <div style={{ fontSize: 12, color: "#666" }}>
-                                {jobs.length} aktif iş
-                              </div>
+                              <br />
+                              <small>
+                                {daysLeft <= 0
+                                  ? `⛔ ${Math.abs(daysLeft)} gün gecikmiş`
+                                  : `⏳ ${daysLeft} gün kaldı`}
+                                <br />
+                                Son Ödeme:{" "}
+                                <b>{dueDate.toLocaleDateString("tr-TR")}</b>
+                              </small>
                             </div>
 
-                            <div
-                              style={{
-                                display: "flex",
-                                gap: 8,
-                                alignItems: "center",
-                              }}
-                            >
-                              <strong style={{ color: "var(--primary)" }}>
-                                {money(totalAmount, currency)}
-                              </strong>
+                            <div style={{ fontWeight: 700 }}>
+                              {(() => {
+                                const totalMs = job.workedMs || 0;
+                                const hours =
+                                  job.timeMode === "clock"
+                                    ? totalMs / 36e5
+                                    : calcHours(job.start, job.end);
 
-                              <span
-                                className={`folder-arrow ${
-                                  isOpen ? "open" : ""
-                                }`}
-                              >
-                                ▸
-                              </span>
+                                return money(
+                                  hours * toNum(job.rate) + partsTotalOf(job),
+                                  currency
+                                );
+                              })()}
                             </div>
                           </div>
+                        );
+                      })
+                    ))}
 
-                          {/* JOBS */}
-                          <div className={`job-folder ${isOpen ? "open" : ""}`}>
-                            {jobs.map((job) => (
-                              <div key={job.id} className="job-folder-item">
-                                <JobCard
-                                  job={job}
-                                  customersById={customersById}
-                                  toggleJobOpen={toggleJobOpen}
-                                  clockIn={clockIn}
-                                  clockOut={clockOut}
-                                  currency={currency}
-                                  markJobComplete={markJobComplete} // ✅ ADD THIS LINE
-                                  markJobPaid={markJobPaid} // ✅ (optional but good)
-                                />
+                  {/* ACTIVE JOBS FOLDER */}
+                  <div className="card">
+                    <div
+                      className="list-item"
+                      style={{ cursor: "pointer" }}
+                      onClick={() => setActiveOpen((o) => !o)}
+                    >
+                      <strong>🟢 Aktif İşler ({activeJobs.length})</strong>
+                      <span>{activeOpen ? "▾" : "▸"}</span>
+                    </div>
+                  </div>
+
+                  {activeOpen &&
+                    (activeJobsByCustomer.size === 0 ? (
+                      <div className="card">Aktif iş yok.</div>
+                    ) : (
+                      Array.from(activeJobsByCustomer.entries()).map(
+                        ([customerId, jobs]) => {
+                          const customer = customersById.get(customerId);
+
+                          const isOpen =
+                            openCustomerFolders[customerId] ?? false;
+
+                          const totalAmount = jobs.reduce(
+                            (sum, j) => sum + jobTotalOf(j),
+                            0
+                          );
+
+                          return (
+                            <div key={customerId}>
+                              {/* CUSTOMER FOLDER HEADER */}
+                              <div
+                                className="card list-item"
+                                style={{
+                                  cursor: "pointer",
+                                  background: "#f8fafc",
+                                }}
+                                onClick={() => toggleCustomerFolder(customerId)}
+                              >
+                                <div>
+                                  <strong>
+                                    {customer
+                                      ? `${customer.name} ${customer.surname}`
+                                      : "Bilinmeyen"}
+                                  </strong>
+
+                                  <div style={{ fontSize: 12, color: "#666" }}>
+                                    {jobs.length} aktif iş
+                                  </div>
+                                </div>
+
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    gap: 8,
+                                    alignItems: "center",
+                                  }}
+                                >
+                                  <strong style={{ color: "var(--primary)" }}>
+                                    {money(totalAmount, currency)}
+                                  </strong>
+
+                                  <span
+                                    className={`folder-arrow ${
+                                      isOpen ? "open" : ""
+                                    }`}
+                                  >
+                                    ▸
+                                  </span>
+                                </div>
                               </div>
-                            ))}
+
+                              {/* JOBS */}
+                              <div
+                                className={`job-folder ${isOpen ? "open" : ""}`}
+                              >
+                                {jobs.map((job) => (
+                                  <div key={job.id} className="job-folder-item">
+                                    <JobCard
+                                      job={job}
+                                      customersById={customersById}
+                                      toggleJobOpen={toggleJobOpen}
+                                      clockIn={clockIn}
+                                      clockOut={clockOut}
+                                      currency={currency}
+                                      markJobComplete={markJobComplete} // ✅ ADD THIS LINE
+                                      markJobPaid={markJobPaid} // ✅ (optional but good)
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        }
+                      )
+                    ))}
+
+                  {/* COMPLETED JOBS FOLDER */}
+                  <div className="card" style={{ marginTop: 10 }}>
+                    <div
+                      className="list-item"
+                      style={{ cursor: "pointer" }}
+                      onClick={() => setCompletedOpen((o) => !o)}
+                    >
+                      <strong>
+                        ✅ Tamamlanan İşler ({completedJobs.length})
+                      </strong>
+                      <span>{completedOpen ? "▾" : "▸"}</span>
+                    </div>
+                  </div>
+
+                  {completedOpen &&
+                    (completedJobs.length === 0 ? (
+                      <div className="card">Tamamlanan iş yok.</div>
+                    ) : (
+                      completedJobs
+                        .slice()
+                        .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+                        .slice(0, 10) // ✅ SHOW ONLY 10
+                        .map((job) => (
+                          <JobCard
+                            key={job.id}
+                            job={job}
+                            customersById={customersById}
+                            toggleJobOpen={toggleJobOpen}
+                            clockIn={clockIn}
+                            clockOut={clockOut}
+                            setEditingJobId={setEditingJobId}
+                            setJobModalOpen={setJobModalOpen}
+                            setConfirm={setConfirm}
+                            markJobComplete={markJobComplete}
+                            markJobPaid={markJobPaid} // ✅ THIS FIXES THE ERROR
+                            currency={currency} // ✅ ADD THIS
+                            onOpenActions={(jobId) => {
+                              setJobActionJobId(jobId);
+                              setJobActionOpen(true);
+                            }}
+                          />
+                        ))
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {/* CUSTOMERS PAGE */}
+            {page === "customers" && (
+              <div id="page-customers">
+                <div id="customer-list">
+                  {filteredCustomers.length === 0 ? (
+                    <div className="card">Henüz müşteri yok.</div>
+                  ) : (
+                    filteredCustomers.map((c) => {
+                      const bakiye = -toNum(c.balanceOwed); // ✅ THIS WAS MISSING
+
+                      return (
+                        <div
+                          key={c.id}
+                          className="card list-item"
+                          style={{ cursor: "pointer" }}
+                          onClick={() => {
+                            setSelectedCustomerId(c.id);
+                            setCustDetailOpen(true);
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              width: "100%",
+                            }}
+                          >
+                            {/* LEFT */}
+                            <div>
+                              <strong>
+                                {c.name} {c.surname}
+                              </strong>
+                              <br />
+                              <small>{c.phone || "Telefon yok"}</small>
+
+                              <div
+                                style={{
+                                  marginTop: 4,
+                                  fontSize: 12,
+                                  color: "#666",
+                                }}
+                              >
+                                ID:{" "}
+                                <span style={{ fontFamily: "monospace" }}>
+                                  {c.id}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* RIGHT — BAKİYE */}
+                            <div
+                              style={{
+                                fontWeight: 700,
+                                fontSize: 14,
+                                color: bakiye >= 0 ? "#16a34a" : "#dc2626",
+                                minWidth: 90,
+                                textAlign: "right",
+                              }}
+                            >
+                              {bakiye >= 0 ? "+" : "-"}
+                              {Math.abs(bakiye).toFixed(2)} {currency}
+                            </div>
                           </div>
                         </div>
                       );
-                    }
-                  )
-                ))}
-
-              {/* COMPLETED JOBS FOLDER */}
-              <div className="card" style={{ marginTop: 10 }}>
-                <div
-                  className="list-item"
-                  style={{ cursor: "pointer" }}
-                  onClick={() => setCompletedOpen((o) => !o)}
-                >
-                  <strong>✅ Tamamlanan İşler ({completedJobs.length})</strong>
-                  <span>{completedOpen ? "▾" : "▸"}</span>
+                    })
+                  )}
                 </div>
               </div>
+            )}
 
-              {completedOpen &&
-                (completedJobs.length === 0 ? (
-                  <div className="card">Tamamlanan iş yok.</div>
-                ) : (
-                  completedJobs
-                    .slice()
-                    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
-                    .slice(0, 10) // ✅ SHOW ONLY 10
-                    .map((job) => (
-                      <JobCard
-                        key={job.id}
-                        job={job}
-                        customersById={customersById}
-                        toggleJobOpen={toggleJobOpen}
-                        clockIn={clockIn}
-                        clockOut={clockOut}
-                        setEditingJobId={setEditingJobId}
-                        setJobModalOpen={setJobModalOpen}
-                        setConfirm={setConfirm}
-                        markJobComplete={markJobComplete}
-                        markJobPaid={markJobPaid} // ✅ THIS FIXES THE ERROR
-                        currency={currency} // ✅ ADD THIS
-                        onOpenActions={(jobId) => {
-                          setJobActionJobId(jobId);
-                          setJobActionOpen(true);
-                        }}
-                      />
-                    ))
-                ))}
-            </div>
-          </div>
-        )}
+            {/* SETTINGS PAGE */}
+            {page === "settings" && (
+              <div id="page-settings">
+                <div className="card">
+                  {/* 🔓 LOGOUT BUTTON */}
+                  <button
+                    className="logout-btn"
+                    onClick={() => signOut(auth)}
+                    style={{ marginTop: 12, width: "100%" }}
+                  >
+                    <i className="fa-solid fa-right-from-bracket"></i> Çıkış Yap
+                  </button>
+                  {/* 👤 ADMIN PROFILE */}
+                  <div
+                    className="card admin-profile"
+                    style={{ cursor: "pointer" }}
+                    onClick={() => setProfileOpen(true)}
+                  >
+                    <div className="admin-row">
+                      <div className="admin-avatar">
+                        {user?.email?.[0]?.toUpperCase() || "A"}
+                      </div>
 
-        {/* CUSTOMERS PAGE */}
-        {page === "customers" && (
-          <div id="page-customers">
-            <div id="customer-list">
-              {filteredCustomers.length === 0 ? (
-                <div className="card">Henüz müşteri yok.</div>
-              ) : (
-                filteredCustomers.map((c) => {
-                  const bakiye = -toNum(c.balanceOwed); // ✅ THIS WAS MISSING
+                      <div className="admin-info" style={{ flex: 1 }}>
+                        <strong className="admin-name">
+                          {user?.displayName || "Yönetici"}
+                        </strong>
 
-                  return (
-                    <div
-                      key={c.id}
-                      className="card list-item"
-                      style={{ cursor: "pointer" }}
-                      onClick={() => {
-                        setSelectedCustomerId(c.id);
-                        setCustDetailOpen(true);
-                      }}
-                    >
+                        <div className="admin-email">
+                          {user?.email || "admin@example.com"}
+                        </div>
+
+                        <span className="admin-role">ADMIN</span>
+                      </div>
+
+                      {/* RIGHT SIDE */}
+                      <div className="admin-meta-right">
+                        {state.profile?.phone && (
+                          <div className="admin-meta">
+                            📞 {state.profile.phone}
+                          </div>
+                        )}
+
+                        {state.profile?.address && (
+                          <div className="admin-meta">
+                            📍 {state.profile.address}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <h3>Kasa Yönetimi</h3>
+
+                  {/* KASA LIST */}
+                  {state.kasalar.map((kasa) => {
+                    const isActive = kasa.id === state.activeKasaId;
+
+                    return (
                       <div
+                        key={kasa.id}
+                        className="card list-item"
                         style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          width: "100%",
+                          borderLeft: isActive
+                            ? "6px solid #2563eb"
+                            : "6px solid transparent",
+                          background: isActive ? "#eff6ff" : "white",
+                          cursor: "pointer",
+                        }}
+                        onClick={() => {
+                          setCustDetailOpen(false); //  CLOSE customer detail FIRST
+                          setJobModalOpen(false);
+                          setSelectedCustomerId(null);
+
+                          setSelectedKasaId(kasa.id);
+                          setKasaDetailOpen(true);
                         }}
                       >
-                        {/* LEFT */}
                         <div>
-                          <strong>
-                            {c.name} {c.surname}
-                          </strong>
-                          <br />
-                          <small>{c.phone || "Telefon yok"}</small>
+                          {editingKasaId === kasa.id ? (
+                            <input
+                              value={editingKasaName}
+                              autoFocus
+                              onChange={(e) =>
+                                setEditingKasaName(e.target.value)
+                              }
+                              onBlur={() => {
+                                if (!editingKasaName.trim()) {
+                                  setEditingKasaId(null);
+                                  return;
+                                }
 
-                          <div
-                            style={{
-                              marginTop: 4,
-                              fontSize: 12,
-                              color: "#666",
-                            }}
-                          >
-                            ID:{" "}
-                            <span style={{ fontFamily: "monospace" }}>
-                              {c.id}
-                            </span>
+                                setState((s) => ({
+                                  ...s,
+                                  kasalar: s.kasalar.map((k) =>
+                                    k.id === kasa.id
+                                      ? { ...k, name: editingKasaName.trim() }
+                                      : k
+                                  ),
+                                }));
+                                setEditingKasaId(null);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") e.target.blur();
+                                if (e.key === "Escape") setEditingKasaId(null);
+                              }}
+                              style={{
+                                fontSize: 12,
+                                padding: "4px 6px",
+                                width: "100%",
+                              }}
+                            />
+                          ) : (
+                            <strong
+                              style={{ cursor: "pointer" }}
+                              title="Kasa adını düzenle"
+                              onClick={() => {
+                                setEditingKasaId(kasa.id);
+                                setEditingKasaName(kasa.name);
+                              }}
+                            >
+                              {kasa.name}
+                            </strong>
+                          )}
+
+                          <div style={{ fontSize: 12, color: "#555" }}>
+                            Bakiye:{" "}
+                            {money(getKasaBalance(kasa.id), kasa.currency)}
                           </div>
                         </div>
 
-                        {/* RIGHT — BAKİYE */}
-                        <div
-                          style={{
-                            fontWeight: 700,
-                            fontSize: 14,
-                            color: bakiye >= 0 ? "#16a34a" : "#dc2626",
-                            minWidth: 90,
-                            textAlign: "right",
-                          }}
-                        >
-                          {bakiye >= 0 ? "+" : "-"}
-                          {Math.abs(bakiye).toFixed(2)} {currency}
-                        </div>
+                        {isActive ? (
+                          <div className="kasa-active-badge">AKTİF</div>
+                        ) : (
+                          <div style={{ display: "flex", gap: 6 }}>
+                            <button
+                              className="btn btn-save kasa-select-btn"
+                              onClick={(e) => {
+                                e.stopPropagation(); // 🔥 PREVENT kasa detail opening
+                                setState((s) => ({
+                                  ...s,
+                                  activeKasaId: kasa.id,
+                                }));
+                              }}
+                            >
+                              Seç
+                            </button>
+
+                            <button
+                              className="btn btn-delete kasa-select-btn"
+                              onClick={(e) => {
+                                e.stopPropagation(); // 🔥 PREVENT kasa detail opening
+                                setKasaDeleteConfirm({
+                                  open: true,
+                                  kasaId: kasa.id,
+                                  text: "",
+                                });
+                              }}
+                            >
+                              Sil
+                            </button>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        )}
+                    );
+                  })}
 
-        {/* SETTINGS PAGE */}
-        {page === "settings" && (
-          <div id="page-settings">
-            <div className="card">
-              {/* 🔓 LOGOUT BUTTON */}
-              <button
-                className="logout-btn"
-                onClick={() => signOut(auth)}
-                style={{ marginTop: 12, width: "100%" }}
-              >
-                <i className="fa-solid fa-right-from-bracket"></i> Çıkış Yap
-              </button>
-              {/* 👤 ADMIN PROFILE */}
-              <div
-                className="card admin-profile"
-                style={{ cursor: "pointer" }}
-                onClick={() => setProfileOpen(true)}
-              >
-                <div className="admin-row">
-                  <div className="admin-avatar">
-                    {user?.email?.[0]?.toUpperCase() || "A"}
-                  </div>
-
-                  <div className="admin-info" style={{ flex: 1 }}>
-                    <strong className="admin-name">
-                      {user?.displayName || "Yönetici"}
-                    </strong>
-
-                    <div className="admin-email">
-                      {user?.email || "admin@example.com"}
-                    </div>
-
-                    <span className="admin-role">ADMIN</span>
-                  </div>
-
-                  {/* RIGHT SIDE */}
-                  <div className="admin-meta-right">
-                    {state.profile?.phone && (
-                      <div className="admin-meta">📞 {state.profile.phone}</div>
-                    )}
-
-                    {state.profile?.address && (
-                      <div className="admin-meta">
-                        📍 {state.profile.address}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <h3>Kasa Yönetimi</h3>
-
-              {/* KASA LIST */}
-              {state.kasalar.map((kasa) => {
-                const isActive = kasa.id === state.activeKasaId;
-
-                return (
-                  <div
-                    key={kasa.id}
-                    className="card list-item"
+                  {/* ADD NEW KASA */}
+                  <button
+                    className="btn"
                     style={{
-                      borderLeft: isActive
-                        ? "6px solid #2563eb"
-                        : "6px solid transparent",
-                      background: isActive ? "#eff6ff" : "white",
-                      cursor: "pointer",
+                      marginTop: 12,
+                      background: "#eee",
+                      color: "#333",
                     }}
                     onClick={() => {
-                      setSelectedKasaId(kasa.id);
-                      setKasaDetailOpen(true);
+                      const id = uid();
+
+                      setState((s) => ({
+                        ...s,
+                        kasalar: [
+                          ...(s.kasalar || []),
+                          {
+                            id,
+                            name: `Yeni Kasa ${s.kasalar.length + 1}`,
+                            balance: 0,
+                            currency: s.currency || "TRY", // ✅ add this
+                            createdAt: Date.now(),
+                          },
+                        ],
+                        activeKasaId: id,
+                      }));
                     }}
                   >
-                    <div>
-                      {editingKasaId === kasa.id ? (
-                        <input
-                          value={editingKasaName}
-                          autoFocus
-                          onChange={(e) => setEditingKasaName(e.target.value)}
-                          onBlur={() => {
-                            if (!editingKasaName.trim()) {
-                              setEditingKasaId(null);
-                              return;
-                            }
-
-                            setState((s) => ({
-                              ...s,
-                              kasalar: s.kasalar.map((k) =>
-                                k.id === kasa.id
-                                  ? { ...k, name: editingKasaName.trim() }
-                                  : k
-                              ),
-                            }));
-                            setEditingKasaId(null);
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") e.target.blur();
-                            if (e.key === "Escape") setEditingKasaId(null);
-                          }}
-                          style={{
-                            fontSize: 12,
-                            padding: "4px 6px",
-                            width: "100%",
-                          }}
-                        />
-                      ) : (
-                        <strong
-                          style={{ cursor: "pointer" }}
-                          title="Kasa adını düzenle"
-                          onClick={() => {
-                            setEditingKasaId(kasa.id);
-                            setEditingKasaName(kasa.name);
-                          }}
-                        >
-                          {kasa.name}
-                        </strong>
-                      )}
-
-                      <div style={{ fontSize: 12, color: "#555" }}>
-                        Bakiye: {money(getKasaBalance(kasa.id), kasa.currency)}
-                      </div>
-                    </div>
-
-                    {isActive ? (
-                      <div className="kasa-active-badge">AKTİF</div>
-                    ) : (
-                      <div style={{ display: "flex", gap: 6 }}>
-                        <button
-                          className="btn btn-save kasa-select-btn"
-                          onClick={(e) => {
-                            e.stopPropagation(); // 🔥 PREVENT kasa detail opening
-                            setState((s) => ({ ...s, activeKasaId: kasa.id }));
-                          }}
-                        >
-                          Seç
-                        </button>
-
-                        <button
-                          className="btn btn-delete kasa-select-btn"
-                          onClick={(e) => {
-                            e.stopPropagation(); // 🔥 PREVENT kasa detail opening
-                            setKasaDeleteConfirm({
-                              open: true,
-                              kasaId: kasa.id,
-                              text: "",
-                            });
-                          }}
-                        >
-                          Sil
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-
-              {/* ADD NEW KASA */}
-              <button
-                className="btn"
-                style={{
-                  marginTop: 12,
-                  background: "#eee",
-                  color: "#333",
-                }}
-                onClick={() => {
-                  const id = uid();
-
-                  setState((s) => ({
-                    ...s,
-                    kasalar: [
-                      ...(s.kasalar || []),
-                      {
-                        id,
-                        name: `Yeni Kasa ${s.kasalar.length + 1}`,
-                        balance: 0,
-                        currency: s.currency || "TRY", // ✅ add this
-                        createdAt: Date.now(),
-                      },
-                    ],
-                    activeKasaId: id,
-                  }));
-                }}
-              >
-                + Yeni Kasa Ekle
-              </button>
-            </div>
+                    + Yeni Kasa Ekle
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
-      {/* Floating Action Button */}
-      {/* Floating Action Button */}
-      {page !== "settings" && (
-        <button className="fab" id="fab-btn" onClick={onFabClick}>
-          <i className="fa-solid fa-plus"></i>
-        </button>
-      )}
+          {/* Floating Action Button */}
+          {/* Floating Action Button */}
+          {page !== "settings" && (
+            <button className="fab" id="fab-btn" onClick={onFabClick}>
+              <i className="fa-solid fa-plus"></i>
+            </button>
+          )}
 
-      {/* Bottom navigation */}
-      <nav className="bottom-nav">
-        <button
-          className={`nav-item ${page === "home" ? "active" : ""}`}
-          onClick={() => setPage("home")}
-        >
-          <span className="nav-icon">
-            <i className="fa-solid fa-house"></i>
-          </span>
-          <span className="nav-label">Anasayfa</span>
-        </button>
-
-        <button
-          className={`nav-item ${page === "customers" ? "active" : ""}`}
-          onClick={() => setPage("customers")}
-        >
-          <span className="nav-icon">
-            <i className="fa-solid fa-users"></i>
-          </span>
-
-          <span className="nav-label">Müşteriler</span>
-        </button>
-
-        <button
-          className={`nav-item ${page === "settings" ? "active" : ""}`}
-          onClick={() => setPage("settings")}
-        >
-          <span className="nav-icon">
-            <i className="fa-solid fa-gear"></i>
-          </span>
-
-          <span className="nav-label">Ayarlar</span>
-        </button>
-      </nav>
-
-      {/* JOB MODAL */}
-      <JobModal
-        open={jobModalOpen}
-        onClose={() => {
-          setJobModalOpen(false);
-          setJobFixedCustomerId(null);
-        }}
-        customers={state.customers}
-        jobs={state.jobs}
-        editingJobId={editingJobId}
-        onSave={(job) => upsertJob(job)}
-        currency={currency} // ✅ ADD THIS
-        setConfirm={setConfirm} // ✅ ADD
-        fixedCustomerId={jobFixedCustomerId} // ✅ ADD
-        zIndex={3000}
-      />
-
-      {/* CUSTOMER MODAL */}
-      <CustomerModal
-        open={custModalOpen}
-        onClose={() => setCustModalOpen(false)}
-        customers={state.customers}
-        editingCustomerId={editingCustId}
-        onSave={(cust) => upsertCustomer(cust)}
-        onDeleteCustomer={() => {
-          setCustModalOpen(false); // close edit modal FIRST
-          setConfirm({
-            open: true,
-            type: "customer",
-            id: editingCustId,
-            message:
-              "Bu müşteriyi ve tüm işlerini silmek istediğinize emin misiniz?",
-          });
-        }}
-        zIndex={1500} // ✅ ADD THIS LINE
-      />
-
-      {/* CUSTOMER DETAIL / STATEMENT MODAL */}
-      <CustomerDetailModal
-        open={custDetailOpen}
-        currency={currency} // ✅ ADD THIS
-        onClose={() => setCustDetailOpen(false)}
-        customer={
-          state.customers.find((c) => c.id === selectedCustomerId) || null
-        }
-        jobs={state.jobs}
-        payments={state.payments}
-        kasalar={state.kasalar} // ✅ ADD
-        activeKasaId={state.activeKasaId} // ✅ ADD
-        onOpenPayment={openPaymentModal}
-        onEditCustomer={() => {
-          setEditingCustId(selectedCustomerId);
-          setCustModalOpen(true);
-        }}
-        onDeleteCustomer={() =>
-          setConfirm({
-            open: true,
-            type: "customer",
-            id: selectedCustomerId,
-            message: "Are you sure you want to delete this?",
-          })
-        }
-        onEditJob={(jobId) => {
-          setEditingJobId(jobId);
-          setJobModalOpen(true); // ✅ just open job modal
-        }}
-        onAddJob={() => {
-          setEditingJobId(null);
-          setJobFixedCustomerId(selectedCustomerId); // ✅ lock customer
-          setJobModalOpen(true); // ✅ just open job modal
-        }}
-        onDeleteJob={(jobId) =>
-          setConfirm({
-            open: true,
-            type: "job",
-            id: jobId,
-            message: "Bu işi silmek istediğinize emin misiniz?",
-          })
-        }
-        onUpdatePayment={updatePaymentTransaction}
-        setConfirm={setConfirm}
-      />
-
-      <PaymentActionModal
-        open={paymentModalOpen}
-        mode={paymentMode}
-        customer={paymentCustomer}
-        kasalar={state.kasalar}
-        activeKasaId={state.activeKasaId}
-        onClose={() => setPaymentModalOpen(false)}
-        onSubmit={(amount, note, kasaId, date, method) => {
-          if (!paymentCustomer) return;
-
-          if (paymentMode === "payment") {
-            // ✅ Tahsilat: kasa seçilebilir
-            makePayment(paymentCustomer.id, amount, note, date, kasaId, method);
-          } else {
-            // ✅ Borç: kasa yok → active kasa kullanılır
-            addDebt(paymentCustomer.id, amount, note, date, null, null);
-          }
-        }}
-      />
-
-      <KasaDetailModal
-        open={kasaDetailOpen}
-        onClose={() => setKasaDetailOpen(false)}
-        kasa={state.kasalar.find((k) => k.id === selectedKasaId)}
-        onRenameKasa={renameKasa}
-        payments={state.payments}
-      />
-      <ProfileModal
-        open={profileOpen}
-        onClose={() => setProfileOpen(false)}
-        user={user}
-        profile={state.profile} // ✅ ADD THIS
-        setState={setState} // ✅ ADD THIS
-      />
-      {/* CONFIRMATION MODAL (Delete) */}
-      <ConfirmModal
-        open={confirm.open}
-        message={confirm.message}
-        requireText={confirm.type === "customer"} // ✅ IMPORTANT
-        onNo={() =>
-          setConfirm({ open: false, type: null, id: null, message: "" })
-        }
-        onYes={() => {
-          if (confirm.type === "job") deleteJob(confirm.id);
-          if (confirm.type === "customer") deleteCustomer(confirm.id);
-
-          if (confirm.type === "payment") {
-            setState((s) => ({
-              ...s,
-              payments: (s.payments || []).filter((p) => p.id !== confirm.id),
-            }));
-          }
-
-          setConfirm({ open: false, type: null, id: null, message: "" });
-        }}
-      />
-
-      {jobActionOpen && (
-        <ModalBase
-          open={true}
-          title="İş Seçenekleri"
-          onClose={() => setJobActionOpen(false)}
-        >
-          <div style={{ display: "grid", gap: 10 }}>
+          {/* Bottom navigation */}
+          <nav className="bottom-nav">
             <button
-              className="btn btn-save"
-              onClick={() => {
-                setEditingJobId(jobActionJobId);
-                setJobActionOpen(false);
-                setTimeout(() => setJobModalOpen(true), 0);
-              }}
+              className={`nav-item ${page === "home" ? "active" : ""}`}
+              onClick={() => setPage("home")}
             >
-              <i className="fa-solid fa-pen"></i> Düzenle
+              <span className="nav-icon">
+                <i className="fa-solid fa-house"></i>
+              </span>
+              <span className="nav-label">Anasayfa</span>
             </button>
 
             <button
-              className="btn btn-delete"
-              onClick={() => {
-                setJobActionOpen(false);
-                setConfirm({
-                  open: true,
-                  type: "job",
-                  id: jobActionJobId,
-                  message: "Bu işi silmek istediğinize emin misiniz?",
-                });
-              }}
+              className={`nav-item ${page === "customers" ? "active" : ""}`}
+              onClick={() => setPage("customers")}
             >
-              <i className="fa-solid fa-trash"></i> Sil
+              <span className="nav-icon">
+                <i className="fa-solid fa-users"></i>
+              </span>
+
+              <span className="nav-label">Müşteriler</span>
             </button>
-          </div>
-        </ModalBase>
-      )}
 
-      {/* KASA DELETE CONFIRM MODAL */}
-      {kasaDeleteConfirm.open && (
-        <ModalBase
-          open={true}
-          title="Kasa Silme Onayı"
-          onClose={() =>
-            setKasaDeleteConfirm({ open: false, kasaId: null, text: "" })
-          }
-        >
-          <p style={{ color: "#b91c1c", fontWeight: 600 }}>
-            ⚠️ Bu kasa kalıcı olarak silinecek.
-          </p>
+            <button
+              className={`nav-item ${page === "settings" ? "active" : ""}`}
+              onClick={() => setPage("settings")}
+            >
+              <span className="nav-icon">
+                <i className="fa-solid fa-gear"></i>
+              </span>
 
-          <p>
-            Devam etmek için <b>SIL</b> yazın:
-          </p>
+              <span className="nav-label">Ayarlar</span>
+            </button>
+          </nav>
 
-          <input
-            value={kasaDeleteConfirm.text}
-            onChange={(e) =>
-              setKasaDeleteConfirm((s) => ({
-                ...s,
-                text: e.target.value,
-              }))
-            }
-            placeholder="SIL"
+          {/* JOB MODAL */}
+          <JobModal
+            open={jobModalOpen}
+            onClose={() => {
+              setJobModalOpen(false);
+              setJobFixedCustomerId(null);
+            }}
+            customers={state.customers}
+            jobs={state.jobs}
+            editingJobId={editingJobId}
+            onSave={(job) => upsertJob(job)}
+            currency={currency} // ✅ ADD THIS
+            setConfirm={setConfirm} // ✅ ADD
+            fixedCustomerId={jobFixedCustomerId} // ✅ ADD
+            zIndex={3000}
           />
 
-          <div className="btn-row">
-            <button
-              className="btn btn-cancel"
-              onClick={() =>
+          {/* CUSTOMER MODAL */}
+          <CustomerModal
+            open={custModalOpen}
+            onClose={() => setCustModalOpen(false)}
+            customers={state.customers}
+            editingCustomerId={editingCustId}
+            onSave={(cust) => upsertCustomer(cust)}
+            onDeleteCustomer={() => {
+              setCustModalOpen(false); // close edit modal FIRST
+              setConfirm({
+                open: true,
+                type: "customer",
+                id: editingCustId,
+                message:
+                  "Bu müşteriyi ve tüm işlerini silmek istediğinize emin misiniz?",
+              });
+            }}
+            zIndex={1500} // ✅ ADD THIS LINE
+          />
+
+          {/* CUSTOMER DETAIL / STATEMENT MODAL */}
+          <CustomerDetailModal
+            open={custDetailOpen}
+            currency={currency} // ✅ ADD THIS
+            onClose={() => setCustDetailOpen(false)}
+            customer={
+              state.customers.find((c) => c.id === selectedCustomerId) || null
+            }
+            jobs={state.jobs}
+            payments={state.payments}
+            kasalar={state.kasalar} // ✅ ADD
+            activeKasaId={state.activeKasaId} // ✅ ADD
+            onOpenPayment={openPaymentModal}
+            onEditCustomer={() => {
+              setEditingCustId(selectedCustomerId);
+              setCustModalOpen(true);
+            }}
+            onDeleteCustomer={() =>
+              setConfirm({
+                open: true,
+                type: "customer",
+                id: selectedCustomerId,
+                message: "Are you sure you want to delete this?",
+              })
+            }
+            onEditJob={(jobId) => {
+              setCustDetailOpen(false); // 🔥 CLOSE customer detail
+              setSelectedCustomerId(null);
+
+              setEditingJobId(jobId);
+              setJobModalOpen(true);
+            }}
+            onAddJob={() => {
+              setCustDetailOpen(false); // 🔥 CLOSE customer detail
+              setSelectedCustomerId(null);
+
+              setEditingJobId(null);
+              setJobFixedCustomerId(selectedCustomerId);
+              setJobModalOpen(true);
+            }}
+            onDeleteJob={(jobId) =>
+              setConfirm({
+                open: true,
+                type: "job",
+                id: jobId,
+                message: "Bu işi silmek istediğinize emin misiniz?",
+              })
+            }
+            onUpdatePayment={updatePaymentTransaction}
+            setConfirm={setConfirm}
+          />
+
+          <PaymentActionModal
+            open={paymentModalOpen}
+            mode={paymentMode}
+            customer={paymentCustomer}
+            kasalar={state.kasalar}
+            activeKasaId={state.activeKasaId}
+            onClose={() => setPaymentModalOpen(false)}
+            onSubmit={(amount, note, kasaId, date, method) => {
+              if (!paymentCustomer) return;
+
+              if (paymentMode === "payment") {
+                // ✅ Tahsilat: kasa seçilebilir
+                makePayment(
+                  paymentCustomer.id,
+                  amount,
+                  note,
+                  date,
+                  kasaId,
+                  method
+                );
+              } else {
+                // ✅ Borç: kasa yok → active kasa kullanılır
+                addDebt(paymentCustomer.id, amount, note, date, null, null);
+              }
+            }}
+          />
+
+          <KasaDetailModal
+            open={kasaDetailOpen}
+            onClose={() => setKasaDetailOpen(false)}
+            kasa={state.kasalar.find((k) => k.id === selectedKasaId)}
+            onRenameKasa={renameKasa}
+            payments={state.payments}
+          />
+          <ProfileModal
+            open={profileOpen}
+            onClose={() => setProfileOpen(false)}
+            user={user}
+            profile={state.profile} // ✅ ADD THIS
+            setState={setState} // ✅ ADD THIS
+          />
+          {/* CONFIRMATION MODAL (Delete) */}
+          <ConfirmModal
+            open={confirm.open}
+            message={confirm.message}
+            requireText={confirm.type === "customer"} // ✅ IMPORTANT
+            onNo={() =>
+              setConfirm({ open: false, type: null, id: null, message: "" })
+            }
+            onYes={() => {
+              if (confirm.type === "job") deleteJob(confirm.id);
+              if (confirm.type === "customer") deleteCustomer(confirm.id);
+
+              if (confirm.type === "payment") {
+                setState((s) => ({
+                  ...s,
+                  payments: (s.payments || []).filter(
+                    (p) => p.id !== confirm.id
+                  ),
+                }));
+              }
+
+              setConfirm({ open: false, type: null, id: null, message: "" });
+            }}
+          />
+
+          {jobActionOpen && (
+            <ModalBase
+              open={true}
+              title="İş Seçenekleri"
+              onClose={() => setJobActionOpen(false)}
+            >
+              <div style={{ display: "grid", gap: 10 }}>
+                <button
+                  className="btn btn-save"
+                  onClick={() => {
+                    setEditingJobId(jobActionJobId);
+                    setJobActionOpen(false);
+                    setTimeout(() => setJobModalOpen(true), 0);
+                  }}
+                >
+                  <i className="fa-solid fa-pen"></i> Düzenle
+                </button>
+
+                <button
+                  className="btn btn-delete"
+                  onClick={() => {
+                    setJobActionOpen(false);
+                    setConfirm({
+                      open: true,
+                      type: "job",
+                      id: jobActionJobId,
+                      message: "Bu işi silmek istediğinize emin misiniz?",
+                    });
+                  }}
+                >
+                  <i className="fa-solid fa-trash"></i> Sil
+                </button>
+              </div>
+            </ModalBase>
+          )}
+
+          {/* KASA DELETE CONFIRM MODAL */}
+          {kasaDeleteConfirm.open && (
+            <ModalBase
+              open={true}
+              title="Kasa Silme Onayı"
+              onClose={() =>
                 setKasaDeleteConfirm({ open: false, kasaId: null, text: "" })
               }
             >
-              Vazgeç
-            </button>
+              <p style={{ color: "#b91c1c", fontWeight: 600 }}>
+                ⚠️ Bu kasa kalıcı olarak silinecek.
+              </p>
 
-            <button
-              className="btn btn-delete"
-              disabled={kasaDeleteConfirm.text !== "SIL"}
-              onClick={() => {
-                setState((s) => ({
-                  ...s,
-                  kasalar: s.kasalar.filter(
-                    (k) => k.id !== kasaDeleteConfirm.kasaId
-                  ),
-                  payments: (s.payments || []).filter(
-                    (p) => p.kasaId !== kasaDeleteConfirm.kasaId
-                  ),
-                }));
+              <p>
+                Devam etmek için <b>SIL</b> yazın:
+              </p>
 
-                setKasaDeleteConfirm({
-                  open: false,
-                  kasaId: null,
-                  text: "",
-                });
-              }}
-            >
-              Kalıcı Olarak Sil
-            </button>
-          </div>
-        </ModalBase>
-      )}
+              <input
+                value={kasaDeleteConfirm.text}
+                onChange={(e) =>
+                  setKasaDeleteConfirm((s) => ({
+                    ...s,
+                    text: e.target.value,
+                  }))
+                }
+                placeholder="SIL"
+              />
+
+              <div className="btn-row">
+                <button
+                  className="btn btn-cancel"
+                  onClick={() =>
+                    setKasaDeleteConfirm({
+                      open: false,
+                      kasaId: null,
+                      text: "",
+                    })
+                  }
+                >
+                  Vazgeç
+                </button>
+
+                <button
+                  className="btn btn-delete"
+                  disabled={kasaDeleteConfirm.text !== "SIL"}
+                  onClick={() => {
+                    setState((s) => ({
+                      ...s,
+                      kasalar: s.kasalar.filter(
+                        (k) => k.id !== kasaDeleteConfirm.kasaId
+                      ),
+                      payments: (s.payments || []).filter(
+                        (p) => p.kasaId !== kasaDeleteConfirm.kasaId
+                      ),
+                    }));
+
+                    setKasaDeleteConfirm({
+                      open: false,
+                      kasaId: null,
+                      text: "",
+                    });
+                  }}
+                >
+                  Kalıcı Olarak Sil
+                </button>
+              </div>
+            </ModalBase>
+          )}
+        </div>
+      </div>
     </>
   );
 }

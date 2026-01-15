@@ -1642,19 +1642,35 @@ export function PaymentActionModal({
           {/* Ödeme Yöntemi */}
           {mode === "payment" && (
             <div className="form-group">
-              <label>Ödeme Yöntemi</label>
-              <select
-                value={method}
-                onChange={(e) => setMethod(e.target.value)}
-              >
-                <option value="cash">💵 Nakit</option>
-                <option value="card">
-                  <i className="fa-solid fa-credit-card"></i> Kart
-                </option>
-                <option value="transfer">
-                  <i className="fa-solid fa-building-columns"></i> Havale
-                </option>
-              </select>
+              <div className="form-group">
+                <label>Ödeme Yöntemi</label>
+
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    type="button"
+                    className={`btn ${method === "cash" ? "btn-save" : ""}`}
+                    onClick={() => setMethod("cash")}
+                  >
+                    <i className="fa-solid fa-money-bill-wave"></i> Nakit
+                  </button>
+
+                  <button
+                    type="button"
+                    className={`btn ${method === "card" ? "btn-save" : ""}`}
+                    onClick={() => setMethod("card")}
+                  >
+                    <i className="fa-solid fa-credit-card"></i> Kart
+                  </button>
+
+                  <button
+                    type="button"
+                    className={`btn ${method === "transfer" ? "btn-save" : ""}`}
+                    onClick={() => setMethod("transfer")}
+                  >
+                    <i className="fa-solid fa-building-columns"></i> Havale
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 

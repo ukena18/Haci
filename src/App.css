@@ -27,6 +27,48 @@
   --radius-md: 12px;
 }
 
+/* ===== App layout wrapper (web fix) ===== */
+.app-shell {
+  min-height: 100vh;
+  background: #f4f6fb;
+  display: flex;
+  justify-content: center;
+}
+
+.app-frame {
+  width: 100%;
+  min-height: 100vh;
+  background: #f4f6fb;
+  position: relative;
+
+  /* mobile default */
+  max-width: 100%;
+}
+
+@media (min-width: 600px) {
+  .app-frame {
+    margin: 20px 0;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.04), 0 20px 60px rgba(0, 0, 0, 0.15);
+  }
+}
+
+/* Tablet & desktop app sizing */
+@media (min-width: 640px) {
+  .app-frame {
+    margin: 24px 0;
+    border-radius: 18px;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.04), 0 24px 70px rgba(0, 0, 0, 0.18);
+  }
+}
+
+@media (min-width: 1024px) {
+  .app-frame {
+    max-width: 840px; /* 👈 desktop app feel */
+  }
+}
+
 body {
   font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont,
     sans-serif;
@@ -69,20 +111,6 @@ body {
 
 .container {
   padding: 15px;
-}
-
-/* Bottom navigation */
-.bottom-nav {
-  position: fixed;
-  bottom: 0;
-  width: 100%;
-  background: white;
-  display: flex;
-  justify-content: space-around;
-  padding: 10px 0;
-  border-top: 1px solid #ddd;
-  box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
-  z-index: 99;
 }
 
 .nav-item {
@@ -213,6 +241,19 @@ body {
   justify-content: center;
 
   transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Desktop FAB positioning (attach to app frame) */
+@media (min-width: 640px) {
+  .fab {
+    right: calc(52% - 360px); /* 👈 pulls FAB toward app edge */
+  }
+}
+
+@media (min-width: 1024px) {
+  .fab {
+    right: calc(52% - 420px); /* 👈 wider desktop frame */
+  }
 }
 
 .fab:active {
@@ -1282,12 +1323,24 @@ textarea {
 }
 
 .bottom-nav {
+  position: fixed;
+  bottom: 0;
+
+  width: 100%;
+  max-width: 480px;
+
+  left: 50%;
+  transform: translateX(-50%);
+
   display: flex;
   justify-content: space-around;
   align-items: center;
+
   padding: 8px 6px 12px;
   background: #fff;
+
   border-top: 1px solid #e5e7eb;
+  z-index: 100;
 }
 
 /* Base item */
@@ -1392,4 +1445,26 @@ textarea {
 .job-options-btn i,
 .iconLike i {
   line-height: 1;
+}
+
+/* =========================================
+   Desktop: Customer Detail is NOT a modal
+========================================= */
+@media (min-width: 640px) {
+  .customer-detail-page,
+  .customer-detail,
+  .cust-detail {
+    position: relative;
+    z-index: auto;
+  }
+}
+/* Desktop detail pages must sit above */
+.kasa-detail-page,
+.job-detail-page {
+  position: relative;
+  z-index: 200;
+}
+
+.bottom-nav {
+  pointer-events: auto;
 }
