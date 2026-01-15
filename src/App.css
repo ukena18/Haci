@@ -49,7 +49,7 @@
   .app-frame {
     margin: 20px 0;
     border-radius: 16px;
-    overflow: hidden;
+
     box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.04), 0 20px 60px rgba(0, 0, 0, 0.15);
   }
 }
@@ -326,9 +326,10 @@ body {
 }
 label {
   display: block;
-  font-weight: bold;
-  margin-bottom: 5px;
-  font-size: 14px;
+  font-weight: 600; /* less shouty */
+  margin-bottom: 6px;
+  font-size: 12px; /* matches your app body */
+  color: #374151; /* softer than pure black */
 }
 
 input,
@@ -399,6 +400,21 @@ textarea {
 
 .search-wrap select:hover {
   background: #f9fafb;
+}
+
+/* =========================
+   Sticky Search Bar
+========================= */
+
+.search-sticky {
+  position: sticky;
+
+  z-index: 90;
+
+  background: var(--bg);
+  padding: 8px 0 10px;
+
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .hidden {
@@ -502,7 +518,6 @@ textarea {
   display: flex;
   gap: 8px;
   align-items: center;
-  margin-bottom: 18px; /* ✅ FIX: space before Finansal Özet */
 }
 
 .search-wrap .search-bar {
@@ -1467,4 +1482,74 @@ textarea {
 
 .bottom-nav {
   pointer-events: auto;
+}
+
+.time-mode-info {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+
+  background: #f1f5ff; /* soft blue-gray */
+  border: 1px solid #e0e7ff;
+
+  color: #334155; /* slate text */
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.time-mode-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px; /* 🔥 slightly tighter */
+  align-items: center;
+  margin-top: 6px;
+}
+
+.time-mode-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  margin: 0;
+  padding: 7px 10px;
+  border-radius: 999px;
+
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+
+  font-weight: 500; /* 🔥 less bold */
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
+
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.time-mode-option:has(input:checked) {
+  background: #eef2ff; /* soft primary tint */
+  border-color: #c7d2fe;
+  color: #1e40af;
+}
+
+.time-mode-option input {
+  width: auto;
+  margin: 0;
+}
+
+.time-mode-info {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fff7d6;
+  color: #7c4a12;
+  font-size: 12px;
+  line-height: 1.35;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+@media (max-width: 360px) {
+  .time-mode-row {
+    grid-template-columns: 1fr;
+  }
 }

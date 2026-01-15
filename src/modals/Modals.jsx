@@ -478,8 +478,8 @@ export function JobModal({
         <label>Çalışma Zamanı Girişi</label>
 
         {/* RADIO OPTIONS */}
-        <div style={{ display: "flex", gap: 16, marginTop: 6 }}>
-          <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <div className="time-mode-row">
+          <label className="time-mode-option">
             <input
               type="radio"
               name="timeMode"
@@ -494,10 +494,10 @@ export function JobModal({
                 }))
               }
             />
-            Elle Giriş
+            <span>Elle Giriş</span>
           </label>
 
-          <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <label className="time-mode-option">
             <input
               type="radio"
               name="timeMode"
@@ -511,10 +511,10 @@ export function JobModal({
                 }))
               }
             />
-            Saat Giriş / Çıkış
+            <span>Saat Giriş/Çıkış</span>
           </label>
 
-          <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <label className="time-mode-option">
             <input
               type="radio"
               name="timeMode"
@@ -532,8 +532,31 @@ export function JobModal({
                 }))
               }
             />
-            Sabit Ücret
+            <span>Sabit Ücret</span>
           </label>
+        </div>
+
+        {/* 🔎 Time mode description (single block) */}
+        <div className="time-mode-info" aria-live="polite">
+          {draft.timeMode === "manual" ? (
+            <>
+              Başlangıç ve bitiş saatlerini elle girersiniz.
+              <br />
+              Toplam süreye göre işçilik hesaplanır.
+            </>
+          ) : draft.timeMode === "clock" ? (
+            <>
+              Çalışma süresi sayaç ile takip edilir.
+              <br />
+              Saat Giriş / Çıkış ile otomatik hesaplama yapılır.
+            </>
+          ) : (
+            <>
+              Bu işin toplam ücreti süreden bağımsızdır.
+              <br />
+              Girilen sabit fiyat üzerinden hesaplanır.
+            </>
+          )}
         </div>
       </div>
 
@@ -573,10 +596,6 @@ export function JobModal({
               />
             </div>
           </div>
-
-          <small style={{ color: "#666" }}>
-            Bu iş için anlaşılan tamamlanma aralığı
-          </small>
         </div>
       )}
 
@@ -627,9 +646,6 @@ export function JobModal({
             onChange={(e) => setField("fixedPrice", e.target.value)}
             placeholder="Örn: 120"
           />
-          <small style={{ color: "#666" }}>
-            Bu işin toplamı zamandan bağımsızdır.
-          </small>
         </div>
       )}
 

@@ -941,58 +941,61 @@ function MainApp({ state, setState, user }) {
       <div className="app-shell">
         <div className="app-frame">
           <div className="container">
-            {/* Search bar */}
-            {/* Search bar */}
-            <div className="search-wrap">
-              <div className="search-input-wrapper">
-                <input
-                  type="text"
-                  className="search-bar"
-                  placeholder="Ara..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
+            {/* Sticky Search */}
+            <div className="search-sticky">
+              <div className="search-wrap">
+                <div className="search-input-wrapper">
+                  <input
+                    type="text"
+                    className="search-bar"
+                    placeholder="Ara..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
 
-                {search && (
-                  <button
-                    type="button"
-                    className="search-clear-btn"
-                    onClick={() => setSearch("")}
-                    title="Temizle"
-                  >
-                    <i className="fa-solid fa-xmark"></i>
-                  </button>
+                  {search && (
+                    <button
+                      type="button"
+                      className="search-clear-btn"
+                      onClick={() => setSearch("")}
+                      title="Temizle"
+                    >
+                      <i className="fa-solid fa-xmark"></i>
+                    </button>
+                  )}
+                </div>
+
+                {page === "customers" && (
+                  <div className="sort-wrapper">
+                    <button
+                      type="button"
+                      className="sort-icon-btn"
+                      title="Sırala"
+                      onClick={() =>
+                        document.getElementById("customer-sort").click()
+                      }
+                    >
+                      <i className="fa-solid fa-arrow-up-wide-short"></i>
+                    </button>
+
+                    <select
+                      id="customer-sort"
+                      value={customerSort}
+                      onChange={(e) => setCustomerSort(e.target.value)}
+                      className="sort-hidden-select"
+                    >
+                      <option value="debt_desc">💸 Borcu En Yüksek</option>
+                      <option value="debt_asc">💰 Borcu En Düşük</option>
+                      <option value="name_asc">🔤 İsim A → Z</option>
+                      <option value="name_desc">🔤 İsim Z → A</option>
+                      <option value="latest">🕒 Son İşlem (En Yeni)</option>
+                    </select>
+                  </div>
                 )}
               </div>
-
-              {page === "customers" && (
-                <div className="sort-wrapper">
-                  <button
-                    type="button"
-                    className="sort-icon-btn"
-                    title="Sırala"
-                    onClick={() =>
-                      document.getElementById("customer-sort").click()
-                    }
-                  >
-                    <i className="fa-solid fa-arrow-up-wide-short"></i>
-                  </button>
-
-                  <select
-                    id="customer-sort"
-                    value={customerSort}
-                    onChange={(e) => setCustomerSort(e.target.value)}
-                    className="sort-hidden-select"
-                  >
-                    <option value="debt_desc">💸 Borcu En Yüksek</option>
-                    <option value="debt_asc">💰 Borcu En Düşük</option>
-                    <option value="name_asc">🔤 İsim A → Z</option>
-                    <option value="name_desc">🔤 İsim Z → A</option>
-                    <option value="latest">🕒 Son İşlem (En Yeni)</option>
-                  </select>
-                </div>
-              )}
             </div>
+
+            {/* 👇 customer list continues here */}
 
             {/* HOME PAGE */}
             {page === "home" && (
