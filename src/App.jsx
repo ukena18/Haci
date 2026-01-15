@@ -165,19 +165,17 @@ function AppRoutes({ user }) {
       }
 
       if (!fixed.vaults || !Array.isArray(fixed.vaults)) {
-        const legacyName = fixed.vaultName || "Vault Name";
-        const legacyBal = Number(fixed.vaultBalance || 0);
-
-        fixed.vaults = [
+        fixed.vaults = fixed.Vaults || [
           {
             id: "main_vault",
-            name: legacyName,
-            balance: legacyBal,
+            name: "Main Vault",
+            balance: 0,
             currency: fixed.currency || "TRY",
             createdAt: Date.now(),
           },
         ];
-        fixed.activeVaultId = "main_vault";
+
+        fixed.activeVaultId = fixed.activeVaultId || "main_vault";
       }
 
       // optional: remove old fields if you want (not required)
@@ -453,20 +451,31 @@ function MainApp({ state, setState, user }) {
 
     return latest;
   }
-  function getVaultBalance(vaultId) {
-    return (state.payments || []).reduce((sum, p) => {
-      if (p.vaultId !== vaultId) return sum;
+  function getVaultTotals(vaultId) {
+    let totalPayment = 0;
+    let totalDebt = 0;
 
-      if (p.type === "payment") {
-        return sum + toNum(p.amount);
-      }
+    // ✅ payments affect vault
+    (state.payments || []).forEach((p) => {
+      if (p.vaultId !== vaultId) return;
+      if (p.type === "payment") totalPayment += toNum(p.amount);
+      if (p.type === "debt") totalDebt += toNum(p.amount);
+    });
 
-      if (p.type === "debt") {
-        return sum - toNum(p.amount);
-      }
+    // ✅ jobs affect vault
+    (state.jobs || []).forEach((j) => {
+      if (j.vaultId !== vaultId) return;
+      const jt = jobTotalOf(j);
 
-      return sum;
-    }, 0);
+      if (j.isPaid) totalPayment += jt;
+      else totalDebt += jt; // ✅ UNPAID JOBS COUNT AS DEBT
+    });
+
+    return {
+      totalPayment,
+      totalDebt,
+      net: totalPayment - totalDebt,
+    };
   }
 
   function renameVault(vaultId, update) {
@@ -1496,7 +1505,10 @@ function MainApp({ state, setState, user }) {
 
                           <div style={{ fontSize: 12, color: "#555" }}>
                             balance:{" "}
-                            {money(getVaultBalance(vault.id), vault.currency)}
+                            {(() => {
+                              const { net } = getVaultTotals(vault.id);
+                              return money(net, vault.currency);
+                            })()}
                           </div>
                         </div>
 
@@ -1625,6 +1637,8 @@ function MainApp({ state, setState, user }) {
             editingJobId={editingJobId}
             onSave={(job) => upsertJob(job)}
             currency={currency} // ✅ ADD THIS
+            vaults={state.vaults || []} // ✅ ADD
+            activeVaultId={state.activeVaultId} // ✅ ADD
             setConfirm={setConfirm} // ✅ ADD
             fixedCustomerId={jobFixedCustomerId} // ✅ ADD
             zIndex={3000}
@@ -1735,6 +1749,7 @@ function MainApp({ state, setState, user }) {
             vault={state.vaults.find((k) => k.id === selectedVaultId)}
             onRenameVault={renameVault}
             payments={state.payments}
+            jobs={state.jobs} // ✅ ADD THIS
           />
           <ProfileModal
             open={profileOpen}
@@ -2525,7 +2540,14 @@ function CustomerSharePage({ state }) {
  * - vault can go negative if manually adjusted
  */
 
-function VaultDetailModal({ open, onClose, vault, payments, onRenameVault }) {
+function VaultDetailModal({
+  open,
+  onClose,
+  vault,
+  payments,
+  jobs,
+  onRenameVault,
+}) {
   const [editingName, setEditingName] = useState(false);
   const [vaultName, setVaultName] = useState("");
   const printRef = useRef(null);
@@ -2538,16 +2560,27 @@ function VaultDetailModal({ open, onClose, vault, payments, onRenameVault }) {
   }, [open, vault]);
   if (!open || !vault) return null;
 
-  // Filter only transactions belonging to this vault
+  // ✅ Payments
   const vaultPayments = (payments || []).filter((p) => p.vaultId === vault.id);
 
-  const totalPayment = vaultPayments
-    .filter((p) => p.type === "payment")
-    .reduce((sum, p) => sum + p.amount, 0);
+  // ✅ Jobs
+  const vaultJobs = (jobs || []).filter((j) => j.vaultId === vault.id);
 
-  const totalDebt = vaultPayments
-    .filter((p) => p.type === "debt")
-    .reduce((sum, p) => sum + p.amount, 0);
+  let totalPayment = 0;
+  let totalDebt = 0;
+
+  // Payments
+  vaultPayments.forEach((p) => {
+    if (p.type === "payment") totalPayment += toNum(p.amount);
+    if (p.type === "debt") totalDebt += toNum(p.amount);
+  });
+
+  // Jobs
+  vaultJobs.forEach((j) => {
+    const jt = jobTotalOf(j);
+    if (j.isPaid) totalPayment += jt;
+    else totalDebt += jt;
+  });
 
   const net = totalPayment - totalDebt;
 
@@ -2728,7 +2761,8 @@ function VaultDetailModal({ open, onClose, vault, payments, onRenameVault }) {
             className="card"
             style={{ marginTop: 12, fontSize: 12, color: "#555" }}
           >
-            Toplam İşlem Sayısı: <strong>{vaultPayments.length}</strong>
+            Toplam İşlem Sayısı:{" "}
+            <strong>{vaultPayments.length + vaultJobs.length}</strong>
           </div>
           <div className="hidden">
             <div ref={printRef}>

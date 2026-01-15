@@ -309,6 +309,8 @@ export function JobModal({
   editingJobId,
   onSave,
   currency,
+  vaults, // ✅ ADD
+  activeVaultId, // ✅ ADD
   setConfirm, // ✅ ADD
   fixedCustomerId = null, // ✅ ADD THIS
 }) {
@@ -323,10 +325,11 @@ export function JobModal({
       // when editing, keep job's customerId
       setDraft({ ...editing, parts: editing.parts || [] });
     } else {
-      // when creating new job
       const fresh = makeEmptyJob(customers);
 
-      // ✅ if opened from customer detail, lock customerId
+      // ✅ default kasa = active kasa
+      fresh.vaultId = activeVaultId || "";
+
       if (fixedCustomerId) {
         fresh.customerId = fixedCustomerId;
       }
@@ -390,6 +393,10 @@ export function JobModal({
       alert("Müşteri seçmelisiniz.");
       return;
     }
+    if (!draft.vaultId) {
+      alert("İş için kasa seçmelisiniz.");
+      return;
+    }
 
     // Save with cleaned numeric fields
     onSave({
@@ -442,6 +449,21 @@ export function JobModal({
       )}
 
       <div className="form-group">
+        <label>Kasa</label>
+        <select
+          value={draft.vaultId || ""}
+          onChange={(e) => setField("vaultId", e.target.value)}
+        >
+          <option value="">Kasa seçin</option>
+          {(vaults || []).map((v) => (
+            <option key={v.id} value={v.id}>
+              {v.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="form-group">
         <label>Tarih</label>
         <input
           type="date"
@@ -472,7 +494,7 @@ export function JobModal({
                 }))
               }
             />
-            Manuel
+            Elle Giriş
           </label>
 
           <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -489,7 +511,7 @@ export function JobModal({
                 }))
               }
             />
-            Clock In / Out
+            Saat Giriş / Çıkış
           </label>
 
           <label style={{ display: "flex", alignItems: "center", gap: 6 }}>

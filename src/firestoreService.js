@@ -12,11 +12,12 @@ export async function ensureUserData(userId) {
         phone: "",
         address: "",
       },
-      Vaults: [
+      vaults: [
         {
           id: "main_vault",
           name: "Main Vault",
           balance: 0,
+          currency: "TRY",
           createdAt: Date.now(),
         },
       ],
@@ -37,7 +38,18 @@ export async function loadUserData(userId) {
   const snap = await getDoc(ref);
 
   if (!snap.exists()) return null;
-  return snap.data();
+
+  const data = snap.data();
+
+  return {
+    ...data,
+
+    // ✅ normalize Vaults → vaults
+    vaults: data.vaults || data.Vaults || [],
+
+    // optional cleanup
+    Vaults: undefined,
+  };
 }
 
 export async function saveUserData(userId, data) {
@@ -50,7 +62,8 @@ export async function saveUserData(userId, data) {
       customers: data.customers ?? [],
       jobs: data.jobs ?? [],
       payments: data.payments ?? [],
-      Vaults: data.Vaults ?? [],
+      vaults: data.vaults ?? [],
+
       activeVaultId: data.activeVaultId ?? null,
       updatedAt: Date.now(),
     },

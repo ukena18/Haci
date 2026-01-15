@@ -163,6 +163,7 @@ export function makeEmptyJob(customers = []) {
   return {
     id: uid(),
     customerId: customers?.[0]?.id || "",
+    vaultId: "", // ✅ ADD THIS
     date: new Date().toISOString().slice(0, 10),
     start: "",
     end: "",
