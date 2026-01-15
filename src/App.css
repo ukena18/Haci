@@ -1234,6 +1234,10 @@ textarea {
   background: #ffffff;
   transition: all 0.2s ease;
 }
+/* Space between stacked job cards */
+.job-card {
+  margin-bottom: 8px; /* 👈 adjust: 6–10px is ideal */
+}
 
 /* 🔴 Not completed (Borç) */
 .job-card.job-active {
@@ -1346,4 +1350,46 @@ textarea {
 .nav-item.active {
   background: var(--primary-soft);
   color: var(--primary);
+}
+
+.job-options-btn {
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  color: #6b7280;
+  padding: 4px 6px;
+  cursor: pointer;
+}
+
+.job-options-btn:hover {
+  color: #111827;
+}
+
+.job-options-btn:active {
+  transform: scale(0.9);
+}
+
+/* =========================
+   Kasa Detail – Pretty Layout
+========================= */
+
+.kasa-detail-page {
+  display: flex;
+  justify-content: center;
+  padding: 20px 14px 90px;
+}
+
+.kasa-detail-card {
+  width: 100%;
+  max-width: 420px; /* 👈 NOT full screen */
+  background: white;
+  border-radius: 20px;
+  padding: 18px;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.08);
+}
+
+.nav-icon i,
+.job-options-btn i,
+.iconLike i {
+  line-height: 1;
 }

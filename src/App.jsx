@@ -445,6 +445,21 @@ function MainApp({ state, setState, user }) {
 
   const [openCustomerFolders, setOpenCustomerFolders] = useState({});
 
+  // Delete confirmation modal
+  const [confirm, setConfirm] = useState({
+    open: false,
+    type: null, // "job" | "customer"
+    id: null,
+    message: "",
+  });
+
+  // Modals
+  const [jobModalOpen, setJobModalOpen] = useState(false);
+  const [jobFixedCustomerId, setJobFixedCustomerId] = useState(null);
+
+  const [custModalOpen, setCustModalOpen] = useState(false);
+  const [custDetailOpen, setCustDetailOpen] = useState(false);
+
   useAndroidBackHandler({
     page,
     setPage,
@@ -505,12 +520,6 @@ function MainApp({ state, setState, user }) {
       (state?.kasalar || []).find((k) => k.id === state?.activeKasaId) || null
     );
   }, [state?.kasalar, state?.activeKasaId]);
-  // Modals
-  const [jobModalOpen, setJobModalOpen] = useState(false);
-  const [jobFixedCustomerId, setJobFixedCustomerId] = useState(null);
-
-  const [custModalOpen, setCustModalOpen] = useState(false);
-  const [custDetailOpen, setCustDetailOpen] = useState(false);
 
   // KASA DELETE CONFIRM STATE
   const [kasaDeleteConfirm, setKasaDeleteConfirm] = useState({
@@ -535,14 +544,6 @@ function MainApp({ state, setState, user }) {
 
   // Selected customer for detail modal
   const [selectedCustomerId, setSelectedCustomerId] = useState(null);
-
-  // Delete confirmation modal
-  const [confirm, setConfirm] = useState({
-    open: false,
-    type: null, // "job" | "customer"
-    id: null,
-    message: "",
-  });
 
   /** Convenience lookup */
   const customersById = useMemo(() => {
@@ -832,12 +833,26 @@ function MainApp({ state, setState, user }) {
           return job;
         }
 
-        const hours =
-          job.timeMode === "clock"
-            ? (job.workedMs || 0) / 36e5
-            : calcHours(job.start, job.end);
+        const nextJobs = s.jobs.map((job) => {
+          if (
+            job.customerId !== customerId ||
+            !job.isCompleted ||
+            job.isPaid ||
+            remaining <= 0
+          ) {
+            return job;
+          }
 
-        const jobTotal = hours * toNum(job.rate) + partsTotalOf(job);
+          // ✅ SINGLE SOURCE OF TRUTH
+          const jobTotal = jobTotalOf(job);
+
+          if (remaining >= jobTotal) {
+            remaining -= jobTotal;
+            return { ...job, isPaid: true };
+          }
+
+          return job;
+        });
 
         if (remaining >= jobTotal) {
           remaining -= jobTotal;
@@ -1316,7 +1331,7 @@ function MainApp({ state, setState, user }) {
                 onClick={() => setSearch("")}
                 title="Temizle"
               >
-                ✕
+                <i className="fa-solid fa-xmark"></i>
               </button>
             )}
           </div>
@@ -1329,7 +1344,7 @@ function MainApp({ state, setState, user }) {
                 title="Sırala"
                 onClick={() => document.getElementById("customer-sort").click()}
               >
-                ⇅
+                <i className="fa-solid fa-arrow-up-wide-short"></i>
               </button>
 
               <select
@@ -1470,7 +1485,8 @@ function MainApp({ state, setState, user }) {
                   onClick={() => setPaymentOpen((o) => !o)}
                 >
                   <strong>
-                    🔔 30 Günlük Ödeme Takibi ({paymentWatchList.length})
+                    <i className="fa-solid fa-bell"></i> 30 Günlük Ödeme Takibi
+                    ({paymentWatchList.length})
                   </strong>
                   <span>{paymentOpen ? "▾" : "▸"}</span>
                 </div>
@@ -1612,15 +1628,7 @@ function MainApp({ state, setState, user }) {
                           {/* JOBS */}
                           <div className={`job-folder ${isOpen ? "open" : ""}`}>
                             {jobs.map((job) => (
-                              <div
-                                key={job.id}
-                                className="job-folder-item"
-                                onClick={() => {
-                                  setJobActionJobId(job.id);
-                                  setJobActionOpen(true);
-                                }}
-                                style={{ cursor: "pointer" }}
-                              >
+                              <div key={job.id} className="job-folder-item">
                                 <JobCard
                                   job={job}
                                   customersById={customersById}
@@ -1630,7 +1638,6 @@ function MainApp({ state, setState, user }) {
                                   currency={currency}
                                   markJobComplete={markJobComplete} // ✅ ADD THIS LINE
                                   markJobPaid={markJobPaid} // ✅ (optional but good)
-                                  hideActions // 👈 NEW PROP
                                 />
                               </div>
                             ))}
@@ -1675,6 +1682,10 @@ function MainApp({ state, setState, user }) {
                         markJobComplete={markJobComplete}
                         markJobPaid={markJobPaid} // ✅ THIS FIXES THE ERROR
                         currency={currency} // ✅ ADD THIS
+                        onOpenActions={(jobId) => {
+                          setJobActionJobId(jobId);
+                          setJobActionOpen(true);
+                        }}
                       />
                     ))
                 ))}
@@ -1764,7 +1775,7 @@ function MainApp({ state, setState, user }) {
                 onClick={() => signOut(auth)}
                 style={{ marginTop: 12, width: "100%" }}
               >
-                🚪 Çıkış Yap
+                <i className="fa-solid fa-right-from-bracket"></i> Çıkış Yap
               </button>
               {/* 👤 ADMIN PROFILE */}
               <div
@@ -1947,7 +1958,7 @@ function MainApp({ state, setState, user }) {
       {/* Floating Action Button */}
       {page !== "settings" && (
         <button className="fab" id="fab-btn" onClick={onFabClick}>
-          +
+          <i className="fa-solid fa-plus"></i>
         </button>
       )}
 
@@ -1957,7 +1968,9 @@ function MainApp({ state, setState, user }) {
           className={`nav-item ${page === "home" ? "active" : ""}`}
           onClick={() => setPage("home")}
         >
-          <span className="nav-icon">🏠</span>
+          <span className="nav-icon">
+            <i className="fa-solid fa-house"></i>
+          </span>
           <span className="nav-label">Anasayfa</span>
         </button>
 
@@ -1965,7 +1978,10 @@ function MainApp({ state, setState, user }) {
           className={`nav-item ${page === "customers" ? "active" : ""}`}
           onClick={() => setPage("customers")}
         >
-          <span className="nav-icon">👥</span>
+          <span className="nav-icon">
+            <i className="fa-solid fa-users"></i>
+          </span>
+
           <span className="nav-label">Müşteriler</span>
         </button>
 
@@ -1973,7 +1989,10 @@ function MainApp({ state, setState, user }) {
           className={`nav-item ${page === "settings" ? "active" : ""}`}
           onClick={() => setPage("settings")}
         >
-          <span className="nav-icon">⚙️</span>
+          <span className="nav-icon">
+            <i className="fa-solid fa-gear"></i>
+          </span>
+
           <span className="nav-label">Ayarlar</span>
         </button>
       </nav>
@@ -2133,7 +2152,7 @@ function MainApp({ state, setState, user }) {
                 setTimeout(() => setJobModalOpen(true), 0);
               }}
             >
-              ✏️ Düzenle
+              <i className="fa-solid fa-pen"></i> Düzenle
             </button>
 
             <button
@@ -2148,7 +2167,7 @@ function MainApp({ state, setState, user }) {
                 });
               }}
             >
-              🗑 Sil
+              <i className="fa-solid fa-trash"></i> Sil
             </button>
           </div>
         </ModalBase>
@@ -2234,6 +2253,8 @@ function JobCard({
   markJobComplete,
   markJobPaid, // ✅ ADD THIS
   currency, // ✅ ADD THIS
+  onOpenActions, // ✅ ADD
+  hideActions = false, // ✅ ADD THIS LINE
 }) {
   const c = customersById.get(job.customerId);
 
@@ -2276,7 +2297,11 @@ function JobCard({
                 toggleJobOpen(job.id);
               }}
             >
-              {job.isOpen ? "▾" : "▸"}
+              <i
+                className={`fa-solid ${
+                  job.isOpen ? "fa-chevron-down" : "fa-chevron-right"
+                }`}
+              />
             </button>
 
             <strong>{c ? `${c.name} ${c.surname}` : "Bilinmeyen"}</strong>
@@ -2295,7 +2320,7 @@ function JobCard({
           <div style={{ marginTop: 6, fontSize: 12, color: "#555" }}>
             {job.isRunning ? (
               <>
-                ⏱ Süre:{" "}
+                <i className="fa-solid fa-clock"></i> Süre:{" "}
                 <strong style={{ color: "#111" }}>{formatTimer(liveMs)}</strong>
               </>
             ) : (
@@ -2317,6 +2342,18 @@ function JobCard({
         </div>
 
         <div style={{ textAlign: "right" }}>
+          {!hideActions && onOpenActions && (
+            <button
+              className="job-options-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenActions(job.id);
+              }}
+            >
+              <i className="fa-solid fa-ellipsis-vertical"></i>
+            </button>
+          )}
+
           <strong style={{ color: "var(--primary)" }}>
             {money(total, currency)}
           </strong>
@@ -2413,7 +2450,8 @@ function JobCard({
             {job.timeMode === "clock" && job.clockSessions?.length > 0 && (
               <div style={{ marginTop: 12 }}>
                 <div style={{ fontWeight: 700, marginBottom: 6 }}>
-                  ⏱️ Çalışma Geçmişi
+                  <i className="fa-solid fa-clock"></i>
+                  Çalışma Geçmişi
                 </div>
 
                 {job.clockSessions.map((s, i) => {
@@ -2555,7 +2593,16 @@ function PublicCustomerSharePage() {
                         <strong
                           style={{ color: isPayment ? "#166534" : "#7f1d1d" }}
                         >
-                          {isPayment ? "💰 Tahsilat" : "🧾 Borç"}
+                          {isPayment ? (
+                            <>
+                              <i className="fa-solid fa-money-bill-wave"></i>{" "}
+                              Tahsilat
+                            </>
+                          ) : (
+                            <>
+                              <i className="fa-solid fa-file-invoice"></i> Borç
+                            </>
+                          )}
                         </strong>
 
                         {p.note && (
@@ -2694,7 +2741,16 @@ function CustomerSharePage({ state }) {
                       <strong
                         style={{ color: isPayment ? "#166534" : "#7f1d1d" }}
                       >
-                        {isPayment ? "💰 Tahsilat" : "🧾 Borç"}
+                        {isPayment ? (
+                          <>
+                            <i className="fa-solid fa-money-bill-wave"></i>{" "}
+                            Tahsilat
+                          </>
+                        ) : (
+                          <>
+                            <i className="fa-solid fa-file-invoice"></i> Borç
+                          </>
+                        )}
                       </strong>
 
                       {p.note && (
@@ -3354,7 +3410,7 @@ function JobModal({
                   cursor: "pointer",
                 }}
               >
-                ✕
+                <i className="fa-solid fa-xmark"></i>
               </button>
             </div>
           </div>
@@ -3426,7 +3482,7 @@ function JobModal({
               });
             }}
           >
-            🗑 Sil
+            <i className="fa-solid fa-trash"></i> Sil
           </button>
         )}
 
@@ -3442,13 +3498,6 @@ function JobModal({
   );
 }
 
-/**
- * Customer detail modal:
- * - Make payment / add debt
- * - Share as PDF (print)
- * - Edit customer
- * - Edit jobs of this customer
- */
 function CustomerDetailModal({
   open,
   onClose,
@@ -3667,26 +3716,6 @@ function CustomerDetailModal({
     setEditTx(null);
   }
 
-  /**
-   * CUSTOMER FINANCIAL SUMMARY
-   *
-   * DEFINITIONS:
-   * - PLUS (+):
-   *   • Tahsilat transactions
-   *   • Paid jobs
-   *
-   * - MINUS (-):
-   *   • Borç transactions
-   *   • Unpaid completed jobs
-   *
-   * FORMULA:
-   *   bakiye = totalTahsilat - totalBorc
-   *
-   * INTERPRETATION:
-   * - bakiye > 0 → customer credit
-   * - bakiye < 0 → customer owes money
-   */
-
   // helper: job total (manual + clock)
   function jobTotalOf(j) {
     const liveMs = j.isRunning && j.clockInAt ? Date.now() - j.clockInAt : 0;
@@ -3855,10 +3884,21 @@ function CustomerDetailModal({
                       fontWeight: 600,
                     }}
                   >
-                    📞 {customer.phone}
+                    <i className="fa-solid fa-phone"> </i>
+                    {customer.phone}
                   </a>
-                  {" · "}
-                  {customer.address}
+
+                  {"       "}
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
+                    <i className="fa-solid fa-location-dot"></i>
+                    {customer.address}
+                  </span>
                 </div>
 
                 <div className="cust-meta">
@@ -3883,7 +3923,7 @@ function CustomerDetailModal({
                 window.open(`/customer/${customer.id}`, "_blank");
               }}
             >
-              🌐 Müşteri Portalını Aç
+              <i className="fa-solid fa-globe"></i> Müşteri Portalını Aç
             </button>
           </div>
           {/* 📊 QUICK CUSTOMER STATS */}
@@ -3915,17 +3955,6 @@ function CustomerDetailModal({
           <div className="btn-row">
             <div style={{ flex: 1 }}>
               <div className="primary-actions">
-                {/* <button
-                  className="btn-primary green"
-                  onClick={() => {
-                    onClose(); // 🔴 CLOSE customer detail FIRST
-                    setTimeout(() => {
-                      onOpenPayment("payment", customer); // 🟢 OPEN payment modal
-                    }, 0);
-                  }}
-                >
-                  💰 Tahsilat
-                </button> */}
                 <button
                   className="btn-primary green"
                   onClick={(e) => {
@@ -3933,7 +3962,7 @@ function CustomerDetailModal({
                     onOpenPayment("payment", customer);
                   }}
                 >
-                  💰 Tahsilat
+                  <i className="fa-solid fa-money-bill-wave"></i> Tahsilat
                 </button>
 
                 <button
@@ -3943,21 +3972,30 @@ function CustomerDetailModal({
                     onOpenPayment("debt", customer);
                   }}
                 >
-                  🧾 Borç
+                  <i className="fa-solid fa-file-invoice"></i> Borç
                 </button>
 
                 <button className="btn-primary blue" onClick={onAddJob}>
-                  ＋ İş
+                  <i className="fa-solid fa-plus"></i> İş
                 </button>
               </div>
             </div>
           </div>
 
           <div className="secondary-actions">
-            <button onClick={shareAsPDF}>🖨 PDF</button>
-            <button onClick={sendByEmail}>📧 Mail</button>
-            <button onClick={sendByWhatsApp}>💬 WA</button>
-            <button onClick={onEditCustomer}>✏️ Edit</button>
+            <button onClick={shareAsPDF}>
+              <i className="fa-solid fa-print"></i> PDF
+            </button>
+            <button onClick={sendByEmail}>
+              <i className="fa-solid fa-envelope"></i>
+              Mail
+            </button>
+            <button onClick={sendByWhatsApp}>
+              <i className="fa-brands fa-whatsapp"></i> WA
+            </button>
+            <button onClick={onEditCustomer}>
+              <i className="fa-solid fa-pen"></i>
+            </button>
           </div>
 
           <hr />
@@ -4026,7 +4064,16 @@ function CustomerDetailModal({
                         <strong
                           style={{ color: isPayment ? "#166534" : "#7f1d1d" }}
                         >
-                          {isPayment ? "💰 Tahsilat" : "🧾 Borç"}
+                          {isPayment ? (
+                            <>
+                              <i className="fa-solid fa-money-bill-wave"></i>{" "}
+                              Tahsilat
+                            </>
+                          ) : (
+                            <>
+                              <i className="fa-solid fa-file-invoice"></i> Borç
+                            </>
+                          )}
                         </strong>
 
                         {p.note && (
@@ -4190,10 +4237,25 @@ function CustomerDetailModal({
       {editTx && (
         <div className="edit-modal-overlay">
           <div className="edit-modal">
-            <h3 style={{ marginTop: 0 }}>
-              {editTx.type === "payment"
-                ? "💰 Tahsilat Düzenle"
-                : "🧾 Borç Düzenle"}
+            <h3
+              style={{
+                marginTop: 0,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              {editTx.type === "payment" ? (
+                <>
+                  <i className="fa-solid fa-money-bill-wave"></i>
+                  Tahsilat Düzenle
+                </>
+              ) : (
+                <>
+                  <i className="fa-solid fa-file-invoice"></i>
+                  Borç Düzenle
+                </>
+              )}
             </h3>
 
             {/* KASA (only for Tahsilat) */}
@@ -4232,8 +4294,12 @@ function CustomerDetailModal({
                   onChange={(e) => setEditMethod(e.target.value)}
                 >
                   <option value="cash">💵 Nakit</option>
-                  <option value="card">💳 Kart</option>
-                  <option value="transfer">🏦 Havale</option>
+                  <option value="card">
+                    <i className="fa-solid fa-credit-card"></i> Kart
+                  </option>
+                  <option value="transfer">
+                    <i className="fa-solid fa-building-columns"></i> Havale
+                  </option>
                 </select>
               </div>
             )}
@@ -4263,7 +4329,7 @@ function CustomerDetailModal({
                 className="btn btn-delete"
                 onClick={() => deleteTransaction(editTx.id)}
               >
-                🗑 Sil
+                <i className="fa-solid fa-trash"></i>
               </button>
 
               <button
@@ -4381,8 +4447,12 @@ function PaymentActionModal({
                 onChange={(e) => setMethod(e.target.value)}
               >
                 <option value="cash">💵 Nakit</option>
-                <option value="card">💳 Kart</option>
-                <option value="transfer">🏦 Havale</option>
+                <option value="card">
+                  <i className="fa-solid fa-credit-card"></i> Kart
+                </option>
+                <option value="transfer">
+                  <i className="fa-solid fa-building-columns"></i> Havale
+                </option>
               </select>
             </div>
           )}
@@ -4735,178 +4805,183 @@ function KasaDetailModal({ open, onClose, kasa, payments, onRenameKasa }) {
 
   return (
     <ModalBase open={open} title="Kasa Detayı" onClose={onClose}>
-      {/* HEADER */}
-      <div className="card">
-        {!editingName ? (
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <h3 style={{ margin: 0 }}>{kasa.name}</h3>
-            <button
-              className="btn btn-cancel"
-              style={{ padding: "4px 10px", fontSize: 12 }}
-              onClick={() => setEditingName(true)}
-            >
-              ✏️ Düzenle
-            </button>
-          </div>
-        ) : (
-          <div style={{ display: "flex", gap: 8 }}>
-            <input
-              value={kasaName}
-              onChange={(e) => setKasaName(e.target.value)}
-              style={{ flex: 1 }}
-            />
-            <button
-              className="btn btn-save"
-              onClick={() => {
-                onRenameKasa(kasa.id, kasaName);
-                setEditingName(false);
-              }}
-            >
-              Kaydet
-            </button>
-            <button
-              className="btn btn-cancel"
-              onClick={() => {
-                setKasaName(kasa.name);
-                setEditingName(false);
-              }}
-            >
-              İptal
-            </button>
-          </div>
-        )}
+      <div className="kasa-detail-page">
+        <div className="kasa-detail-card">
+          {/* HEADER */}
+          <div className="card">
+            {!editingName ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <h3 style={{ margin: 0 }}>{kasa.name}</h3>
+                <button
+                  className="btn btn-cancel"
+                  style={{ padding: "4px 10px", fontSize: 12 }}
+                  onClick={() => setEditingName(true)}
+                >
+                  <i className="fa-solid fa-pen"></i> Düzenle
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: "flex", gap: 8 }}>
+                <input
+                  value={kasaName}
+                  onChange={(e) => setKasaName(e.target.value)}
+                  style={{ flex: 1 }}
+                />
+                <button
+                  className="btn btn-save"
+                  onClick={() => {
+                    onRenameKasa(kasa.id, kasaName);
+                    setEditingName(false);
+                  }}
+                >
+                  Kaydet
+                </button>
+                <button
+                  className="btn btn-cancel"
+                  onClick={() => {
+                    setKasaName(kasa.name);
+                    setEditingName(false);
+                  }}
+                >
+                  İptal
+                </button>
+              </div>
+            )}
 
-        <div style={{ marginTop: 8 }}>
-          <div style={{ fontSize: 12, color: "#666", marginBottom: 4 }}>
-            Para Birimi
+            <div style={{ marginTop: 8 }}>
+              <div style={{ fontSize: 12, color: "#666", marginBottom: 4 }}>
+                Para Birimi
+              </div>
+
+              <select
+                value={kasa.currency}
+                onChange={(e) =>
+                  onRenameKasa(kasa.id, {
+                    ...kasa,
+                    currency: e.target.value,
+                  })
+                }
+                style={{
+                  width: "100%",
+                  height: 40,
+                  borderRadius: 8,
+                  border: "1px solid #ddd",
+                  padding: "0 10px",
+                  fontSize: 14,
+                }}
+              >
+                <option value="TRY">₺ Türk Lirası</option>
+                <option value="USD">$ US Dollar</option>
+                <option value="EUR">€ Euro</option>
+              </select>
+            </div>
+          </div>
+          <div className="btn-row" style={{ marginBottom: 12 }}>
+            <button className="btn btn-save" onClick={printKasa}>
+              <i className="fa-solid fa-print"></i> Kasa Dökümü Yazdır
+            </button>
           </div>
 
-          <select
-            value={kasa.currency}
-            onChange={(e) =>
-              onRenameKasa(kasa.id, {
-                ...kasa,
-                currency: e.target.value,
-              })
-            }
+          {/* STATS */}
+          <div
             style={{
-              width: "100%",
-              height: 40,
-              borderRadius: 8,
-              border: "1px solid #ddd",
-              padding: "0 10px",
-              fontSize: 14,
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: 12,
+              marginTop: 12,
             }}
           >
-            <option value="TRY">₺ Türk Lirası</option>
-            <option value="USD">$ US Dollar</option>
-            <option value="EUR">€ Euro</option>
-          </select>
-        </div>
-      </div>
-      <div className="btn-row" style={{ marginBottom: 12 }}>
-        <button className="btn btn-save" onClick={printKasa}>
-          🖨 Kasa Dökümü Yazdır
-        </button>
-      </div>
+            <div
+              className="card"
+              style={{ background: "#f0fdf4", color: "#166534" }}
+            >
+              <div style={{ fontSize: 12 }}>Toplam Tahsilat</div>
+              <strong>
+                +{totalTahsilat.toFixed(2)} {kasa.currency}
+              </strong>
+            </div>
 
-      {/* STATS */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: 12,
-          marginTop: 12,
-        }}
-      >
-        <div
-          className="card"
-          style={{ background: "#f0fdf4", color: "#166534" }}
-        >
-          <div style={{ fontSize: 12 }}>Toplam Tahsilat</div>
-          <strong>
-            +{totalTahsilat.toFixed(2)} {kasa.currency}
-          </strong>
-        </div>
-
-        <div
-          className="card"
-          style={{ background: "#fef2f2", color: "#7f1d1d" }}
-        >
-          <div style={{ fontSize: 12 }}>Toplam Borç</div>
-          <strong>
-            -{totalBorc.toFixed(2)} {kasa.currency}
-          </strong>
-        </div>
-      </div>
-
-      {/* NET */}
-      <div
-        className="card"
-        style={{
-          marginTop: 12,
-          textAlign: "center",
-          fontWeight: 700,
-          background: net >= 0 ? "#eff6ff" : "#fef2f2",
-        }}
-      >
-        Net Durum: {net.toFixed(2)} {kasa.currency}
-      </div>
-
-      {/* COUNT */}
-      <div
-        className="card"
-        style={{ marginTop: 12, fontSize: 12, color: "#555" }}
-      >
-        Toplam İşlem Sayısı: <strong>{kasaPayments.length}</strong>
-      </div>
-      <div className="hidden">
-        <div ref={printRef}>
-          <h1>Kasa Dökümü</h1>
-          <div style={{ color: "#555", marginBottom: 8 }}>
-            Kasa: <b>{kasa.name}</b>
-            <br />
-            Para Birimi: <b>{kasa.currency}</b>
-            <br />
-            Tarih: {new Date().toLocaleDateString("tr-TR")}
+            <div
+              className="card"
+              style={{ background: "#fef2f2", color: "#7f1d1d" }}
+            >
+              <div style={{ fontSize: 12 }}>Toplam Borç</div>
+              <strong>
+                -{totalBorc.toFixed(2)} {kasa.currency}
+              </strong>
+            </div>
           </div>
 
-          <hr />
+          {/* NET */}
+          <div
+            className="card"
+            style={{
+              marginTop: 12,
+              textAlign: "center",
+              fontWeight: 700,
+              background: net >= 0 ? "#eff6ff" : "#fef2f2",
+            }}
+          >
+            Net Durum: {net.toFixed(2)} {kasa.currency}
+          </div>
 
-          <table>
-            <thead>
-              <tr>
-                <th>Tarih</th>
-                <th>Tür</th>
-                <th>Açıklama</th>
-                <th>Yöntem</th>
-                <th className="right">Tutar</th>
-              </tr>
-            </thead>
-            <tbody>
-              {kasaPayments.map((p) => (
-                <tr key={p.id}>
-                  <td>{p.date}</td>
-                  <td>{p.type === "payment" ? "Tahsilat" : "Borç"}</td>
-                  <td>{p.note || "-"}</td>
-                  <td>{p.method || "-"}</td>
-                  <td className="right">
-                    {p.type === "payment" ? "+" : "-"}
-                    {p.amount.toFixed(2)} {kasa.currency}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {/* COUNT */}
+          <div
+            className="card"
+            style={{ marginTop: 12, fontSize: 12, color: "#555" }}
+          >
+            Toplam İşlem Sayısı: <strong>{kasaPayments.length}</strong>
+          </div>
+          <div className="hidden">
+            <div ref={printRef}>
+              <h1>Kasa Dökümü</h1>
+              <div style={{ color: "#555", marginBottom: 8 }}>
+                Kasa: <b>{kasa.name}</b>
+                <br />
+                Para Birimi: <b>{kasa.currency}</b>
+                <br />
+                Tarih: {new Date().toLocaleDateString("tr-TR")}
+              </div>
 
-          <hr />
+              <hr />
 
-          <div style={{ marginTop: 12 }}>
-            <b>Toplam Tahsilat:</b> +{totalTahsilat.toFixed(2)} {kasa.currency}
-            <br />
-            <b>Toplam Borç:</b> -{totalBorc.toFixed(2)} {kasa.currency}
-            <br />
-            <b>Net Durum:</b> {net.toFixed(2)} {kasa.currency}
+              <table>
+                <thead>
+                  <tr>
+                    <th>Tarih</th>
+                    <th>Tür</th>
+                    <th>Açıklama</th>
+                    <th>Yöntem</th>
+                    <th className="right">Tutar</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {kasaPayments.map((p) => (
+                    <tr key={p.id}>
+                      <td>{p.date}</td>
+                      <td>{p.type === "payment" ? "Tahsilat" : "Borç"}</td>
+                      <td>{p.note || "-"}</td>
+                      <td>{p.method || "-"}</td>
+                      <td className="right">
+                        {p.type === "payment" ? "+" : "-"}
+                        {p.amount.toFixed(2)} {kasa.currency}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              <hr />
+
+              <div style={{ marginTop: 12 }}>
+                <b>Toplam Tahsilat:</b> +{totalTahsilat.toFixed(2)}{" "}
+                {kasa.currency}
+                <br />
+                <b>Toplam Borç:</b> -{totalBorc.toFixed(2)} {kasa.currency}
+                <br />
+                <b>Net Durum:</b> {net.toFixed(2)} {kasa.currency}
+              </div>
+            </div>
           </div>
         </div>
       </div>
