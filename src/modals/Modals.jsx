@@ -10,6 +10,14 @@ import {
 } from "../utils/helpers";
 
 import {
+  PAYMENT_METHOD,
+  PAYMENT_METHOD_LABEL_TR,
+  PAYMENT_METHOD_ICON,
+  PAYMENT_TYPE_LABEL_TR,
+  JOB_STATUS_LABEL_TR,
+} from "../utils/labels";
+
+import {
   EmailAuthProvider,
   reauthenticateWithCredential,
   updateEmail,
@@ -763,14 +771,6 @@ export function CustomerDetailModal({
     return (kasalar || []).find((k) => k.id === id)?.name || "—";
   }
 
-  function methodLabel(m) {
-    if (m === "cash") return "Nakit";
-    if (m === "card") return "Kart";
-    if (m === "transfer") return "Havale / EFT";
-    if (m === "other") return "Diğer";
-    return "—";
-  }
-
   function buildShareText() {
     if (!customer) return "";
 
@@ -790,13 +790,13 @@ export function CustomerDetailModal({
       text += `-------------------------\n`;
 
       customerPayments.forEach((p) => {
-        const typeLabel = p.type === "payment" ? "Tahsilat" : "Borç";
-        const sign = p.type === "payment" ? "+" : "-";
+        const typeLabel = PAYMENT_TYPE_LABEL_TR[p.type] || "—";
+        const sign = p.type === "payment" ? "+" : "-"; // ✅ sign is logic, keep it
 
         text += `${p.date} | ${typeLabel}\n`;
         text += `Tutar: ${sign}${money(p.amount, p.currency || currency)}\n`;
         text += `Kasa: ${kasaNameOf(p.kasaId)}\n`;
-        text += `Yöntem: ${methodLabel(p.method)}\n`;
+        text += `Yöntem: ${PAYMENT_METHOD_LABEL_TR[p.method] || "—"}\n`;
         if (p.note) text += `Not: ${p.note}\n`;
         text += `\n`;
       });
@@ -818,7 +818,8 @@ export function CustomerDetailModal({
           2
         )} saat\n`;
         text += `Toplam: ${money(total, currency)}\n`;
-        text += `Durum: ${j.isCompleted ? "Tamamlandı" : "Açık"}\n\n`;
+        const statusKey = j.isCompleted ? "completed" : "open";
+        text += `Durum: ${JOB_STATUS_LABEL_TR[statusKey]}\n\n`;
       });
     }
 
@@ -1294,7 +1295,8 @@ export function CustomerDetailModal({
                           {" • "}
                           Kasa: <b>{kasaNameOf(p.kasaId)}</b>
                           {" • "}
-                          Yöntem: <b>{methodLabel(p.method)}</b>
+                          Yöntem:{" "}
+                          <b>{PAYMENT_METHOD_LABEL_TR[p.method] || "—"}</b>
                         </div>
                       </div>
 
@@ -1397,10 +1399,10 @@ export function CustomerDetailModal({
                     <tr key={p.id}>
                       <td>{p.date}</td>
                       <td colSpan="2">
-                        {p.type === "payment" ? "Tahsilat" : "Borç"}
+                        {PAYMENT_TYPE_LABEL_TR[p.type] || "—"}
                       </td>
                       <td>{kasaNameOf(p.kasaId)}</td>
-                      <td>{methodLabel(p.method)}</td>
+                      <td>{PAYMENT_METHOD_LABEL_TR[p.method] || "—"}</td>
                       <td>
                         {p.type === "payment"
                           ? `+${money(p.amount, p.currency || currency)}`
@@ -1494,12 +1496,16 @@ export function CustomerDetailModal({
                   value={editMethod}
                   onChange={(e) => setEditMethod(e.target.value)}
                 >
-                  <option value="cash">💵 Nakit</option>
-                  <option value="card">
-                    <i className="fa-solid fa-credit-card"></i> Kart
+                  <option value={PAYMENT_METHOD.CASH}>
+                    {PAYMENT_METHOD_LABEL_TR[PAYMENT_METHOD.CASH]}
                   </option>
-                  <option value="transfer">
-                    <i className="fa-solid fa-building-columns"></i> Havale
+
+                  <option value={PAYMENT_METHOD.CARD}>
+                    {PAYMENT_METHOD_LABEL_TR[PAYMENT_METHOD.CARD]}
+                  </option>
+
+                  <option value={PAYMENT_METHOD.TRANSFER}>
+                    {PAYMENT_METHOD_LABEL_TR[PAYMENT_METHOD.TRANSFER]}
                   </option>
                 </select>
               </div>
@@ -1577,7 +1583,8 @@ export function PaymentActionModal({
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [kasaId, setKasaId] = useState(activeKasaId || "");
-  const [method, setMethod] = useState("cash");
+  const [method, setMethod] = useState(PAYMENT_METHOD.CASH);
+
   // ✅ NEW: date picker state (today default)
   const [paymentDate, setPaymentDate] = useState(
     new Date().toISOString().slice(0, 10)
@@ -1648,8 +1655,10 @@ export function PaymentActionModal({
                 <div style={{ display: "flex", gap: 8 }}>
                   <button
                     type="button"
-                    className={`btn ${method === "cash" ? "btn-save" : ""}`}
-                    onClick={() => setMethod("cash")}
+                    className={`btn ${
+                      method === PAYMENT_METHOD.CASH ? "btn-save" : ""
+                    }`}
+                    onClick={() => setMethod(PAYMENT_METHOD.CASH)}
                   >
                     <i className="fa-solid fa-money-bill-wave"></i> Nakit
                   </button>
@@ -1657,7 +1666,7 @@ export function PaymentActionModal({
                   <button
                     type="button"
                     className={`btn ${method === "card" ? "btn-save" : ""}`}
-                    onClick={() => setMethod("card")}
+                    onClick={() => setMethod(PAYMENT_METHOD.CARD)}
                   >
                     <i className="fa-solid fa-credit-card"></i> Kart
                   </button>
@@ -1665,7 +1674,7 @@ export function PaymentActionModal({
                   <button
                     type="button"
                     className={`btn ${method === "transfer" ? "btn-save" : ""}`}
-                    onClick={() => setMethod("transfer")}
+                    onClick={() => setMethod(PAYMENT_METHOD.TRANSFER)}
                   >
                     <i className="fa-solid fa-building-columns"></i> Havale
                   </button>
