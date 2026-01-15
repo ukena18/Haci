@@ -89,7 +89,7 @@ function loadState() {
     return {
       customers: [],
       jobs: [],
-      vaultName: "Ana Kasa",
+      vaultName: "Main Vault",
       vaultBalance: 0, // cash register balance
     };
   }
@@ -209,19 +209,19 @@ function AppRoutes({ user }) {
       }
 
       if (!fixed.vaults || !Array.isArray(fixed.vaults)) {
-        const legacyName = fixed.vaultName || "Ana Kasa";
+        const legacyName = fixed.vaultName || "Vault Name";
         const legacyBal = Number(fixed.vaultBalance || 0);
 
         fixed.vaults = [
           {
-            id: "kasa_ana",
+            id: "main_vault",
             name: legacyName,
             balance: legacyBal,
             currency: fixed.currency || "TRY",
             createdAt: Date.now(),
           },
         ];
-        fixed.activeVaultId = "kasa_ana";
+        fixed.activeVaultId = "main_vault";
       }
 
       // optional: remove old fields if you want (not required)
@@ -430,7 +430,7 @@ function MainApp({ state, setState, user }) {
   // 📊 Financial summary (Home page) — DERIVED (correct)
   const financialSummary = useMemo(() => {
     let totalPayment = 0;
-    let totalBorc = 0;
+    let totalDebt = 0;
 
     // 🟢 1) REAL MONEY IN (Payment)
     (state.payments || []).forEach((p) => {
@@ -439,7 +439,7 @@ function MainApp({ state, setState, user }) {
       }
 
       if (p.type === "debt") {
-        totalBorc += toNum(p.amount);
+        totalDebt += toNum(p.amount);
       }
     });
 
@@ -459,13 +459,13 @@ function MainApp({ state, setState, user }) {
 
       const jobTotal = hours * toNum(job.rate) + partsTotalOf(job);
 
-      totalBorc += jobTotal;
+      totalDebt += jobTotal;
     });
 
     return {
       totalPayment,
-      totalBorc,
-      net: totalPayment - totalBorc,
+      totalDebt,
+      net: totalPayment - totalDebt,
     };
   }, [state.payments, state.jobs]);
 
@@ -1246,7 +1246,7 @@ function MainApp({ state, setState, user }) {
                         Toplam Borç
                       </div>
                       <div style={{ fontWeight: 700, color: "#dc2626" }}>
-                        {money(financialSummary.totalBorc, currency)}
+                        {money(financialSummary.totalDebt, currency)}
                       </div>
                     </div>
 
@@ -1286,12 +1286,12 @@ function MainApp({ state, setState, user }) {
                   {/* BAR CHART */}
                   {(() => {
                     const max = Math.max(
-                      financialSummary.totalBorc,
+                      financialSummary.totalDebt,
                       financialSummary.totalPayment,
                       1
                     );
 
-                    const debtPct = (financialSummary.totalBorc / max) * 100;
+                    const debtPct = (financialSummary.totalDebt / max) * 100;
 
                     const payPct = (financialSummary.totalPayment / max) * 100;
 
@@ -2719,7 +2719,7 @@ function CustomerSharePage({ state }) {
  * - Debt transactions NEVER affect vault
  *
  * Net:
- *   net = totalPayment - totalBorc
+ *   net = totalPayment - totalDebt
  *
  * NOTE:
  * - vault can go negative if manually adjusted
@@ -2745,11 +2745,11 @@ function VaultDetailModal({ open, onClose, vault, payments, onRenameVault }) {
     .filter((p) => p.type === "payment")
     .reduce((sum, p) => sum + p.amount, 0);
 
-  const totalBorc = vaultPayments
+  const totalDebt = vaultPayments
     .filter((p) => p.type === "debt")
     .reduce((sum, p) => sum + p.amount, 0);
 
-  const net = totalPayment - totalBorc;
+  const net = totalPayment - totalDebt;
 
   function printVault() {
     const html = printRef.current?.innerHTML;
@@ -2905,7 +2905,7 @@ function VaultDetailModal({ open, onClose, vault, payments, onRenameVault }) {
             >
               <div style={{ fontSize: 12 }}>Toplam Borç</div>
               <strong>
-                -{totalBorc.toFixed(2)} {vault.currency}
+                -{totalDebt.toFixed(2)} {vault.currency}
               </strong>
             </div>
           </div>
@@ -2975,7 +2975,7 @@ function VaultDetailModal({ open, onClose, vault, payments, onRenameVault }) {
                 <b>Toplam Tahsilat:</b> +{totalPayment.toFixed(2)}{" "}
                 {vault.currency}
                 <br />
-                <b>Toplam Borç:</b> -{totalBorc.toFixed(2)} {vault.currency}
+                <b>Toplam Borç:</b> -{totalDebt.toFixed(2)} {vault.currency}
                 <br />
                 <b>Net Durum:</b> {net.toFixed(2)} {vault.currency}
               </div>

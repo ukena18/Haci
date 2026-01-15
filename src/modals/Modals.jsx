@@ -980,8 +980,8 @@ export function CustomerDetailModal({
   // const totalPayment = paymentsPlusTotal + paidJobsTotal; // all pluses
   const totalPayment = paymentsPlusTotal; // ✅ only payments
 
-  const totalBorc = paymentsMinusTotal + unpaidJobsTotal; // all minuses
-  const bakiye = totalPayment - totalBorc; // remaining
+  const totalDebt = paymentsMinusTotal + unpaidJobsTotal; // all minuses
+  const bakiye = totalPayment - totalDebt; // remaining
 
   async function shareAsPDF() {
     const html = printRef.current?.innerHTML;
@@ -1139,7 +1139,7 @@ export function CustomerDetailModal({
 
             <div className="cust-stat">
               <div className="stat-label">Toplam Borç</div>
-              <div className="stat-value red">{money(totalBorc, currency)}</div>
+              <div className="stat-value red">{money(totalDebt, currency)}</div>
             </div>
 
             <div className="cust-stat">
@@ -1619,7 +1619,7 @@ export function PaymentActionModal({
         </div>
 
         <div style={{ marginTop: 14 }}>
-          {/* thisis for vault secimi for borclandirma and Payment yap  */}
+          {/* thisis for vault secimi for Debt and Payment yap  */}
           {mode === "payment" && (
             <div className="form-group">
               <label>Kasa</label>

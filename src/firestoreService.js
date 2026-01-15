@@ -12,15 +12,15 @@ export async function ensureUserData(userId) {
         phone: "",
         address: "",
       },
-      kasalar: [
+      Vaults: [
         {
-          id: "kasa_ana",
-          name: "Ana Kasa",
+          id: "main_vault",
+          name: "Main Vault",
           balance: 0,
           createdAt: Date.now(),
         },
       ],
-      activeKasaId: "kasa_ana",
+      activeVaultId: "main_vault",
 
       customers: [],
       jobs: [],
