@@ -42,13 +42,19 @@ export async function loadUserData(userId) {
 
 export async function saveUserData(userId, data) {
   const ref = doc(db, "users", userId);
+
   await setDoc(
     ref,
     {
-      ...data,
+      profile: data.profile ?? {},
+      customers: data.customers ?? [],
+      jobs: data.jobs ?? [],
+      payments: data.payments ?? [],
+      Vaults: data.Vaults ?? [],
+      activeVaultId: data.activeVaultId ?? null,
       updatedAt: Date.now(),
     },
-    { merge: true }
+    { merge: false } // 🔥 FULL overwrite
   );
 }
 

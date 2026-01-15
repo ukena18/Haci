@@ -6,6 +6,7 @@ import {
   money,
   makeEmptyCustomer,
   makeEmptyJob,
+  jobTotalOf, // ✅ ADD THIS
   partsTotalOf,
 } from "../utils/helpers";
 
@@ -834,7 +835,8 @@ export function CustomerDetailModal({
     text += `Müşteri: ${customer.name} ${customer.surname}\n`;
     text += `Telefon: ${customer.phone || "-"}\n`;
     text += `E-posta: ${customer.email || "-"}\n`;
-    text += `Borç: ${money(customer.balanceOwed, currency)}\n`;
+    text += `Borç: ${money(balance, currency)}\n`;
+
     text += `Tarih: ${new Date().toLocaleDateString("tr-TR")}\n\n`;
 
     /* 💰 PAYMENTS / DEBTS */
@@ -861,10 +863,14 @@ export function CustomerDetailModal({
       text += `-------------------------\n`;
 
       customerJobs.forEach((j) => {
-        const hours = calcHours(j.start, j.end);
-        const partsTotal = partsTotalOf(j);
+        const total = jobTotalOf(j); // ✅ SINGLE SOURCE OF TRUTH
 
-        const total = hours * toNum(j.rate) + partsTotal;
+        const hours =
+          j.timeMode === "clock"
+            ? ((j.workedMs || 0) +
+                (j.isRunning && j.clockInAt ? Date.now() - j.clockInAt : 0)) /
+              36e5
+            : calcHours(j.start, j.end);
 
         text += `${j.date}\n`;
         text += `${j.start || "--:--"} - ${j.end || "--:--"} | ${hours.toFixed(
@@ -971,17 +977,6 @@ export function CustomerDetailModal({
     setEditTx(null);
   }
 
-  // helper: job total (manual + clock)
-  function jobTotalOf(j) {
-    const liveMs = j.isRunning && j.clockInAt ? Date.now() - j.clockInAt : 0;
-    const totalMs = (j.workedMs || 0) + liveMs;
-
-    const hours =
-      j.timeMode === "clock" ? totalMs / 36e5 : calcHours(j.start, j.end);
-
-    return hours * toNum(j.rate) + partsTotalOf(j);
-  }
-
   // ✅ plus transactions (Payment button)
   const paymentsPlusTotal = useMemo(() => {
     return customerPayments
@@ -1027,14 +1022,10 @@ export function CustomerDetailModal({
       .reduce((sum, j) => sum + jobTotalOf(j), 0);
   }, [jobs, customer]);
 
-  // ✅ FINAL
-  // i changed this because everytime i complete and paid  a job it will create a tahsialt on the background for it i wll not see it .
-  // so i dont need total jobs for this any more it will create dublicate
-  // const totalPayment = paymentsPlusTotal + paidJobsTotal; // all pluses
-  const totalPayment = paymentsPlusTotal; // ✅ only payments
+  const totalPayment = paymentsPlusTotal + paidJobsTotal;
 
   const totalDebt = paymentsMinusTotal + unpaidJobsTotal; // all minuses
-  const bakiye = totalPayment - totalDebt; // remaining
+  const balance = totalPayment - totalDebt; // remaining
 
   async function shareAsPDF() {
     const html = printRef.current?.innerHTML;
@@ -1169,9 +1160,16 @@ export function CustomerDetailModal({
 
                 // customerJobs ve customerPayments zaten CustomerDetailModal içinde var
                 await publishCustomerSnapshot(customer.id, {
-                  customer,
-                  jobs: customerJobs,
-                  payments: customerPayments,
+                  customer: {
+                    id: customer.id,
+                    name: customer.name,
+                    surname: customer.surname,
+                    phone: customer.phone,
+                    email: customer.email,
+                    address: customer.address,
+                  },
+                  jobs,
+                  payments,
                   currency,
                 });
 
@@ -1197,8 +1195,8 @@ export function CustomerDetailModal({
 
             <div className="cust-stat">
               <div className="stat-label">Bakiye</div>
-              <div className={`stat-value ${bakiye >= 0 ? "green" : "red"}`}>
-                {money(bakiye, currency)}
+              <div className={`stat-value ${balance >= 0 ? "green" : "red"}`}>
+                {money(balance, currency)}
               </div>
             </div>
           </div>
@@ -1385,13 +1383,17 @@ export function CustomerDetailModal({
                   j.isRunning && j.clockInAt ? Date.now() - j.clockInAt : 0;
                 const totalMs = (j.workedMs || 0) + liveMs;
 
+                const total = jobTotalOf(j);
+
+                // ⏱ hours is ONLY for display
                 const hours =
                   j.timeMode === "clock"
-                    ? totalMs / 36e5
+                    ? ((j.workedMs || 0) +
+                        (j.isRunning && j.clockInAt
+                          ? Date.now() - j.clockInAt
+                          : 0)) /
+                      36e5
                     : calcHours(j.start, j.end);
-
-                const partsTotal = partsTotalOf(j);
-                const total = hours * toNum(j.rate) + partsTotal;
 
                 return (
                   <div
@@ -1431,7 +1433,7 @@ export function CustomerDetailModal({
               <div>
                 <b>Müşteri:</b> {customer.name} {customer.surname} <br />
                 <b>ID:</b> {customer.id} <br />
-                <b>Borç:</b> {money(customer.balanceOwed, currency)}
+                <b>Bakiye:</b> {money(balance, currency)}
               </div>
 
               <table>
@@ -1467,9 +1469,7 @@ export function CustomerDetailModal({
 
                   {/* ⚙️ İşler */}
                   {customerJobs.map((j) => {
-                    const hours = calcHours(j.start, j.end);
-                    const partsTotal = partsTotalOf(j);
-                    const total = hours * toNum(j.rate) + partsTotal;
+                    const total = jobTotalOf(j); // ✅ SINGLE SOURCE OF TRUTH
 
                     return (
                       <tr key={j.id}>

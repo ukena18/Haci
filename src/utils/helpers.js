@@ -154,7 +154,7 @@ export function makeEmptyCustomer() {
     phone: "",
     email: "",
     address: "",
-    balanceOwed: 0,
+
     createdAt: Date.now(),
   };
 }
@@ -182,4 +182,43 @@ export function makeEmptyJob(customers = []) {
     isPaid: false,
     createdAt: Date.now(),
   };
+}
+
+export function computeCustomerTotals(customerId, jobs = [], payments = []) {
+  let totalDebt = 0;
+  let totalPayment = 0;
+
+  // 1️⃣ Explicit transactions
+  for (const p of payments || []) {
+    if (p.customerId !== customerId) continue;
+
+    if (p.type === "payment") totalPayment += toNum(p.amount);
+    if (p.type === "debt") totalDebt += toNum(p.amount);
+  }
+
+  // 2️⃣ Jobs
+  for (const j of jobs || []) {
+    if (j.customerId !== customerId) continue;
+
+    const jobTotal = jobTotalOf(j);
+
+    if (j.isCompleted && j.isPaid) {
+      // ✅ completed + paid → PAYMENT
+      totalPayment += jobTotal;
+    } else {
+      // ❌ active OR completed-unpaid → DEBT
+      totalDebt += jobTotal;
+    }
+  }
+
+  return {
+    totalDebt,
+    totalPayment,
+    balance: totalPayment - totalDebt,
+  };
+}
+
+// ✅ Backward compatibility wrapper
+export function computeCustomerBalance(customerId, jobs = [], payments = []) {
+  return computeCustomerTotals(customerId, jobs, payments).balance;
 }

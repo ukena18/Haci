@@ -52,6 +52,7 @@ import {
   pad2,
   generateCustomerIdFromNow,
   uid,
+  computeCustomerBalance,
   money,
   toNum,
   partLineTotal,
@@ -100,54 +101,9 @@ function persistState(state) {
   sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
-/**
- * ================= BUSINESS RULES =================
- *
- * CUSTOMER
- * - balanceOwed:
- *   > POSITIVE  = customer owes us money
- *   > ZERO      = settled
- *   > NEGATIVE  = customer overpaid (credit)
- *
- * JOB
- * - A job does NOT affect money until it is marked completed
- * - When completed:
- *   → job total is ADDED to customer.balanceOwed
- * - When paid:
- *   → job is marked isPaid=true
- *   → money is tracked via payments, not jobs
- *
- * PAYMENT / DEBT (payments array)
- * - type: "payment" → money COMES IN (Payment)
- * - type: "debt"    → money ADDS TO DEBT (borç)
- *
- * IMPORTANT:
- * - Cash (vault) is ONLY affected by "payment"
- * - Debt NEVER touches vault
- *
- * ===================================================
- */
-
 /* ============================================================
    3) DEFAULT MODELS
 ============================================================ */
-
-/**
- * Make Payment (TAHSİLAT)
- *
- * BUSINESS RULES:
- * 1) Payment always REDUCES customer.balanceOwed
- * 2) Payment always INCREASES vault.balance
- * 3) Payment is applied to UNPAID COMPLETED JOBS first
- *    - Oldest job first
- *    - If payment fully covers a job → job.isPaid = true
- *    - Partial payments do NOT mark job paid
- *
- * IMPORTANT:
- * - Jobs are NEVER partially paid
- * - Job payment status is binary: paid / unpaid
- * - Payment history is the source of truth
- */
 
 //
 /* ============================================================
@@ -427,47 +383,33 @@ function MainApp({ state, setState, user }) {
 
   const completedJobs = filteredJobs.filter((j) => j.isCompleted && !j.isPaid);
 
-  // 📊 Financial summary (Home page) — DERIVED (correct)
   const financialSummary = useMemo(() => {
-    let totalPayment = 0;
     let totalDebt = 0;
+    let totalPayment = 0;
 
-    // 🟢 1) REAL MONEY IN (Payment)
+    // Payments
     (state.payments || []).forEach((p) => {
-      if (p.type === "payment") {
-        totalPayment += toNum(p.amount);
-      }
-
-      if (p.type === "debt") {
-        totalDebt += toNum(p.amount);
-      }
+      if (p.type === "payment") totalPayment += toNum(p.amount);
+      if (p.type === "debt") totalDebt += toNum(p.amount);
     });
 
-    // 🔴 2) JOB VALUE THAT IS NOT PAID YET
-    state.jobs.forEach((job) => {
-      if (job.isPaid) return; // ❌ paid jobs NEVER count as borç
+    // Jobs
+    (state.jobs || []).forEach((job) => {
+      const total = jobTotalOf(job);
 
-      const liveMs =
-        job.isRunning && job.clockInAt ? Date.now() - job.clockInAt : 0;
-
-      const totalMs = (job.workedMs || 0) + liveMs;
-
-      const hours =
-        job.timeMode === "clock"
-          ? totalMs / 36e5
-          : calcHours(job.start, job.end);
-
-      const jobTotal = hours * toNum(job.rate) + partsTotalOf(job);
-
-      totalDebt += jobTotal;
+      if (job.isCompleted && job.isPaid) {
+        totalPayment += total;
+      } else {
+        totalDebt += total;
+      }
     });
 
     return {
-      totalPayment,
       totalDebt,
+      totalPayment,
       net: totalPayment - totalDebt,
     };
-  }, [state.payments, state.jobs]);
+  }, [state.jobs, state.payments]);
 
   const unpaidCompletedJobs = filteredJobs.filter(
     (j) => j.isCompleted && !j.isPaid
@@ -574,11 +516,19 @@ function MainApp({ state, setState, user }) {
         break;
 
       case "debt_desc":
-        list.sort((a, b) => toNum(b.balanceOwed) - toNum(a.balanceOwed));
+        list.sort((a, b) => {
+          const ba = computeCustomerBalance(a.id, state.jobs, state.payments);
+          const bb = computeCustomerBalance(b.id, state.jobs, state.payments);
+          return bb - ba;
+        });
         break;
 
       case "debt_asc":
-        list.sort((a, b) => toNum(a.balanceOwed) - toNum(b.balanceOwed));
+        list.sort((a, b) => {
+          const ba = computeCustomerBalance(a.id, state.jobs, state.payments);
+          const bb = computeCustomerBalance(b.id, state.jobs, state.payments);
+          return ba - bb;
+        });
         break;
 
       case "name_desc":
@@ -637,6 +587,31 @@ function MainApp({ state, setState, user }) {
     }));
   }
 
+  // temp pelase delete it later
+  function cleanupJobPaymentsOnce() {
+    setState((s) => {
+      const before = s.payments?.length || 0;
+
+      const cleanedPayments = (s.payments || []).filter(
+        (p) => p.source !== "job"
+      );
+
+      const after = cleanedPayments.length;
+
+      console.log(`🧹 Job-payments cleanup: removed ${before - after} records`);
+
+      const nextState = {
+        ...s,
+        payments: cleanedPayments,
+      };
+
+      // 🔥 FORCE SAVE TO FIRESTORE
+      saveUserData(auth.currentUser.uid, nextState);
+
+      return nextState;
+    });
+  }
+
   /** Delete job */
   function deleteJob(jobId) {
     setState((s) => ({
@@ -658,14 +633,15 @@ function MainApp({ state, setState, user }) {
       let remaining = amt;
 
       // 1️⃣ Find unpaid completed jobs (oldest first)
-      const unpaidJobs = s.jobs
+      const unpaidCompleted = (s.jobs || [])
         .filter(
           (j) => j.customerId === customerId && j.isCompleted && !j.isPaid
         )
+        .slice()
         .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
 
-      // 2️⃣ Apply payment job by job
-      const nextJobs = s.jobs.map((job) => {
+      // 2️⃣ Mark jobs paid if payment fully covers them (binary rule)
+      const nextJobs = (s.jobs || []).map((job) => {
         if (
           job.customerId !== customerId ||
           !job.isCompleted ||
@@ -675,40 +651,23 @@ function MainApp({ state, setState, user }) {
           return job;
         }
 
-        const nextJobs = s.jobs.map((job) => {
-          if (
-            job.customerId !== customerId ||
-            !job.isCompleted ||
-            job.isPaid ||
-            remaining <= 0
-          ) {
-            return job;
-          }
-
-          // ✅ SINGLE SOURCE OF TRUTH
-          const jobTotal = jobTotalOf(job);
-
-          if (remaining >= jobTotal) {
-            remaining -= jobTotal;
-            return { ...job, isPaid: true };
-          }
-
-          return job;
-        });
+        const jobTotal = jobTotalOf(job);
 
         if (remaining >= jobTotal) {
           remaining -= jobTotal;
           return { ...job, isPaid: true };
         }
 
-        return job; // partial payment → still unpaid
+        return job; // partial payment doesn't mark job paid
       });
 
-      // 3️⃣ Create payment record
+      // 3️⃣ Create payment record (THIS is the truth)
+      const usedVaultId = vaultId || s.activeVaultId;
+
       const payment = {
         id: uid(),
         customerId,
-        vaultId: vaultId || s.activeVaultId,
+        vaultId: usedVaultId,
         type: "payment",
         amount: amt,
         method,
@@ -716,47 +675,23 @@ function MainApp({ state, setState, user }) {
         date,
         createdAt: Date.now(),
         currency:
-          (s.vaults || []).find((k) => k.id === (vaultId || s.activeVaultId))
-            ?.currency ||
+          (s.vaults || []).find((k) => k.id === usedVaultId)?.currency ||
           s.currency ||
           "TRY",
       };
 
-      // 4️⃣ Update customer balance
-      const nextCustomers = s.customers.map((c) =>
-        c.id === customerId
-          ? { ...c, balanceOwed: toNum(c.balanceOwed) - amt }
-          : c
-      );
-
-      // 5️⃣ Update vault balance
-      const nextVaults = s.vaults.map((k) =>
-        k.id === (vaultId || s.activeVaultId)
-          ? { ...k, balance: toNum(k.balance) + amt }
-          : k
-      );
-
-      return {
+      const nextState = {
         ...s,
         jobs: nextJobs,
-        customers: nextCustomers,
-        vaults: nextVaults,
         payments: [...(s.payments || []), payment],
       };
+
+      // ✅ Force save for safety (optional but good)
+      saveUserData(auth.currentUser.uid, nextState);
+
+      return nextState;
     });
   }
-
-  /**
-   * Add Debt (BORÇ)
-   *
-   * BUSINESS RULES:
-   * - Debt INCREASES customer.balanceOwed
-   * - Debt DOES NOT affect vault balance
-   * - Debt exists only as a record (payments array)
-   *
-   * WHY:
-   * - Borç is an accounting adjustment, not real cash movement
-   */
 
   /** Add debt to a customer (does NOT affect cash) */
   function addDebt(customerId, amount, note, date, vaultId, method) {
@@ -784,11 +719,6 @@ function MainApp({ state, setState, user }) {
 
       return {
         ...s,
-        customers: s.customers.map((c) =>
-          c.id === customerId
-            ? { ...c, balanceOwed: toNum(c.balanceOwed) + amt }
-            : c
-        ),
         payments: [...(s.payments || []), debt],
       };
     });
@@ -799,191 +729,37 @@ function MainApp({ state, setState, user }) {
       const old = (s.payments || []).find((p) => p.id === updated.id);
       if (!old) return s;
 
-      const oldAmt = toNum(old.amount);
       const newAmt = toNum(updated.amount);
 
-      // diff = how much changed
-      const diff = newAmt - oldAmt;
-
-      // 1) update payments array
       const nextPayments = (s.payments || []).map((p) =>
         p.id === updated.id ? { ...p, ...updated, amount: newAmt } : p
       );
 
-      // 2) update customer balance owed (depends on type)
-      const nextCustomers = (s.customers || []).map((c) => {
-        if (c.id !== old.customerId) return c;
-
-        // payment reduces debt, debt increases debt
-        if (old.type === "payment") {
-          return { ...c, balanceOwed: toNum(c.balanceOwed) - diff };
-        } else {
-          return { ...c, balanceOwed: toNum(c.balanceOwed) + diff };
-        }
-      });
-
-      // 3) update vault balances
-      // ONLY change vault if it’s a payment (borç does not touch vault in your system)
-      let nextVaults = s.vaults || [];
-
-      if (old.type === "payment") {
-        const oldVaultId = old.vaultId || s.activeVaultId;
-        const newVaultId = updated.vaultId || oldVaultId;
-
-        // If Vault changed: remove old amount from old Vault and add new amount to new Vault
-        if (oldVaultId !== newVaultId) {
-          nextVaults = nextVaults.map((k) => {
-            if (k.id === oldVaultId)
-              return { ...k, balance: toNum(k.balance) - oldAmt };
-            if (k.id === newVaultId)
-              return { ...k, balance: toNum(k.balance) + newAmt };
-            return k;
-          });
-        } else {
-          // same Vault: adjust by diff only
-          nextVaults = nextVaults.map((k) =>
-            k.id === oldVaultId ? { ...k, balance: toNum(k.balance) + diff } : k
-          );
-        }
-      }
-
-      return {
-        ...s,
-        payments: nextPayments,
-        customers: nextCustomers,
-        vaults: nextVaults,
-      };
+      return { ...s, payments: nextPayments };
     });
   }
-
-  /**
-   * Mark job as completed:
-   * - job.isCompleted = true
-   * - Add job total to customer balance owed
-   *
-   * NOTE: This matches your request: “Mark as complete and add it to my balance”
-   */
-
-  /**
-   * Mark Job as Completed
-   *
-   * BUSINESS RULES:
-   * - Completing a job:
-   *   → FREEZES its total (hours + parts)
-   *   → ADDS total to customer.balanceOwed
-   * - Job is NOT paid automatically
-   * - Job becomes eligible for payment allocation
-   *
-   * IMPORTANT:
-   * - Editing job AFTER completion will NOT auto-adjust balance
-   *   (manual correction via transactions is required)
-   */
 
   function markJobComplete(jobId) {
     setState((s) => {
       const job = s.jobs.find((j) => j.id === jobId);
       if (!job) return s;
 
-      // compute total at the moment of completion
-      const partsTotal = (job.parts || []).reduce(
-        (sum, p) => sum + toNum(p.qty) * toNum(p.unitPrice),
-        0
-      );
-
-      const liveMs =
-        job.isRunning && job.clockInAt ? Date.now() - job.clockInAt : 0;
-
-      const totalMs = (job.workedMs || 0) + liveMs;
-
-      const hours =
-        job.timeMode === "clock"
-          ? totalMs / 36e5
-          : calcHours(job.start, job.end);
-
-      const total = jobTotalOf(job);
-
-      // Update job
       const nextJobs = s.jobs.map((j) =>
         j.id === jobId
-          ? { ...j, isCompleted: true, isPaid: false, isRunning: false } // ✅ add isPaid:false
+          ? { ...j, isCompleted: true, isPaid: false, isRunning: false }
           : j
       );
 
-      // Add to customer balance owed
-      const nextCustomers = s.customers.map((c) => {
-        if (c.id !== job.customerId) return c;
-        return { ...c, balanceOwed: toNum(c.balanceOwed) + total };
-      });
-
-      return { ...s, jobs: nextJobs, customers: nextCustomers };
+      // ✅ no customer.balanceOwed updates — balance is derived
+      return { ...s, jobs: nextJobs };
     });
   }
 
-  /**
-   * Mark Job Paid (MANUAL)
-   *
-   * BUSINESS RULES:
-   * - This only changes job state
-   * - NO money movement
-   * - NO Vault update
-   *
-   * WHY:
-   * - Actual money is tracked via payments
-   * - Job paid state is informational / reporting only
-   */
-
   function markJobPaid(jobId) {
-    setState((s) => {
-      const job = s.jobs.find((j) => j.id === jobId);
-      if (!job || job.isPaid) return s;
-
-      // 🔹 calculate job total
-      const liveMs =
-        job.isRunning && job.clockInAt ? Date.now() - job.clockInAt : 0;
-
-      const totalMs = (job.workedMs || 0) + liveMs;
-
-      const hours =
-        job.timeMode === "clock"
-          ? totalMs / 36e5
-          : calcHours(job.start, job.end);
-
-      const jobTotal = jobTotalOf(job);
-
-      const vaultId = s.activeVaultId;
-
-      // 🔹 create Payment record
-      const payment = {
-        id: uid(),
-        customerId: job.customerId,
-        vaultId,
-        type: "payment",
-        amount: jobTotal,
-        method: "cash",
-        note: "İş ödemesi (manuel)",
-        date: new Date().toISOString().slice(0, 10),
-        createdAt: Date.now(),
-        source: "job", // ✅ ADD THIS LINE
-        currency:
-          s.vaults.find((k) => k.id === vaultId)?.currency ||
-          s.currency ||
-          "TRY",
-      };
-
-      return {
-        ...s,
-        jobs: s.jobs.map((j) => (j.id === jobId ? { ...j, isPaid: true } : j)),
-        customers: s.customers.map((c) =>
-          c.id === job.customerId
-            ? { ...c, balanceOwed: toNum(c.balanceOwed) - jobTotal }
-            : c
-        ),
-        vaults: s.vaults.map((k) =>
-          k.id === vaultId ? { ...k, balance: toNum(k.balance) + jobTotal } : k
-        ),
-        payments: [...(s.payments || []), payment],
-      };
-    });
+    setState((s) => ({
+      ...s,
+      jobs: s.jobs.map((j) => (j.id === jobId ? { ...j, isPaid: true } : j)),
+    }));
   }
 
   function useAndroidBackHandler({ page, setPage, closeAllModals }) {
@@ -1274,53 +1050,19 @@ function MainApp({ state, setState, user }) {
                       borderRadius: 10,
                       background:
                         financialSummary.net > 0 ? "#fef2f2" : "#f0fdf4",
-                      color: financialSummary.net > 0 ? "#7f1d1d" : "#166534",
+                      color: financialSummary.net < 0 ? "#7f1d1d" : "#166534",
                       fontWeight: 600,
                       textAlign: "center",
                     }}
                   >
                     Net Durum: {money(Math.abs(financialSummary.net), currency)}{" "}
-                    {financialSummary.net > 0 ? "(Alacak)" : "(Fazla Tahsilat)"}
                   </div>
 
                   {/* BAR CHART */}
                   {(() => {
                     const max = Math.max(
                       financialSummary.totalDebt,
-                      financialSummary.totalPayment,
-                      1
-                    );
-
-                    const debtPct = (financialSummary.totalDebt / max) * 100;
-
-                    const payPct = (financialSummary.totalPayment / max) * 100;
-
-                    return (
-                      <div style={{ display: "grid", gap: 10 }}>
-                        <div>
-                          <div style={{ fontSize: 12, marginBottom: 4 }}>
-                            Borç
-                          </div>
-                          <div className="bar-bg">
-                            <div
-                              className="bar-fill red"
-                              style={{ width: `${debtPct}%` }}
-                            />
-                          </div>
-                        </div>
-
-                        <div>
-                          <div style={{ fontSize: 12, marginBottom: 4 }}>
-                            Tahsilat
-                          </div>
-                          <div className="bar-bg">
-                            <div
-                              className="bar-fill green"
-                              style={{ width: `${payPct}%` }}
-                            />
-                          </div>
-                        </div>
-                      </div>
+                      financialSummary.totalPayment
                     );
                   })()}
                 </div>
@@ -1558,7 +1300,11 @@ function MainApp({ state, setState, user }) {
                     <div className="card">Henüz müşteri yok.</div>
                   ) : (
                     filteredCustomers.map((c) => {
-                      const bakiye = -toNum(c.balanceOwed); // ✅ THIS WAS MISSING
+                      const balance = computeCustomerBalance(
+                        c.id,
+                        state.jobs,
+                        state.payments
+                      );
 
                       return (
                         <div
@@ -1605,13 +1351,13 @@ function MainApp({ state, setState, user }) {
                               style={{
                                 fontWeight: 700,
                                 fontSize: 14,
-                                color: bakiye >= 0 ? "#16a34a" : "#dc2626",
+                                color: balance >= 0 ? "#16a34a" : "#dc2626",
                                 minWidth: 90,
                                 textAlign: "right",
                               }}
                             >
-                              {bakiye >= 0 ? "+" : "-"}
-                              {Math.abs(bakiye).toFixed(2)} {currency}
+                              {balance >= 0 ? "+" : "-"}
+                              {Math.abs(balance).toFixed(2)} {currency}
                             </div>
                           </div>
                         </div>
@@ -1627,6 +1373,7 @@ function MainApp({ state, setState, user }) {
               <div id="page-settings">
                 <div className="card">
                   {/* 🔓 LOGOUT BUTTON */}
+
                   <button
                     className="logout-btn"
                     onClick={() => signOut(auth)}
@@ -1748,7 +1495,7 @@ function MainApp({ state, setState, user }) {
                           )}
 
                           <div style={{ fontSize: 12, color: "#555" }}>
-                            Bakiye:{" "}
+                            balance:{" "}
                             {money(getVaultBalance(vault.id), vault.currency)}
                           </div>
                         </div>
@@ -2009,12 +1756,23 @@ function MainApp({ state, setState, user }) {
               if (confirm.type === "customer") deleteCustomer(confirm.id);
 
               if (confirm.type === "payment") {
-                setState((s) => ({
-                  ...s,
-                  payments: (s.payments || []).filter(
+                setState((s) => {
+                  const nextPayments = (s.payments || []).filter(
                     (p) => p.id !== confirm.id
-                  ),
-                }));
+                  );
+
+                  const nextState = {
+                    ...s,
+                    payments: nextPayments,
+                    // ❌ no customer updates
+                    // ❌ no vault updates
+                  };
+
+                  // 🔒 Force persist so deleted payment NEVER comes back
+                  saveUserData(auth.currentUser.uid, nextState);
+
+                  return nextState;
+                });
               }
 
               setConfirm({ open: false, type: null, id: null, message: "" });
@@ -2103,15 +1861,51 @@ function MainApp({ state, setState, user }) {
                   className="btn btn-delete"
                   disabled={vaultDeleteConfirm.text !== "SIL"}
                   onClick={() => {
-                    setState((s) => ({
-                      ...s,
-                      vaults: s.vaults.filter(
-                        (k) => k.id !== vaultDeleteConfirm.vaultId
-                      ),
-                      payments: (s.payments || []).filter(
-                        (p) => p.vaultId !== vaultDeleteConfirm.vaultId
-                      ),
-                    }));
+                    setState((s) => {
+                      const vaultId = vaultDeleteConfirm.vaultId;
+
+                      // 1️⃣ Remove vault
+                      const nextVaults = s.vaults.filter(
+                        (k) => k.id !== vaultId
+                      );
+
+                      // 2️⃣ Remove all payments tied to this vault
+                      const nextPayments = (s.payments || []).filter(
+                        (p) => p.vaultId !== vaultId
+                      );
+
+                      setState((s) => {
+                        const vaultId = vaultDeleteConfirm.vaultId;
+
+                        const nextVaults = (s.vaults || []).filter(
+                          (k) => k.id !== vaultId
+                        );
+                        const nextPayments = (s.payments || []).filter(
+                          (p) => p.vaultId !== vaultId
+                        );
+
+                        const nextState = {
+                          ...s,
+                          vaults: nextVaults,
+                          payments: nextPayments,
+                        };
+
+                        saveUserData(auth.currentUser.uid, nextState);
+                        return nextState;
+                      });
+
+                      const nextState = {
+                        ...s,
+                        vaults: nextVaults,
+                        payments: nextPayments,
+                        customers: nextCustomers,
+                      };
+
+                      //   FORCE SAVE TO FIRESTORE
+                      saveUserData(auth.currentUser.uid, nextState);
+
+                      return nextState;
+                    });
 
                     setVaultDeleteConfirm({
                       open: false,
@@ -2443,9 +2237,10 @@ function PublicCustomerSharePage() {
 
   const customer = snap.customer;
   const jobs = snap.jobs || [];
-  const payments = (snap.payments || []).filter((p) => p.source !== "job"); // senin noiseyi gizleme mantığın
+  const payments = (snap.payments || []).filter((p) => p.source !== "job");
 
   const currency = snap.currency || "TRY";
+  const balance = computeCustomerBalance(customer.id, jobs, payments);
 
   return (
     <>
@@ -2453,7 +2248,7 @@ function PublicCustomerSharePage() {
         <h2>Müşteri İş Geçmişi</h2>
         <div style={{ fontSize: "0.9rem", marginTop: 5 }}>
           {customer.name} {customer.surname} — Borç:{" "}
-          <strong>{money(customer.balanceOwed, currency)}</strong>
+          <strong>{money(balance, currency)}</strong>
         </div>
       </div>
 
@@ -2589,6 +2384,11 @@ function CustomerSharePage({ state }) {
       .slice()
       .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   }, [state.payments, customer]);
+  const balance = computeCustomerBalance(
+    customer.id,
+    state.jobs,
+    state.payments
+  );
 
   return (
     <>
@@ -2598,7 +2398,7 @@ function CustomerSharePage({ state }) {
           {customer ? (
             <>
               {customer.name} {customer.surname} — Borç:{" "}
-              <strong>{money(customer.balanceOwed, state.currency)}</strong>
+              <strong>{money(balance, state.currency)}</strong>
             </>
           ) : (
             "Müşteri bulunamadı"
