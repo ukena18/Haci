@@ -714,8 +714,8 @@ export function CustomerDetailModal({
   customer,
   jobs,
   currency, // ✅ ADD
-  kasalar, // ✅ ADD
-  activeKasaId, // ✅ ADD
+  vaults, // ✅ ADD
+  activeVaultId, // ✅ ADD
   payments, //ADD this
   onDeleteJob,
   onEditCustomer,
@@ -725,7 +725,7 @@ export function CustomerDetailModal({
   onUpdatePayment,
   setConfirm, // ✅ ADD THIS
 }) {
-  const [selectedKasaId, setSelectedKasaId] = useState("");
+  const [selectedVaultId, setSelectedVaultId] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentNote, setPaymentNote] = useState("");
@@ -736,7 +736,7 @@ export function CustomerDetailModal({
   const [editNote, setEditNote] = useState("");
   const [editDate, setEditDate] = useState("");
   const [editMethod, setEditMethod] = useState("cash");
-  const [editKasaId, setEditKasaId] = useState("");
+  const [editVaultId, setEditVaultId] = useState("");
 
   // "payment" | "debt"
   function isInRange(dateStr) {
@@ -760,15 +760,15 @@ export function CustomerDetailModal({
     setPaymentAmount("");
     setPaymentNote("");
 
-    // ✅ default kasa = active kasa
-    setSelectedKasaId(activeKasaId || "");
+    // ✅ default vault = active vault
+    setSelectedVaultId(activeVaultId || "");
 
     // ✅ default payment method
     setPaymentMethod("cash");
   }, [open]);
 
-  function kasaNameOf(id) {
-    return (kasalar || []).find((k) => k.id === id)?.name || "—";
+  function vaultNameOf(id) {
+    return (vaults || []).find((k) => k.id === id)?.name || "—";
   }
 
   function buildShareText() {
@@ -795,7 +795,7 @@ export function CustomerDetailModal({
 
         text += `${p.date} | ${typeLabel}\n`;
         text += `Tutar: ${sign}${money(p.amount, p.currency || currency)}\n`;
-        text += `Kasa: ${kasaNameOf(p.kasaId)}\n`;
+        text += `Kasa: ${vaultNameOf(p.vaultId)}\n`;
         text += `Yöntem: ${PAYMENT_METHOD_LABEL_TR[p.method] || "—"}\n`;
         if (p.note) text += `Not: ${p.note}\n`;
         text += `\n`;
@@ -888,7 +888,7 @@ export function CustomerDetailModal({
     }));
 
     const paymentItems = customerPayments
-      .filter((p) => p.source !== "job") // ✅ HIDE job-paid tahsilat rows
+      .filter((p) => p.source !== "job") // ✅ HIDE job-paid Payment rows
       .map((p) => ({
         kind: "payment",
         date: p.date,
@@ -929,7 +929,7 @@ export function CustomerDetailModal({
     return hours * toNum(j.rate) + partsTotalOf(j);
   }
 
-  // ✅ plus transactions (tahsilat button)
+  // ✅ plus transactions (Payment button)
   const paymentsPlusTotal = useMemo(() => {
     return customerPayments
       .filter((p) => p.type === "payment")
@@ -977,11 +977,11 @@ export function CustomerDetailModal({
   // ✅ FINAL
   // i changed this because everytime i complete and paid  a job it will create a tahsialt on the background for it i wll not see it .
   // so i dont need total jobs for this any more it will create dublicate
-  // const totalTahsilat = paymentsPlusTotal + paidJobsTotal; // all pluses
-  const totalTahsilat = paymentsPlusTotal; // ✅ only payments
+  // const totalPayment = paymentsPlusTotal + paidJobsTotal; // all pluses
+  const totalPayment = paymentsPlusTotal; // ✅ only payments
 
   const totalBorc = paymentsMinusTotal + unpaidJobsTotal; // all minuses
-  const bakiye = totalTahsilat - totalBorc; // remaining
+  const bakiye = totalPayment - totalBorc; // remaining
 
   async function shareAsPDF() {
     const html = printRef.current?.innerHTML;
@@ -1133,7 +1133,7 @@ export function CustomerDetailModal({
             <div className="cust-stat">
               <div className="stat-label">Toplam Tahsilat</div>
               <div className="stat-value green">
-                +{money(totalTahsilat, currency)}
+                +{money(totalPayment, currency)}
               </div>
             </div>
 
@@ -1227,8 +1227,8 @@ export function CustomerDetailModal({
               style={{ marginTop: 8, fontSize: 12 }}
             ></div>
 
-            {/* 💰 Tahsilat / Borç Kayıtları */}
-            {/* 💰 Tahsilat / Borç Kayıtları */}
+            {/* 💰 Payment / Borç Kayıtları */}
+            {/* 💰 Payment / Borç Kayıtları */}
             {unifiedHistory.length === 0 ? (
               <div className="card">Kayıt yok.</div>
             ) : (
@@ -1259,7 +1259,7 @@ export function CustomerDetailModal({
                           p.date || new Date().toISOString().slice(0, 10)
                         );
                         setEditMethod(p.method || "cash");
-                        setEditKasaId(p.kasaId || activeKasaId || "");
+                        setEditVaultId(p.vaultId || activeVaultId || "");
                       }}
                     >
                       <div>
@@ -1293,7 +1293,7 @@ export function CustomerDetailModal({
                         <div style={{ fontSize: 12, color: "#777" }}>
                           {p.date}
                           {" • "}
-                          Kasa: <b>{kasaNameOf(p.kasaId)}</b>
+                          Kasa: <b>{vaultNameOf(p.vaultId)}</b>
                           {" • "}
                           Yöntem:{" "}
                           <b>{PAYMENT_METHOD_LABEL_TR[p.method] || "—"}</b>
@@ -1394,14 +1394,14 @@ export function CustomerDetailModal({
                   </tr>
                 </thead>
                 <tbody>
-                  {/* 💰 Tahsilat / Borç */}
+                  {/* 💰 Payment / Borç */}
                   {customerPayments.map((p) => (
                     <tr key={p.id}>
                       <td>{p.date}</td>
                       <td colSpan="2">
                         {PAYMENT_TYPE_LABEL_TR[p.type] || "—"}
                       </td>
-                      <td>{kasaNameOf(p.kasaId)}</td>
+                      <td>{vaultNameOf(p.vaultId)}</td>
                       <td>{PAYMENT_METHOD_LABEL_TR[p.method] || "—"}</td>
                       <td>
                         {p.type === "payment"
@@ -1461,15 +1461,15 @@ export function CustomerDetailModal({
               )}
             </h3>
 
-            {/* KASA (only for Tahsilat) */}
+            {/* vault (only for Payment) */}
             {editTx.type === "payment" && (
               <div className="form-group">
                 <label>Kasa</label>
                 <select
-                  value={editKasaId}
-                  onChange={(e) => setEditKasaId(e.target.value)}
+                  value={editVaultId}
+                  onChange={(e) => setEditVaultId(e.target.value)}
                 >
-                  {kasalar.map((k) => (
+                  {vaults.map((k) => (
                     <option key={k.id} value={k.id}>
                       {k.name}
                     </option>
@@ -1555,8 +1555,8 @@ export function CustomerDetailModal({
                     note: editNote,
                     date: editDate,
                     method: editTx.type === "payment" ? editMethod : null,
-                    kasaId:
-                      editTx.type === "payment" ? editKasaId : editTx.kasaId,
+                    vaultId:
+                      editTx.type === "payment" ? editVaultId : editTx.vaultId,
                   });
                   setEditTx(null);
                 }}
@@ -1576,13 +1576,13 @@ export function PaymentActionModal({
   mode, // "payment" | "debt"
   onClose,
   customer,
-  kasalar,
-  activeKasaId,
+  vaults,
+  activeVaultId,
   onSubmit,
 }) {
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
-  const [kasaId, setKasaId] = useState(activeKasaId || "");
+  const [vaultId, setVaultId] = useState(activeVaultId || "");
   const [method, setMethod] = useState(PAYMENT_METHOD.CASH);
 
   // ✅ NEW: date picker state (today default)
@@ -1594,10 +1594,10 @@ export function PaymentActionModal({
     if (!open) return;
     setAmount("");
     setNote("");
-    setKasaId(activeKasaId || "");
+    setVaultId(activeVaultId || "");
     setMethod("cash");
     setPaymentDate(new Date().toISOString().slice(0, 10));
-  }, [open, activeKasaId]);
+  }, [open, activeVaultId]);
 
   if (!open) return null;
 
@@ -1619,16 +1619,16 @@ export function PaymentActionModal({
         </div>
 
         <div style={{ marginTop: 14 }}>
-          {/* thisis for kasa secimi for borclandirma and tahsilat yap  */}
+          {/* thisis for vault secimi for borclandirma and Payment yap  */}
           {mode === "payment" && (
             <div className="form-group">
               <label>Kasa</label>
               <select
-                value={kasaId}
-                onChange={(e) => setKasaId(e.target.value)}
+                value={vaultId}
+                onChange={(e) => setVaultId(e.target.value)}
               >
                 <option value="">Kasa seçin</option>
-                {kasalar.map((k) => (
+                {vaults.map((k) => (
                   <option key={k.id} value={k.id}>
                     {k.name}
                   </option>
@@ -1714,7 +1714,7 @@ export function PaymentActionModal({
                 onSubmit(
                   amount,
                   note,
-                  kasaId,
+                  vaultId,
                   paymentDate,
                   mode === "payment" ? method : null
                 );

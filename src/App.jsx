@@ -89,8 +89,8 @@ function loadState() {
     return {
       customers: [],
       jobs: [],
-      kasaName: "Ana Kasa",
-      kasaBalance: 0, // cash register balance
+      vaultName: "Ana Kasa",
+      vaultBalance: 0, // cash register balance
     };
   }
 }
@@ -118,12 +118,12 @@ function persistState(state) {
  *   → money is tracked via payments, not jobs
  *
  * PAYMENT / DEBT (payments array)
- * - type: "payment" → money COMES IN (tahsilat)
+ * - type: "payment" → money COMES IN (Payment)
  * - type: "debt"    → money ADDS TO DEBT (borç)
  *
  * IMPORTANT:
- * - Cash (kasa) is ONLY affected by "payment"
- * - Debt NEVER touches kasa
+ * - Cash (vault) is ONLY affected by "payment"
+ * - Debt NEVER touches vault
  *
  * ===================================================
  */
@@ -137,7 +137,7 @@ function persistState(state) {
  *
  * BUSINESS RULES:
  * 1) Payment always REDUCES customer.balanceOwed
- * 2) Payment always INCREASES kasa.balance
+ * 2) Payment always INCREASES vault.balance
  * 3) Payment is applied to UNPAID COMPLETED JOBS first
  *    - Oldest job first
  *    - If payment fully covers a job → job.isPaid = true
@@ -202,17 +202,17 @@ function AppRoutes({ user }) {
     async function init() {
       await ensureUserData(user.uid);
       const data = await loadUserData(user.uid);
-      // ✅ MIGRATION: support old users that still have kasaName/kasaBalance
+      // ✅ MIGRATION: support old users that still have vaultName/vaultBalance
       const fixed = { ...data };
       if (!fixed.currency) {
         fixed.currency = "TRY"; // default
       }
 
-      if (!fixed.kasalar || !Array.isArray(fixed.kasalar)) {
-        const legacyName = fixed.kasaName || "Ana Kasa";
-        const legacyBal = Number(fixed.kasaBalance || 0);
+      if (!fixed.vaults || !Array.isArray(fixed.vaults)) {
+        const legacyName = fixed.vaultName || "Ana Kasa";
+        const legacyBal = Number(fixed.vaultBalance || 0);
 
-        fixed.kasalar = [
+        fixed.vaults = [
           {
             id: "kasa_ana",
             name: legacyName,
@@ -221,12 +221,12 @@ function AppRoutes({ user }) {
             createdAt: Date.now(),
           },
         ];
-        fixed.activeKasaId = "kasa_ana";
+        fixed.activeVaultId = "kasa_ana";
       }
 
       // optional: remove old fields if you want (not required)
-      // delete fixed.kasaName;
-      // delete fixed.kasaBalance;
+      // delete fixed.vaultName;
+      // delete fixed.vaultBalance;
 
       setState(fixed);
 
@@ -279,8 +279,8 @@ function MainApp({ state, setState, user }) {
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [paymentMode, setPaymentMode] = useState("payment");
   const [paymentCustomer, setPaymentCustomer] = useState(null);
-  const [kasaDetailOpen, setKasaDetailOpen] = useState(false);
-  const [selectedKasaId, setSelectedKasaId] = useState(null);
+  const [vaultDetailOpen, setVaultDetailOpen] = useState(false);
+  const [selectedVaultId, setSelectedVaultId] = useState(null);
 
   const [jobActionOpen, setJobActionOpen] = useState(false);
   const [jobActionJobId, setJobActionJobId] = useState(null);
@@ -326,8 +326,8 @@ function MainApp({ state, setState, user }) {
         setProfileOpen(false);
         return true;
       }
-      if (kasaDetailOpen) {
-        setKasaDetailOpen(false);
+      if (vaultDetailOpen) {
+        setVaultDetailOpen(false);
         return true;
       }
       if (jobActionOpen) {
@@ -357,21 +357,21 @@ function MainApp({ state, setState, user }) {
 
   const currency = state.currency || "TRY";
 
-  const activeKasa = useMemo(() => {
+  const activeVault = useMemo(() => {
     return (
-      (state?.kasalar || []).find((k) => k.id === state?.activeKasaId) || null
+      (state?.vaults || []).find((k) => k.id === state?.activeVaultId) || null
     );
-  }, [state?.kasalar, state?.activeKasaId]);
+  }, [state?.vaults, state?.activeVaultId]);
 
-  // KASA DELETE CONFIRM STATE
-  const [kasaDeleteConfirm, setKasaDeleteConfirm] = useState({
+  // vault DELETE CONFIRM STATE
+  const [vaultDeleteConfirm, setvaultDeleteConfirm] = useState({
     open: false,
-    kasaId: null,
+    vaultId: null,
     text: "",
   });
 
-  const [editingKasaId, setEditingKasaId] = useState(null);
-  const [editingKasaName, setEditingKasaName] = useState("");
+  const [editingVaultId, setEditingVaultId] = useState(null);
+  const [editingVaultName, setEditingVaultName] = useState("");
 
   // STEP 2: folder open / close state
   const [activeOpen, setActiveOpen] = useState(true);
@@ -429,13 +429,13 @@ function MainApp({ state, setState, user }) {
 
   // 📊 Financial summary (Home page) — DERIVED (correct)
   const financialSummary = useMemo(() => {
-    let totalTahsilat = 0;
+    let totalPayment = 0;
     let totalBorc = 0;
 
-    // 🟢 1) REAL MONEY IN (Tahsilat)
+    // 🟢 1) REAL MONEY IN (Payment)
     (state.payments || []).forEach((p) => {
       if (p.type === "payment") {
-        totalTahsilat += toNum(p.amount);
+        totalPayment += toNum(p.amount);
       }
 
       if (p.type === "debt") {
@@ -463,9 +463,9 @@ function MainApp({ state, setState, user }) {
     });
 
     return {
-      totalTahsilat,
+      totalPayment,
       totalBorc,
-      net: totalTahsilat - totalBorc,
+      net: totalPayment - totalBorc,
     };
   }, [state.payments, state.jobs]);
 
@@ -511,9 +511,9 @@ function MainApp({ state, setState, user }) {
 
     return latest;
   }
-  function getKasaBalance(kasaId) {
+  function getVaultBalance(vaultId) {
     return (state.payments || []).reduce((sum, p) => {
-      if (p.kasaId !== kasaId) return sum;
+      if (p.vaultId !== vaultId) return sum;
 
       if (p.type === "payment") {
         return sum + toNum(p.amount);
@@ -527,11 +527,11 @@ function MainApp({ state, setState, user }) {
     }, 0);
   }
 
-  function renameKasa(kasaId, update) {
+  function renameVault(vaultId, update) {
     setState((s) => ({
       ...s,
-      kasalar: s.kasalar.map((k) =>
-        k.id === kasaId
+      vaults: s.vaults.map((k) =>
+        k.id === vaultId
           ? typeof update === "string"
             ? { ...k, name: update } // old behavior
             : { ...k, ...update } // new behavior (currency etc.)
@@ -650,7 +650,7 @@ function MainApp({ state, setState, user }) {
    * - Reduce customer's balance owed
    * - Increase cash register balance
    */
-  function makePayment(customerId, amount, note, date, kasaId, method) {
+  function makePayment(customerId, amount, note, date, vaultId, method) {
     const amt = toNum(amount);
     if (amt <= 0) return;
 
@@ -708,7 +708,7 @@ function MainApp({ state, setState, user }) {
       const payment = {
         id: uid(),
         customerId,
-        kasaId: kasaId || s.activeKasaId,
+        vaultId: vaultId || s.activeVaultId,
         type: "payment",
         amount: amt,
         method,
@@ -716,7 +716,7 @@ function MainApp({ state, setState, user }) {
         date,
         createdAt: Date.now(),
         currency:
-          (s.kasalar || []).find((k) => k.id === (kasaId || s.activeKasaId))
+          (s.vaults || []).find((k) => k.id === (vaultId || s.activeVaultId))
             ?.currency ||
           s.currency ||
           "TRY",
@@ -729,9 +729,9 @@ function MainApp({ state, setState, user }) {
           : c
       );
 
-      // 5️⃣ Update kasa balance
-      const nextKasalar = s.kasalar.map((k) =>
-        k.id === (kasaId || s.activeKasaId)
+      // 5️⃣ Update vault balance
+      const nextVaults = s.vaults.map((k) =>
+        k.id === (vaultId || s.activeVaultId)
           ? { ...k, balance: toNum(k.balance) + amt }
           : k
       );
@@ -740,7 +740,7 @@ function MainApp({ state, setState, user }) {
         ...s,
         jobs: nextJobs,
         customers: nextCustomers,
-        kasalar: nextKasalar,
+        vaults: nextVaults,
         payments: [...(s.payments || []), payment],
       };
     });
@@ -751,7 +751,7 @@ function MainApp({ state, setState, user }) {
    *
    * BUSINESS RULES:
    * - Debt INCREASES customer.balanceOwed
-   * - Debt DOES NOT affect kasa balance
+   * - Debt DOES NOT affect vault balance
    * - Debt exists only as a record (payments array)
    *
    * WHY:
@@ -759,7 +759,7 @@ function MainApp({ state, setState, user }) {
    */
 
   /** Add debt to a customer (does NOT affect cash) */
-  function addDebt(customerId, amount, note, date, kasaId, method) {
+  function addDebt(customerId, amount, note, date, vaultId, method) {
     const amt = toNum(amount);
     if (amt <= 0) return;
 
@@ -767,7 +767,7 @@ function MainApp({ state, setState, user }) {
       const debt = {
         id: uid(),
         customerId,
-        kasaId: kasaId || s.activeKasaId,
+        vaultId: vaultId || s.activeVaultId,
         type: "debt",
         amount: amt,
         method, // ✅ SAVE METHOD
@@ -776,7 +776,7 @@ function MainApp({ state, setState, user }) {
         createdAt: Date.now(),
 
         currency:
-          (s.kasalar || []).find((k) => k.id === (kasaId || s.activeKasaId))
+          (s.vaults || []).find((k) => k.id === (vaultId || s.activeVaultId))
             ?.currency ||
           s.currency ||
           "TRY",
@@ -822,27 +822,27 @@ function MainApp({ state, setState, user }) {
         }
       });
 
-      // 3) update kasa balances
-      // ONLY change kasa if it’s a payment (borç does not touch kasa in your system)
-      let nextKasalar = s.kasalar || [];
+      // 3) update vault balances
+      // ONLY change vault if it’s a payment (borç does not touch vault in your system)
+      let nextVaults = s.vaults || [];
 
       if (old.type === "payment") {
-        const oldKasaId = old.kasaId || s.activeKasaId;
-        const newKasaId = updated.kasaId || oldKasaId;
+        const oldVaultId = old.vaultId || s.activeVaultId;
+        const newVaultId = updated.vaultId || oldVaultId;
 
-        // If kasa changed: remove old amount from old kasa and add new amount to new kasa
-        if (oldKasaId !== newKasaId) {
-          nextKasalar = nextKasalar.map((k) => {
-            if (k.id === oldKasaId)
+        // If Vault changed: remove old amount from old Vault and add new amount to new Vault
+        if (oldVaultId !== newVaultId) {
+          nextVaults = nextVaults.map((k) => {
+            if (k.id === oldVaultId)
               return { ...k, balance: toNum(k.balance) - oldAmt };
-            if (k.id === newKasaId)
+            if (k.id === newVaultId)
               return { ...k, balance: toNum(k.balance) + newAmt };
             return k;
           });
         } else {
-          // same kasa: adjust by diff only
-          nextKasalar = nextKasalar.map((k) =>
-            k.id === oldKasaId ? { ...k, balance: toNum(k.balance) + diff } : k
+          // same Vault: adjust by diff only
+          nextVaults = nextVaults.map((k) =>
+            k.id === oldVaultId ? { ...k, balance: toNum(k.balance) + diff } : k
           );
         }
       }
@@ -851,7 +851,7 @@ function MainApp({ state, setState, user }) {
         ...s,
         payments: nextPayments,
         customers: nextCustomers,
-        kasalar: nextKasalar,
+        vaults: nextVaults,
       };
     });
   }
@@ -925,7 +925,7 @@ function MainApp({ state, setState, user }) {
    * BUSINESS RULES:
    * - This only changes job state
    * - NO money movement
-   * - NO kasa update
+   * - NO Vault update
    *
    * WHY:
    * - Actual money is tracked via payments
@@ -950,13 +950,13 @@ function MainApp({ state, setState, user }) {
 
       const jobTotal = jobTotalOf(job);
 
-      const kasaId = s.activeKasaId;
+      const vaultId = s.activeVaultId;
 
-      // 🔹 create tahsilat record
+      // 🔹 create Payment record
       const payment = {
         id: uid(),
         customerId: job.customerId,
-        kasaId,
+        vaultId,
         type: "payment",
         amount: jobTotal,
         method: "cash",
@@ -965,7 +965,7 @@ function MainApp({ state, setState, user }) {
         createdAt: Date.now(),
         source: "job", // ✅ ADD THIS LINE
         currency:
-          s.kasalar.find((k) => k.id === kasaId)?.currency ||
+          s.vaults.find((k) => k.id === vaultId)?.currency ||
           s.currency ||
           "TRY",
       };
@@ -978,8 +978,8 @@ function MainApp({ state, setState, user }) {
             ? { ...c, balanceOwed: toNum(c.balanceOwed) - jobTotal }
             : c
         ),
-        kasalar: s.kasalar.map((k) =>
-          k.id === kasaId ? { ...k, balance: toNum(k.balance) + jobTotal } : k
+        vaults: s.vaults.map((k) =>
+          k.id === vaultId ? { ...k, balance: toNum(k.balance) + jobTotal } : k
         ),
         payments: [...(s.payments || []), payment],
       };
@@ -1261,7 +1261,7 @@ function MainApp({ state, setState, user }) {
                         Toplam Tahsilat
                       </div>
                       <div style={{ fontWeight: 700, color: "#16a34a" }}>
-                        {money(financialSummary.totalTahsilat, currency)}
+                        {money(financialSummary.totalPayment, currency)}
                       </div>
                     </div>
                   </div>
@@ -1287,13 +1287,13 @@ function MainApp({ state, setState, user }) {
                   {(() => {
                     const max = Math.max(
                       financialSummary.totalBorc,
-                      financialSummary.totalTahsilat,
+                      financialSummary.totalPayment,
                       1
                     );
 
                     const debtPct = (financialSummary.totalBorc / max) * 100;
 
-                    const payPct = (financialSummary.totalTahsilat / max) * 100;
+                    const payPct = (financialSummary.totalPayment / max) * 100;
 
                     return (
                       <div style={{ display: "grid", gap: 10 }}>
@@ -1676,13 +1676,13 @@ function MainApp({ state, setState, user }) {
 
                   <h3>Kasa Yönetimi</h3>
 
-                  {/* KASA LIST */}
-                  {state.kasalar.map((kasa) => {
-                    const isActive = kasa.id === state.activeKasaId;
+                  {/* Vault LIST */}
+                  {state.vaults.map((vault) => {
+                    const isActive = vault.id === state.activeVaultId;
 
                     return (
                       <div
-                        key={kasa.id}
+                        key={vault.id}
                         className="card list-item"
                         style={{
                           borderLeft: isActive
@@ -1696,37 +1696,37 @@ function MainApp({ state, setState, user }) {
                           setJobModalOpen(false);
                           setSelectedCustomerId(null);
 
-                          setSelectedKasaId(kasa.id);
-                          setKasaDetailOpen(true);
+                          setSelectedVaultId(vault.id);
+                          setVaultDetailOpen(true);
                         }}
                       >
                         <div>
-                          {editingKasaId === kasa.id ? (
+                          {editingVaultId === vault.id ? (
                             <input
-                              value={editingKasaName}
+                              value={editingVaultName}
                               autoFocus
                               onChange={(e) =>
-                                setEditingKasaName(e.target.value)
+                                setEditingVaultName(e.target.value)
                               }
                               onBlur={() => {
-                                if (!editingKasaName.trim()) {
-                                  setEditingKasaId(null);
+                                if (!editingVaultName.trim()) {
+                                  setEditingVaultId(null);
                                   return;
                                 }
 
                                 setState((s) => ({
                                   ...s,
-                                  kasalar: s.kasalar.map((k) =>
-                                    k.id === kasa.id
-                                      ? { ...k, name: editingKasaName.trim() }
+                                  vaults: s.vaults.map((k) =>
+                                    k.id === vault.id
+                                      ? { ...k, name: editingVaultName.trim() }
                                       : k
                                   ),
                                 }));
-                                setEditingKasaId(null);
+                                setEditingVaultId(null);
                               }}
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") e.target.blur();
-                                if (e.key === "Escape") setEditingKasaId(null);
+                                if (e.key === "Escape") setEditingVaultId(null);
                               }}
                               style={{
                                 fontSize: 12,
@@ -1739,31 +1739,31 @@ function MainApp({ state, setState, user }) {
                               style={{ cursor: "pointer" }}
                               title="Kasa adını düzenle"
                               onClick={() => {
-                                setEditingKasaId(kasa.id);
-                                setEditingKasaName(kasa.name);
+                                setEditingVaultId(vault.id);
+                                setEditingVaultName(vault.name);
                               }}
                             >
-                              {kasa.name}
+                              {vault.name}
                             </strong>
                           )}
 
                           <div style={{ fontSize: 12, color: "#555" }}>
                             Bakiye:{" "}
-                            {money(getKasaBalance(kasa.id), kasa.currency)}
+                            {money(getVaultBalance(vault.id), vault.currency)}
                           </div>
                         </div>
 
                         {isActive ? (
-                          <div className="kasa-active-badge">AKTİF</div>
+                          <div className="vault-active-badge">AKTİF</div>
                         ) : (
                           <div style={{ display: "flex", gap: 6 }}>
                             <button
-                              className="btn btn-save kasa-select-btn"
+                              className="btn btn-save vault-select-btn"
                               onClick={(e) => {
-                                e.stopPropagation(); // 🔥 PREVENT kasa detail opening
+                                e.stopPropagation(); // 🔥 PREVENT vault detail opening
                                 setState((s) => ({
                                   ...s,
-                                  activeKasaId: kasa.id,
+                                  activeVaultId: vault.id,
                                 }));
                               }}
                             >
@@ -1771,12 +1771,12 @@ function MainApp({ state, setState, user }) {
                             </button>
 
                             <button
-                              className="btn btn-delete kasa-select-btn"
+                              className="btn btn-delete vault-select-btn"
                               onClick={(e) => {
-                                e.stopPropagation(); // 🔥 PREVENT kasa detail opening
-                                setKasaDeleteConfirm({
+                                e.stopPropagation(); // 🔥 PREVENT vault detail opening
+                                setVaultDeleteConfirm({
                                   open: true,
-                                  kasaId: kasa.id,
+                                  vaultId: vault.id,
                                   text: "",
                                 });
                               }}
@@ -1789,7 +1789,7 @@ function MainApp({ state, setState, user }) {
                     );
                   })}
 
-                  {/* ADD NEW KASA */}
+                  {/* ADD NEW vault */}
                   <button
                     className="btn"
                     style={{
@@ -1802,17 +1802,17 @@ function MainApp({ state, setState, user }) {
 
                       setState((s) => ({
                         ...s,
-                        kasalar: [
-                          ...(s.kasalar || []),
+                        vaults: [
+                          ...(s.vaults || []),
                           {
                             id,
-                            name: `Yeni Kasa ${s.kasalar.length + 1}`,
+                            name: `Yeni Kasa ${s.vaults.length + 1}`,
                             balance: 0,
                             currency: s.currency || "TRY", // ✅ add this
                             createdAt: Date.now(),
                           },
                         ],
-                        activeKasaId: id,
+                        activeVaultId: id,
                       }));
                     }}
                   >
@@ -1913,8 +1913,8 @@ function MainApp({ state, setState, user }) {
             }
             jobs={state.jobs}
             payments={state.payments}
-            kasalar={state.kasalar} // ✅ ADD
-            activeKasaId={state.activeKasaId} // ✅ ADD
+            vaults={state.vaults} // ✅ ADD
+            activeVaultId={state.activeVaultId} // ✅ ADD
             onOpenPayment={openPaymentModal}
             onEditCustomer={() => {
               setEditingCustId(selectedCustomerId);
@@ -1959,34 +1959,34 @@ function MainApp({ state, setState, user }) {
             open={paymentModalOpen}
             mode={paymentMode}
             customer={paymentCustomer}
-            kasalar={state.kasalar}
-            activeKasaId={state.activeKasaId}
+            vaults={state.vaults}
+            activeVaultId={state.activeVaultId}
             onClose={() => setPaymentModalOpen(false)}
-            onSubmit={(amount, note, kasaId, date, method) => {
+            onSubmit={(amount, note, vaultId, date, method) => {
               if (!paymentCustomer) return;
 
               if (paymentMode === "payment") {
-                // ✅ Tahsilat: kasa seçilebilir
+                // ✅ Payment: vault seçilebilir
                 makePayment(
                   paymentCustomer.id,
                   amount,
                   note,
                   date,
-                  kasaId,
+                  vaultId,
                   method
                 );
               } else {
-                // ✅ Borç: kasa yok → active kasa kullanılır
+                // ✅ Borç: vault yok → active vault kullanılır
                 addDebt(paymentCustomer.id, amount, note, date, null, null);
               }
             }}
           />
 
-          <KasaDetailModal
-            open={kasaDetailOpen}
-            onClose={() => setKasaDetailOpen(false)}
-            kasa={state.kasalar.find((k) => k.id === selectedKasaId)}
-            onRenameKasa={renameKasa}
+          <VaultDetailModal
+            open={vaultDetailOpen}
+            onClose={() => setVaultDetailOpen(false)}
+            vault={state.vaults.find((k) => k.id === selectedVaultId)}
+            onRenameVault={renameVault}
             payments={state.payments}
           />
           <ProfileModal
@@ -2057,13 +2057,13 @@ function MainApp({ state, setState, user }) {
             </ModalBase>
           )}
 
-          {/* KASA DELETE CONFIRM MODAL */}
-          {kasaDeleteConfirm.open && (
+          {/* vault DELETE CONFIRM MODAL */}
+          {vaultDeleteConfirm.open && (
             <ModalBase
               open={true}
               title="Kasa Silme Onayı"
               onClose={() =>
-                setKasaDeleteConfirm({ open: false, kasaId: null, text: "" })
+                setVaultDeleteConfirm({ open: false, vaultId: null, text: "" })
               }
             >
               <p style={{ color: "#b91c1c", fontWeight: 600 }}>
@@ -2075,9 +2075,9 @@ function MainApp({ state, setState, user }) {
               </p>
 
               <input
-                value={kasaDeleteConfirm.text}
+                value={vaultDeleteConfirm.text}
                 onChange={(e) =>
-                  setKasaDeleteConfirm((s) => ({
+                  setVaultDeleteConfirm((s) => ({
                     ...s,
                     text: e.target.value,
                   }))
@@ -2089,9 +2089,9 @@ function MainApp({ state, setState, user }) {
                 <button
                   className="btn btn-cancel"
                   onClick={() =>
-                    setKasaDeleteConfirm({
+                    setVaultDeleteConfirm({
                       open: false,
-                      kasaId: null,
+                      vaultId: null,
                       text: "",
                     })
                   }
@@ -2101,21 +2101,21 @@ function MainApp({ state, setState, user }) {
 
                 <button
                   className="btn btn-delete"
-                  disabled={kasaDeleteConfirm.text !== "SIL"}
+                  disabled={vaultDeleteConfirm.text !== "SIL"}
                   onClick={() => {
                     setState((s) => ({
                       ...s,
-                      kasalar: s.kasalar.filter(
-                        (k) => k.id !== kasaDeleteConfirm.kasaId
+                      vaults: s.vaults.filter(
+                        (k) => k.id !== vaultDeleteConfirm.vaultId
                       ),
                       payments: (s.payments || []).filter(
-                        (p) => p.kasaId !== kasaDeleteConfirm.kasaId
+                        (p) => p.vaultId !== vaultDeleteConfirm.vaultId
                       ),
                     }));
 
-                    setKasaDeleteConfirm({
+                    setVaultDeleteConfirm({
                       open: false,
-                      kasaId: null,
+                      vaultId: null,
                       text: "",
                     });
                   }}
@@ -2585,7 +2585,7 @@ function CustomerSharePage({ state }) {
 
     return (state.payments || [])
       .filter((p) => p.customerId === customer.id)
-      .filter((p) => p.source !== "job") // ✅ hide job-generated tahsilat
+      .filter((p) => p.source !== "job") // ✅ hide job-generated Payment
       .slice()
       .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   }, [state.payments, customer]);
@@ -2608,7 +2608,7 @@ function CustomerSharePage({ state }) {
 
       <div className="container">
         <div style={{ marginTop: 12 }}>
-          {/* 💰 Tahsilat / Borç Geçmişi */}
+          {/* 💰 Payment / Borç Geçmişi */}
           {customerPayments.length > 0 && (
             <div style={{ marginBottom: 16 }}>
               <h3 style={{ marginTop: 0 }}>💰 Tahsilat / Borç Geçmişi</h3>
@@ -2712,46 +2712,46 @@ function CustomerSharePage({ state }) {
 }
 
 /**
- * KASA RULES
+ * vault RULES
  *
- * - Kasa balance represents REAL CASH
- * - Only "payment" transactions affect kasa
- * - Debt transactions NEVER affect kasa
+ * - vault balance represents REAL CASH
+ * - Only "payment" transactions affect vault
+ * - Debt transactions NEVER affect vault
  *
  * Net:
- *   net = totalTahsilat - totalBorc
+ *   net = totalPayment - totalBorc
  *
  * NOTE:
- * - Kasa can go negative if manually adjusted
+ * - vault can go negative if manually adjusted
  */
 
-function KasaDetailModal({ open, onClose, kasa, payments, onRenameKasa }) {
+function VaultDetailModal({ open, onClose, vault, payments, onRenameVault }) {
   const [editingName, setEditingName] = useState(false);
-  const [kasaName, setKasaName] = useState("");
+  const [vaultName, setVaultName] = useState("");
   const printRef = useRef(null);
 
   useEffect(() => {
-    if (open && kasa) {
-      setKasaName(kasa.name);
+    if (open && vault) {
+      setVaultName(vault.name);
       setEditingName(false);
     }
-  }, [open, kasa]);
-  if (!open || !kasa) return null;
+  }, [open, vault]);
+  if (!open || !vault) return null;
 
-  // Filter only transactions belonging to this kasa
-  const kasaPayments = (payments || []).filter((p) => p.kasaId === kasa.id);
+  // Filter only transactions belonging to this vault
+  const vaultPayments = (payments || []).filter((p) => p.vaultId === vault.id);
 
-  const totalTahsilat = kasaPayments
+  const totalPayment = vaultPayments
     .filter((p) => p.type === "payment")
     .reduce((sum, p) => sum + p.amount, 0);
 
-  const totalBorc = kasaPayments
+  const totalBorc = vaultPayments
     .filter((p) => p.type === "debt")
     .reduce((sum, p) => sum + p.amount, 0);
 
-  const net = totalTahsilat - totalBorc;
+  const net = totalPayment - totalBorc;
 
-  function printKasa() {
+  function printVault() {
     const html = printRef.current?.innerHTML;
     if (!html) return;
 
@@ -2803,13 +2803,13 @@ function KasaDetailModal({ open, onClose, kasa, payments, onRenameKasa }) {
 
   return (
     <ModalBase open={open} title="Kasa Detayı" onClose={onClose}>
-      <div className="kasa-detail-page">
-        <div className="kasa-detail-card">
+      <div className="vault-detail-page">
+        <div className="vault-detail-card">
           {/* HEADER */}
           <div className="card">
             {!editingName ? (
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <h3 style={{ margin: 0 }}>{kasa.name}</h3>
+                <h3 style={{ margin: 0 }}>{vault.name}</h3>
                 <button
                   className="btn btn-cancel"
                   style={{ padding: "4px 10px", fontSize: 12 }}
@@ -2821,14 +2821,14 @@ function KasaDetailModal({ open, onClose, kasa, payments, onRenameKasa }) {
             ) : (
               <div style={{ display: "flex", gap: 8 }}>
                 <input
-                  value={kasaName}
-                  onChange={(e) => setKasaName(e.target.value)}
+                  value={vaultName}
+                  onChange={(e) => setVaultName(e.target.value)}
                   style={{ flex: 1 }}
                 />
                 <button
                   className="btn btn-save"
                   onClick={() => {
-                    onRenameKasa(kasa.id, kasaName);
+                    onRenameVault(vault.id, vaultName);
                     setEditingName(false);
                   }}
                 >
@@ -2837,7 +2837,7 @@ function KasaDetailModal({ open, onClose, kasa, payments, onRenameKasa }) {
                 <button
                   className="btn btn-cancel"
                   onClick={() => {
-                    setKasaName(kasa.name);
+                    setVaultName(vault.name);
                     setEditingName(false);
                   }}
                 >
@@ -2852,10 +2852,10 @@ function KasaDetailModal({ open, onClose, kasa, payments, onRenameKasa }) {
               </div>
 
               <select
-                value={kasa.currency}
+                value={vault.currency}
                 onChange={(e) =>
-                  onRenameKasa(kasa.id, {
-                    ...kasa,
+                  onRenameVault(vault.id, {
+                    ...vault,
                     currency: e.target.value,
                   })
                 }
@@ -2875,7 +2875,7 @@ function KasaDetailModal({ open, onClose, kasa, payments, onRenameKasa }) {
             </div>
           </div>
           <div className="btn-row" style={{ marginBottom: 12 }}>
-            <button className="btn btn-save" onClick={printKasa}>
+            <button className="btn btn-save" onClick={printVault}>
               <i className="fa-solid fa-print"></i> Kasa Dökümü Yazdır
             </button>
           </div>
@@ -2895,7 +2895,7 @@ function KasaDetailModal({ open, onClose, kasa, payments, onRenameKasa }) {
             >
               <div style={{ fontSize: 12 }}>Toplam Tahsilat</div>
               <strong>
-                +{totalTahsilat.toFixed(2)} {kasa.currency}
+                +{totalPayment.toFixed(2)} {vault.currency}
               </strong>
             </div>
 
@@ -2905,7 +2905,7 @@ function KasaDetailModal({ open, onClose, kasa, payments, onRenameKasa }) {
             >
               <div style={{ fontSize: 12 }}>Toplam Borç</div>
               <strong>
-                -{totalBorc.toFixed(2)} {kasa.currency}
+                -{totalBorc.toFixed(2)} {vault.currency}
               </strong>
             </div>
           </div>
@@ -2920,7 +2920,7 @@ function KasaDetailModal({ open, onClose, kasa, payments, onRenameKasa }) {
               background: net >= 0 ? "#eff6ff" : "#fef2f2",
             }}
           >
-            Net Durum: {net.toFixed(2)} {kasa.currency}
+            Net Durum: {net.toFixed(2)} {vault.currency}
           </div>
 
           {/* COUNT */}
@@ -2928,15 +2928,15 @@ function KasaDetailModal({ open, onClose, kasa, payments, onRenameKasa }) {
             className="card"
             style={{ marginTop: 12, fontSize: 12, color: "#555" }}
           >
-            Toplam İşlem Sayısı: <strong>{kasaPayments.length}</strong>
+            Toplam İşlem Sayısı: <strong>{vaultPayments.length}</strong>
           </div>
           <div className="hidden">
             <div ref={printRef}>
               <h1>Kasa Dökümü</h1>
               <div style={{ color: "#555", marginBottom: 8 }}>
-                Kasa: <b>{kasa.name}</b>
+                Kasa: <b>{vault.name}</b>
                 <br />
-                Para Birimi: <b>{kasa.currency}</b>
+                Para Birimi: <b>{vault.currency}</b>
                 <br />
                 Tarih: {new Date().toLocaleDateString("tr-TR")}
               </div>
@@ -2954,7 +2954,7 @@ function KasaDetailModal({ open, onClose, kasa, payments, onRenameKasa }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {kasaPayments.map((p) => (
+                  {vaultPayments.map((p) => (
                     <tr key={p.id}>
                       <td>{p.date}</td>
                       <td>{p.type === "payment" ? "Tahsilat" : "Borç"}</td>
@@ -2962,7 +2962,7 @@ function KasaDetailModal({ open, onClose, kasa, payments, onRenameKasa }) {
                       <td>{p.method || "-"}</td>
                       <td className="right">
                         {p.type === "payment" ? "+" : "-"}
-                        {p.amount.toFixed(2)} {kasa.currency}
+                        {p.amount.toFixed(2)} {vault.currency}
                       </td>
                     </tr>
                   ))}
@@ -2972,12 +2972,12 @@ function KasaDetailModal({ open, onClose, kasa, payments, onRenameKasa }) {
               <hr />
 
               <div style={{ marginTop: 12 }}>
-                <b>Toplam Tahsilat:</b> +{totalTahsilat.toFixed(2)}{" "}
-                {kasa.currency}
+                <b>Toplam Tahsilat:</b> +{totalPayment.toFixed(2)}{" "}
+                {vault.currency}
                 <br />
-                <b>Toplam Borç:</b> -{totalBorc.toFixed(2)} {kasa.currency}
+                <b>Toplam Borç:</b> -{totalBorc.toFixed(2)} {vault.currency}
                 <br />
-                <b>Net Durum:</b> {net.toFixed(2)} {kasa.currency}
+                <b>Net Durum:</b> {net.toFixed(2)} {vault.currency}
               </div>
             </div>
           </div>

@@ -360,8 +360,8 @@ textarea {
   font-size: 14px;
 }
 
-/* ===== KASA SELECT BUTTON FIX ===== */
-.kasa-select-btn {
+/* ===== vault SELECT BUTTON FIX ===== */
+.vault-select-btn {
   flex: 0 0 auto !important; /* 🔥 overrides .btn flex:1 */
   width: auto !important;
   min-width: 70px;
@@ -481,8 +481,8 @@ textarea {
   font-size: 14px;
 }
 
-/* ===== ACTIVE KASA BADGE ===== */
-.kasa-active-badge {
+/* ===== ACTIVE vault BADGE ===== */
+.vault-active-badge {
   min-width: 70px;
   padding: 6px 14px;
   font-size: 12px;
@@ -1423,16 +1423,16 @@ textarea {
 }
 
 /* =========================
-   Kasa Detail – Pretty Layout
+   vault Detail – Pretty Layout
 ========================= */
 
-.kasa-detail-page {
+.vault-detail-page {
   display: flex;
   justify-content: center;
   padding: 20px 14px 90px;
 }
 
-.kasa-detail-card {
+.vault-detail-card {
   width: 100%;
   max-width: 420px; /* 👈 NOT full screen */
   background: white;
@@ -1459,7 +1459,7 @@ textarea {
   }
 }
 /* Desktop detail pages must sit above */
-.kasa-detail-page,
+.vault-detail-page,
 .job-detail-page {
   position: relative;
   z-index: 200;
