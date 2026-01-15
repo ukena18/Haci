@@ -193,7 +193,7 @@ body {
 /* Floating button */
 .fab {
   position: fixed;
-  bottom: 85px;
+  bottom: 100px;
   right: 20px;
 
   width: 56px;
