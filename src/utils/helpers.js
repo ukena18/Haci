@@ -169,6 +169,9 @@ export function makeEmptyJob(customers = []) {
     rate: 0,
     timeMode: "manual",
     fixedPrice: 0,
+    // 🗓 FIXED JOB DATE RANGE (NEW)
+    plannedStartDate: "",
+    plannedEndDate: "",
     parts: [],
     notes: "",
     isRunning: false,

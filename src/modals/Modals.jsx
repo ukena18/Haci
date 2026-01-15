@@ -448,10 +448,14 @@ export function JobModal({
           onChange={(e) => setField("date", e.target.value)}
         />
       </div>
+      {/* ============================= */}
+      {/* ÇALIŞMA ZAMANI GİRİŞİ */}
+      {/* ============================= */}
       <div className="form-group">
         <label>Çalışma Zamanı Girişi</label>
 
-        <div style={{ display: "flex", gap: 10 }}>
+        {/* RADIO OPTIONS */}
+        <div style={{ display: "flex", gap: 16, marginTop: 6 }}>
           <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <input
               type="radio"
@@ -486,6 +490,7 @@ export function JobModal({
             />
             Clock In / Out
           </label>
+
           <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <input
               type="radio"
@@ -495,7 +500,6 @@ export function JobModal({
                 setDraft((d) => ({
                   ...d,
                   timeMode: "fixed",
-                  // optional cleanup:
                   start: "",
                   end: "",
                   rate: 0,
@@ -510,6 +514,52 @@ export function JobModal({
         </div>
       </div>
 
+      {/* ============================= */}
+      {/* PLANLANAN İŞ SÜRESİ (FIXED ONLY) */}
+      {/* ============================= */}
+      {draft.timeMode === "fixed" && (
+        <div className="form-group">
+          <label>Planlanan İş Süresi</label>
+
+          <div style={{ display: "flex", gap: 10 }}>
+            <div style={{ flex: 1 }}>
+              <small>Başlangıç</small>
+              <input
+                type="date"
+                value={draft.plannedStartDate || ""}
+                onChange={(e) =>
+                  setDraft((d) => ({
+                    ...d,
+                    plannedStartDate: e.target.value,
+                  }))
+                }
+              />
+            </div>
+
+            <div style={{ flex: 1 }}>
+              <small>Bitiş (Teslim)</small>
+              <input
+                type="date"
+                value={draft.plannedEndDate || ""}
+                onChange={(e) =>
+                  setDraft((d) => ({
+                    ...d,
+                    plannedEndDate: e.target.value,
+                  }))
+                }
+              />
+            </div>
+          </div>
+
+          <small style={{ color: "#666" }}>
+            Bu iş için anlaşılan tamamlanma aralığı
+          </small>
+        </div>
+      )}
+
+      {/* ============================= */}
+      {/* MANUAL / CLOCK INPUTS */}
+      {/* ============================= */}
       {draft.timeMode !== "fixed" && (
         <>
           <div className="form-group">
@@ -542,6 +592,9 @@ export function JobModal({
         </>
       )}
 
+      {/* ============================= */}
+      {/* FIXED PRICE */}
+      {/* ============================= */}
       {draft.timeMode === "fixed" && (
         <div className="form-group">
           <label>Sabit Ücret ({currency})</label>
