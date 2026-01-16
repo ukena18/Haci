@@ -317,6 +317,46 @@ export function JobModal({
   const editing = editingJobId ? jobs.find((j) => j.id === editingJobId) : null;
 
   const [draft, setDraft] = useState(() => makeEmptyJob(customers));
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [customerDropdownOpen, setCustomerDropdownOpen] = useState(false);
+
+  const customerOptions = useMemo(() => {
+    const q = customerSearch.trim().toLowerCase();
+
+    return (
+      customers
+        .map((c) => {
+          // find last job activity
+          const lastJob = jobs
+            .filter((j) => j.customerId === c.id)
+            .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))[0];
+
+          return {
+            ...c,
+            lastActivity: lastJob?.createdAt || 0,
+          };
+        })
+        // 🔥 newest activity first
+        .sort((a, b) => b.lastActivity - a.lastActivity)
+        // 🔍 search filter
+        .filter((c) => {
+          if (!q) return true;
+          return `${c.name} ${c.surname}`.toLowerCase().includes(q);
+        })
+        // ⛔ limit to 10
+        .slice(0, 10)
+    );
+  }, [customers, jobs, customerSearch]);
+
+  useEffect(() => {
+    function close(e) {
+      if (!e.target.closest(".form-group")) {
+        setCustomerDropdownOpen(false);
+      }
+    }
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -373,6 +413,20 @@ export function JobModal({
     () => calcHours(draft.start, draft.end),
     [draft.start, draft.end]
   );
+
+  const workingDays = useMemo(() => {
+    if (!draft.plannedStartDate || !draft.plannedEndDate) return 0;
+
+    const start = new Date(draft.plannedStartDate);
+    const end = new Date(draft.plannedEndDate);
+
+    const diffMs = end - start;
+    if (diffMs < 0) return 0;
+
+    // +1 so same day = 1 day
+    return Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
+  }, [draft.plannedStartDate, draft.plannedEndDate]);
+
   const partsTotal = useMemo(
     () =>
       (draft.parts || []).reduce(
@@ -421,19 +475,78 @@ export function JobModal({
       zIndex={1300} // ✅ add this
     >
       {!fixedCustomerId ? (
-        <div className="form-group">
+        <div className="form-group" style={{ position: "relative" }}>
           <label>Müşteri Seç</label>
-          <select
-            value={draft.customerId}
-            onChange={(e) => setField("customerId", e.target.value)}
-          >
-            <option value="">Müşteri seçin</option>
-            {customers.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name} {c.surname}
-              </option>
-            ))}
-          </select>
+
+          {/* SEARCH INPUT */}
+          <input
+            type="text"
+            placeholder="Müşteri ara…"
+            value={
+              draft.customerId
+                ? (() => {
+                    const c = customers.find((x) => x.id === draft.customerId);
+                    return c ? `${c.name} ${c.surname}` : "";
+                  })()
+                : customerSearch
+            }
+            onChange={(e) => {
+              setCustomerSearch(e.target.value);
+              setCustomerDropdownOpen(true);
+              setField("customerId", "");
+            }}
+            onFocus={() => setCustomerDropdownOpen(true)}
+          />
+
+          {/* DROPDOWN */}
+          {customerDropdownOpen && (
+            <div
+              style={{
+                position: "absolute",
+                top: "100%",
+                left: 0,
+                right: 0,
+                zIndex: 50,
+                marginTop: 4,
+                background: "#fff",
+                border: "1px solid #e5e7eb",
+                borderRadius: 12,
+                maxHeight: 260,
+                overflowY: "auto",
+                boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
+              }}
+            >
+              {customerOptions.length === 0 ? (
+                <div style={{ padding: 10, fontSize: 12, color: "#666" }}>
+                  Sonuç bulunamadı
+                </div>
+              ) : (
+                customerOptions.map((c) => (
+                  <div
+                    key={c.id}
+                    style={{
+                      padding: "10px 12px",
+                      cursor: "pointer",
+                      fontSize: 13,
+                      borderBottom: "1px solid #f1f5f9",
+                    }}
+                    onClick={() => {
+                      setField("customerId", c.id);
+                      setCustomerSearch("");
+                      setCustomerDropdownOpen(false);
+                    }}
+                  >
+                    <strong>
+                      {c.name} {c.surname}
+                    </strong>
+                    <div style={{ fontSize: 11, color: "#666" }}>
+                      ID: {c.id}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
         </div>
       ) : (
         <div className="form-group">
@@ -565,36 +678,33 @@ export function JobModal({
       {/* ============================= */}
       {draft.timeMode === "fixed" && (
         <div className="form-group">
-          <label>Planlanan İş Süresi</label>
+          {/* ✅ ONE LINE HEADER (like the other one) */}
+          <label>Planlanan İş Süresi (Başlangıç - Bitiş)</label>
 
           <div style={{ display: "flex", gap: 10 }}>
-            <div style={{ flex: 1 }}>
-              <small>Başlangıç</small>
-              <input
-                type="date"
-                value={draft.plannedStartDate || ""}
-                onChange={(e) =>
-                  setDraft((d) => ({
-                    ...d,
-                    plannedStartDate: e.target.value,
-                  }))
-                }
-              />
-            </div>
+            <input
+              style={{ flex: 1 }}
+              type="date"
+              value={draft.plannedStartDate || ""}
+              onChange={(e) =>
+                setDraft((d) => ({
+                  ...d,
+                  plannedStartDate: e.target.value,
+                }))
+              }
+            />
 
-            <div style={{ flex: 1 }}>
-              <small>Bitiş (Teslim)</small>
-              <input
-                type="date"
-                value={draft.plannedEndDate || ""}
-                onChange={(e) =>
-                  setDraft((d) => ({
-                    ...d,
-                    plannedEndDate: e.target.value,
-                  }))
-                }
-              />
-            </div>
+            <input
+              style={{ flex: 1 }}
+              type="date"
+              value={draft.plannedEndDate || ""}
+              onChange={(e) =>
+                setDraft((d) => ({
+                  ...d,
+                  plannedEndDate: e.target.value,
+                }))
+              }
+            />
           </div>
         </div>
       )}
@@ -730,28 +840,42 @@ export function JobModal({
 
       {/* Totals */}
       <div className="card" style={{ background: "#f9f9f9" }}>
+        {/* MANUAL / CLOCK */}
         {draft.timeMode !== "fixed" && (
           <>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span>Çalışma Saati:</span>
               <strong>{hours.toFixed(2)} saat</strong>
             </div>
+
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span>İşçilik:</span>
               <strong>{money(laborTotal, currency)}</strong>
             </div>
           </>
         )}
+
+        {/* FIXED MODE */}
         {draft.timeMode === "fixed" && (
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <span>Sabit Ücret:</span>
-            <strong>{money(draft.fixedPrice, currency)}</strong>
-          </div>
+          <>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span>Çalışma Günü:</span>
+              <strong>{workingDays} gün</strong>
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span>Sabit Ücret:</span>
+              <strong>{money(draft.fixedPrice, currency)}</strong>
+            </div>
+          </>
         )}
+
+        {/* COMMON */}
         <div style={{ display: "flex", justifyContent: "space-between" }}>
           <span>Parçalar:</span>
           <strong>{money(partsTotal, currency)}</strong>
         </div>
+
         <hr
           style={{
             border: "none",
@@ -759,7 +883,13 @@ export function JobModal({
             margin: "10px 0",
           }}
         />
-        Toplam Tutar: <strong>{money(grandTotal, currency)}</strong>
+
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <span>
+            <strong>Toplam Tutar:</strong>
+          </span>
+          <strong>{money(grandTotal, currency)}</strong>
+        </div>
       </div>
 
       <div className="form-group">
