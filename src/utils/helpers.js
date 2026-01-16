@@ -162,14 +162,14 @@ export function makeEmptyCustomer() {
 export function makeEmptyJob(customers = []) {
   return {
     id: uid(),
-    customerId: customers?.[0]?.id || "",
+    customerId: "",
     vaultId: "", // ✅ ADD THIS
     date: new Date().toISOString().slice(0, 10),
     start: "",
     end: "",
-    rate: 0,
+    rate: "",
     timeMode: "manual",
-    fixedPrice: 0,
+    fixedPrice: "",
     // 🗓 FIXED JOB DATE RANGE (NEW)
     plannedStartDate: "",
     plannedEndDate: "",

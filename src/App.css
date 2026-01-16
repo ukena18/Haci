@@ -408,8 +408,8 @@ textarea {
 
 .search-sticky {
   position: sticky;
-
-  z-index: 90;
+  top: 1px; /* 👈 below header */
+  z-index: 95;
 
   background: var(--bg);
   padding: 8px 0 10px;
@@ -1552,4 +1552,33 @@ textarea {
   .time-mode-row {
     grid-template-columns: 1fr;
   }
+}
+
+/* =========================
+   Load More (Subtle)
+========================= */
+.load-more-btn {
+  width: 100%;
+  margin: 14px 0 4px;
+
+  background: transparent;
+  border: 1px dashed #dbe3ff;
+  border-radius: 14px;
+
+  padding: 10px 12px;
+
+  font-size: 13px;
+  font-weight: 600;
+  color: #4f6bdc;
+
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.load-more-btn:hover {
+  background: #f4f7ff;
+}
+
+.load-more-btn:active {
+  transform: scale(0.98);
 }

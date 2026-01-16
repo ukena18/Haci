@@ -628,6 +628,7 @@ export function JobModal({
             <input
               type="number"
               value={draft.rate}
+              placeholder="Ücret"
               onChange={(e) => setField("rate", e.target.value)}
             />
           </div>
@@ -643,8 +644,8 @@ export function JobModal({
           <input
             type="number"
             value={draft.fixedPrice}
+            placeholder="Ücret"
             onChange={(e) => setField("fixedPrice", e.target.value)}
-            placeholder="Örn: 120"
           />
         </div>
       )}

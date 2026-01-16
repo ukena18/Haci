@@ -236,10 +236,17 @@ function MainApp({ state, setState, user }) {
   const [vaultDetailOpen, setVaultDetailOpen] = useState(false);
   const [selectedVaultId, setSelectedVaultId] = useState(null);
 
-  const [jobActionOpen, setJobActionOpen] = useState(false);
-  const [jobActionJobId, setJobActionJobId] = useState(null);
-
   const [openCustomerFolders, setOpenCustomerFolders] = useState({});
+
+  const [visibleCustomers, setVisibleCustomers] = useState(10);
+
+  useEffect(() => {
+    if (search.trim()) {
+      setVisibleCustomers(Infinity); // show all matches when searching
+    } else {
+      setVisibleCustomers(10); // reset when search is cleared
+    }
+  }, [search]);
 
   // Delete confirmation modal
   const [confirm, setConfirm] = useState({
@@ -284,10 +291,7 @@ function MainApp({ state, setState, user }) {
         setVaultDetailOpen(false);
         return true;
       }
-      if (jobActionOpen) {
-        setJobActionOpen(false);
-        return true;
-      }
+
       if (confirm.open) {
         setConfirm({ open: false });
         return true;
@@ -318,7 +322,7 @@ function MainApp({ state, setState, user }) {
   }, [state?.vaults, state?.activeVaultId]);
 
   // vault DELETE CONFIRM STATE
-  const [vaultDeleteConfirm, setvaultDeleteConfirm] = useState({
+  const [vaultDeleteConfirm, setVaultDeleteConfirm] = useState({
     open: false,
     vaultId: null,
     text: "",
@@ -557,19 +561,70 @@ function MainApp({ state, setState, user }) {
     return list;
   }, [search, state.customers, customerSort, state.jobs, state.payments]);
 
+  const visibleCustomerList = useMemo(() => {
+    return filteredCustomers.slice(0, visibleCustomers);
+  }, [filteredCustomers, visibleCustomers]);
+
   /* ============================================================
      ACTIONS (mutating state safely)
   ============================================================ */
 
+  function findDuplicateCustomer(newCustomer, customers) {
+    const nameKey = `${newCustomer.name || ""} ${newCustomer.surname || ""}`
+      .trim()
+      .toLowerCase();
+
+    return customers.find((c) => {
+      // ignore same customer when editing
+      if (c.id === newCustomer.id) return false;
+
+      const existingName = `${c.name || ""} ${c.surname || ""}`
+        .trim()
+        .toLowerCase();
+
+      if (nameKey && existingName === nameKey) return true;
+      if (newCustomer.email && c.email && c.email === newCustomer.email)
+        return true;
+      if (newCustomer.phone && c.phone && c.phone === newCustomer.phone)
+        return true;
+
+      return false;
+    });
+  }
+
   /** Add or update a customer */
   function upsertCustomer(customer) {
+    const duplicate = findDuplicateCustomer(customer, state.customers);
+
+    // 🔔 DUPLICATE → ASK FIRST
+    if (duplicate) {
+      setConfirm({
+        open: true,
+        type: "duplicate_customer",
+        message: `
+Benzer bir müşteri bulundu:
+
+${duplicate.name} ${duplicate.surname}
+${duplicate.email ? "📧 " + duplicate.email : ""}
+${duplicate.phone ? "📞 " + duplicate.phone : ""}
+
+Yine de bu müşteriyi eklemek istiyor musunuz?
+      `,
+        payload: customer, // 👈 store temporarily
+      });
+
+      return; // ❌ STOP HERE (do not save yet)
+    }
+
+    // ✅ NO DUPLICATE → SAVE NORMALLY
     setState((s) => {
-      // Ensure customers with the same ID appear as a single entry
-      const idx = s.customers.findIndex((x) => x.id === customer.id);
+      const idx = s.customers.findIndex((c) => c.id === customer.id);
+
       const nextCustomers =
         idx >= 0
-          ? s.customers.map((x) => (x.id === customer.id ? customer : x))
+          ? s.customers.map((c) => (c.id === customer.id ? customer : c))
           : [...s.customers, customer];
+
       return { ...s, customers: nextCustomers };
     });
   }
@@ -639,38 +694,6 @@ function MainApp({ state, setState, user }) {
     if (amt <= 0) return;
 
     setState((s) => {
-      let remaining = amt;
-
-      // 1️⃣ Find unpaid completed jobs (oldest first)
-      const unpaidCompleted = (s.jobs || [])
-        .filter(
-          (j) => j.customerId === customerId && j.isCompleted && !j.isPaid
-        )
-        .slice()
-        .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
-
-      // 2️⃣ Mark jobs paid if payment fully covers them (binary rule)
-      const nextJobs = (s.jobs || []).map((job) => {
-        if (
-          job.customerId !== customerId ||
-          !job.isCompleted ||
-          job.isPaid ||
-          remaining <= 0
-        ) {
-          return job;
-        }
-
-        const jobTotal = jobTotalOf(job);
-
-        if (remaining >= jobTotal) {
-          remaining -= jobTotal;
-          return { ...job, isPaid: true };
-        }
-
-        return job; // partial payment doesn't mark job paid
-      });
-
-      // 3️⃣ Create payment record (THIS is the truth)
       const usedVaultId = vaultId || s.activeVaultId;
 
       const payment = {
@@ -691,13 +714,11 @@ function MainApp({ state, setState, user }) {
 
       const nextState = {
         ...s,
-        jobs: nextJobs,
         payments: [...(s.payments || []), payment],
+        // ✅ jobs are NOT touched anymore
       };
 
-      // ✅ Force save for safety (optional but good)
       saveUserData(auth.currentUser.uid, nextState);
-
       return nextState;
     });
   }
@@ -941,61 +962,62 @@ function MainApp({ state, setState, user }) {
       <div className="app-shell">
         <div className="app-frame">
           <div className="container">
-            {/* Sticky Search */}
-            <div className="search-sticky">
-              <div className="search-wrap">
-                <div className="search-input-wrapper">
-                  <input
-                    type="text"
-                    className="search-bar"
-                    placeholder="Ara..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                  />
+            {/* Search bar */}
+            {/* Search bar */}
+            {page !== "settings" && (
+              <div className="search-sticky">
+                <div className="search-wrap">
+                  <div className="search-input-wrapper">
+                    <input
+                      type="text"
+                      className="search-bar"
+                      placeholder="Ara..."
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                    />
 
-                  {search && (
-                    <button
-                      type="button"
-                      className="search-clear-btn"
-                      onClick={() => setSearch("")}
-                      title="Temizle"
-                    >
-                      <i className="fa-solid fa-xmark"></i>
-                    </button>
+                    {search && (
+                      <button
+                        type="button"
+                        className="search-clear-btn"
+                        onClick={() => setSearch("")}
+                        title="Temizle"
+                      >
+                        <i className="fa-solid fa-xmark"></i>
+                      </button>
+                    )}
+                  </div>
+
+                  {page === "customers" && (
+                    <div className="sort-wrapper">
+                      <button
+                        type="button"
+                        className="sort-icon-btn"
+                        title="Sırala"
+                        onClick={() =>
+                          document.getElementById("customer-sort").click()
+                        }
+                      >
+                        <i className="fa-solid fa-arrow-up-wide-short"></i>
+                      </button>
+
+                      <select
+                        id="customer-sort"
+                        value={customerSort}
+                        onChange={(e) => setCustomerSort(e.target.value)}
+                        className="sort-hidden-select"
+                      >
+                        <option value="debt_desc">💸 Borcu En Yüksek</option>
+                        <option value="debt_asc">💰 Borcu En Düşük</option>
+                        <option value="name_asc">🔤 İsim A → Z</option>
+                        <option value="name_desc">🔤 İsim Z → A</option>
+                        <option value="latest">🕒 Son İşlem (En Yeni)</option>
+                      </select>
+                    </div>
                   )}
                 </div>
-
-                {page === "customers" && (
-                  <div className="sort-wrapper">
-                    <button
-                      type="button"
-                      className="sort-icon-btn"
-                      title="Sırala"
-                      onClick={() =>
-                        document.getElementById("customer-sort").click()
-                      }
-                    >
-                      <i className="fa-solid fa-arrow-up-wide-short"></i>
-                    </button>
-
-                    <select
-                      id="customer-sort"
-                      value={customerSort}
-                      onChange={(e) => setCustomerSort(e.target.value)}
-                      className="sort-hidden-select"
-                    >
-                      <option value="debt_desc">💸 Borcu En Yüksek</option>
-                      <option value="debt_asc">💰 Borcu En Düşük</option>
-                      <option value="name_asc">🔤 İsim A → Z</option>
-                      <option value="name_desc">🔤 İsim Z → A</option>
-                      <option value="latest">🕒 Son İşlem (En Yeni)</option>
-                    </select>
-                  </div>
-                )}
               </div>
-            </div>
-
-            {/* 👇 customer list continues here */}
+            )}
 
             {/* HOME PAGE */}
             {page === "home" && (
@@ -1061,7 +1083,7 @@ function MainApp({ state, setState, user }) {
                       padding: 10,
                       borderRadius: 10,
                       background:
-                        financialSummary.net > 0 ? "#fef2f2" : "#f0fdf4",
+                        financialSummary.net < 0 ? "#fef2f2" : "#f0fdf4",
                       color: financialSummary.net < 0 ? "#7f1d1d" : "#166534",
                       fontWeight: 600,
                       textAlign: "center",
@@ -1247,6 +1269,11 @@ function MainApp({ state, setState, user }) {
                                       currency={currency}
                                       markJobComplete={markJobComplete} // ✅ ADD THIS LINE
                                       markJobPaid={markJobPaid} // ✅ (optional but good)
+                                      // ✅ ADD THIS (same as completed jobs)
+                                      onOpenActions={(jobId) => {
+                                        setEditingJobId(jobId);
+                                        setJobModalOpen(true);
+                                      }}
                                     />
                                   </div>
                                 ))}
@@ -1294,8 +1321,8 @@ function MainApp({ state, setState, user }) {
                             markJobPaid={markJobPaid} // ✅ THIS FIXES THE ERROR
                             currency={currency} // ✅ ADD THIS
                             onOpenActions={(jobId) => {
-                              setJobActionJobId(jobId);
-                              setJobActionOpen(true);
+                              setEditingJobId(jobId);
+                              setJobModalOpen(true);
                             }}
                           />
                         ))
@@ -1311,7 +1338,7 @@ function MainApp({ state, setState, user }) {
                   {filteredCustomers.length === 0 ? (
                     <div className="card">Henüz müşteri yok.</div>
                   ) : (
-                    filteredCustomers.map((c) => {
+                    visibleCustomerList.map((c) => {
                       const balance = computeCustomerBalance(
                         c.id,
                         state.jobs,
@@ -1377,6 +1404,16 @@ function MainApp({ state, setState, user }) {
                     })
                   )}
                 </div>
+
+                {/* ✅ STEP 5 — LOAD MORE BUTTON (HERE) */}
+                {!search && visibleCustomers < filteredCustomers.length && (
+                  <button
+                    className="load-more-btn"
+                    onClick={() => setVisibleCustomers((n) => n + 10)}
+                  >
+                    Daha fazla yükle
+                  </button>
+                )}
               </div>
             )}
 
@@ -1451,12 +1488,10 @@ function MainApp({ state, setState, user }) {
                           cursor: "pointer",
                         }}
                         onClick={() => {
-                          setCustDetailOpen(false); //  CLOSE customer detail FIRST
-                          setJobModalOpen(false);
-                          setSelectedCustomerId(null);
-
-                          setSelectedVaultId(vault.id);
-                          setVaultDetailOpen(true);
+                          setState((s) => ({
+                            ...s,
+                            activeVaultId: vault.id,
+                          }));
                         }}
                       >
                         <div>
@@ -1496,17 +1531,30 @@ function MainApp({ state, setState, user }) {
                           ) : (
                             <strong
                               style={{ cursor: "pointer" }}
-                              title="Kasa adını düzenle"
-                              onClick={() => {
-                                setEditingVaultId(vault.id);
-                                setEditingVaultName(vault.name);
+                              title="Kasa detayını aç"
+                              onClick={(e) => {
+                                e.stopPropagation(); // 🔒 do not select vault again
+                                setSelectedVaultId(vault.id);
+                                setVaultDetailOpen(true);
                               }}
                             >
                               {vault.name}
                             </strong>
                           )}
 
-                          <div style={{ fontSize: 12, color: "#555" }}>
+                          <div
+                            style={{
+                              fontSize: 12,
+                              color: "#555",
+                              cursor: "pointer",
+                            }}
+                            title="Kasa detayını aç"
+                            onClick={(e) => {
+                              e.stopPropagation(); // 🔒 do not select vault again
+                              setSelectedVaultId(vault.id);
+                              setVaultDetailOpen(true);
+                            }}
+                          >
                             balance:{" "}
                             {(() => {
                               const { net } = getVaultTotals(vault.id);
@@ -1518,34 +1566,7 @@ function MainApp({ state, setState, user }) {
                         {isActive ? (
                           <div className="vault-active-badge">AKTİF</div>
                         ) : (
-                          <div style={{ display: "flex", gap: 6 }}>
-                            <button
-                              className="btn btn-save vault-select-btn"
-                              onClick={(e) => {
-                                e.stopPropagation(); // 🔥 PREVENT vault detail opening
-                                setState((s) => ({
-                                  ...s,
-                                  activeVaultId: vault.id,
-                                }));
-                              }}
-                            >
-                              Seç
-                            </button>
-
-                            <button
-                              className="btn btn-delete vault-select-btn"
-                              onClick={(e) => {
-                                e.stopPropagation(); // 🔥 PREVENT vault detail opening
-                                setVaultDeleteConfirm({
-                                  open: true,
-                                  vaultId: vault.id,
-                                  text: "",
-                                });
-                              }}
-                            >
-                              Sil
-                            </button>
-                          </div>
+                          <div style={{ display: "flex", gap: 6 }}></div>
                         )}
                       </div>
                     );
@@ -1693,16 +1714,10 @@ function MainApp({ state, setState, user }) {
               })
             }
             onEditJob={(jobId) => {
-              setCustDetailOpen(false); // 🔥 CLOSE customer detail
-              setSelectedCustomerId(null);
-
               setEditingJobId(jobId);
               setJobModalOpen(true);
             }}
             onAddJob={() => {
-              setCustDetailOpen(false); // 🔥 CLOSE customer detail
-              setSelectedCustomerId(null);
-
               setEditingJobId(null);
               setJobFixedCustomerId(selectedCustomerId);
               setJobModalOpen(true);
@@ -1753,6 +1768,8 @@ function MainApp({ state, setState, user }) {
             onRenameVault={renameVault}
             payments={state.payments}
             jobs={state.jobs} // ✅ ADD THIS
+            activeVaultId={state.activeVaultId} // ✅ ADD
+            setVaultDeleteConfirm={setVaultDeleteConfirm} // ✅ ADD
           />
           <ProfileModal
             open={profileOpen}
@@ -1770,9 +1787,17 @@ function MainApp({ state, setState, user }) {
               setConfirm({ open: false, type: null, id: null, message: "" })
             }
             onYes={() => {
-              if (confirm.type === "job") deleteJob(confirm.id);
-              if (confirm.type === "customer") deleteCustomer(confirm.id);
+              // ✅ delete job
+              if (confirm.type === "job") {
+                deleteJob(confirm.id);
+              }
 
+              // ✅ delete customer
+              if (confirm.type === "customer") {
+                deleteCustomer(confirm.id);
+              }
+
+              // ✅ delete payment
               if (confirm.type === "payment") {
                 setState((s) => {
                   const nextPayments = (s.payments || []).filter(
@@ -1782,56 +1807,40 @@ function MainApp({ state, setState, user }) {
                   const nextState = {
                     ...s,
                     payments: nextPayments,
-                    // ❌ no customer updates
-                    // ❌ no vault updates
                   };
 
-                  // 🔒 Force persist so deleted payment NEVER comes back
                   saveUserData(auth.currentUser.uid, nextState);
-
                   return nextState;
                 });
               }
 
+              // ⭐⭐ THIS IS STEP 3 ⭐⭐
+              if (confirm.type === "duplicate_customer") {
+                const customer = confirm.payload;
+
+                setState((s) => {
+                  const idx = s.customers.findIndex(
+                    (c) => c.id === customer.id
+                  );
+
+                  const nextCustomers =
+                    idx >= 0
+                      ? s.customers.map((c) =>
+                          c.id === customer.id ? customer : c
+                        )
+                      : [...s.customers, customer];
+
+                  return {
+                    ...s,
+                    customers: nextCustomers,
+                  };
+                });
+              }
+
+              // close modal
               setConfirm({ open: false, type: null, id: null, message: "" });
             }}
           />
-
-          {jobActionOpen && (
-            <ModalBase
-              open={true}
-              title="İş Seçenekleri"
-              onClose={() => setJobActionOpen(false)}
-            >
-              <div style={{ display: "grid", gap: 10 }}>
-                <button
-                  className="btn btn-save"
-                  onClick={() => {
-                    setEditingJobId(jobActionJobId);
-                    setJobActionOpen(false);
-                    setTimeout(() => setJobModalOpen(true), 0);
-                  }}
-                >
-                  <i className="fa-solid fa-pen"></i> Düzenle
-                </button>
-
-                <button
-                  className="btn btn-delete"
-                  onClick={() => {
-                    setJobActionOpen(false);
-                    setConfirm({
-                      open: true,
-                      type: "job",
-                      id: jobActionJobId,
-                      message: "Bu işi silmek istediğinize emin misiniz?",
-                    });
-                  }}
-                >
-                  <i className="fa-solid fa-trash"></i> Sil
-                </button>
-              </div>
-            </ModalBase>
-          )}
 
           {/* vault DELETE CONFIRM MODAL */}
           {vaultDeleteConfirm.open && (
@@ -1879,11 +1888,11 @@ function MainApp({ state, setState, user }) {
                   className="btn btn-delete"
                   disabled={vaultDeleteConfirm.text !== "SIL"}
                   onClick={() => {
-                    setState((s) => {
-                      const vaultId = vaultDeleteConfirm.vaultId;
+                    const vaultId = vaultDeleteConfirm.vaultId;
 
+                    setState((s) => {
                       // 1️⃣ Remove vault
-                      const nextVaults = s.vaults.filter(
+                      const nextVaults = (s.vaults || []).filter(
                         (k) => k.id !== vaultId
                       );
 
@@ -1892,39 +1901,26 @@ function MainApp({ state, setState, user }) {
                         (p) => p.vaultId !== vaultId
                       );
 
-                      setState((s) => {
-                        const vaultId = vaultDeleteConfirm.vaultId;
-
-                        const nextVaults = (s.vaults || []).filter(
-                          (k) => k.id !== vaultId
-                        );
-                        const nextPayments = (s.payments || []).filter(
-                          (p) => p.vaultId !== vaultId
-                        );
-
-                        const nextState = {
-                          ...s,
-                          vaults: nextVaults,
-                          payments: nextPayments,
-                        };
-
-                        saveUserData(auth.currentUser.uid, nextState);
-                        return nextState;
-                      });
+                      // 3️⃣ If deleted vault was active, switch to first remaining
+                      const nextActiveVaultId =
+                        s.activeVaultId === vaultId
+                          ? nextVaults[0]?.id || null
+                          : s.activeVaultId;
 
                       const nextState = {
                         ...s,
                         vaults: nextVaults,
                         payments: nextPayments,
-                        customers: nextCustomers,
+                        activeVaultId: nextActiveVaultId,
                       };
 
-                      //   FORCE SAVE TO FIRESTORE
+                      // 🔒 Persist immediately
                       saveUserData(auth.currentUser.uid, nextState);
 
                       return nextState;
                     });
 
+                    // 4️⃣ Close confirm modal
                     setVaultDeleteConfirm({
                       open: false,
                       vaultId: null,
@@ -1988,7 +1984,11 @@ function JobCard({
   return (
     <div className={jobStatusClass}>
       {/* Folder header row */}
-      <div className="list-item" style={{ gap: 10 }}>
+      <div
+        className="list-item"
+        style={{ gap: 10, cursor: "pointer" }}
+        onClick={() => toggleJobOpen(job.id)}
+      >
         <div style={{ flex: 1 }}>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <button
@@ -2550,6 +2550,8 @@ function VaultDetailModal({
   payments,
   jobs,
   onRenameVault,
+  activeVaultId,
+  setVaultDeleteConfirm,
 }) {
   const [editingName, setEditingName] = useState(false);
   const [vaultName, setVaultName] = useState("");
@@ -2819,6 +2821,29 @@ function VaultDetailModal({
             </div>
           </div>
         </div>
+      </div>
+      <div style={{ marginTop: 20 }}>
+        <button
+          className="btn btn-delete"
+          style={{ width: "100%" }}
+          onClick={() => {
+            // ❌ Prevent deleting active vault
+            if (vault.id === activeVaultId) {
+              alert("Aktif kasa silinemez");
+              return;
+            }
+
+            onClose(); // close detail modal first
+
+            setVaultDeleteConfirm({
+              open: true,
+              vaultId: vault.id,
+              text: "",
+            });
+          }}
+        >
+          <i className="fa-solid fa-trash"></i> Kasayı Sil
+        </button>
       </div>
     </ModalBase>
   );
