@@ -1582,3 +1582,8 @@ textarea {
 .load-more-btn:active {
   transform: scale(0.98);
 }
+
+.job-debt {
+  background: #fef2f2; /* light red */
+  border-left: 6px solid #dc2626;
+}

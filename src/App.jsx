@@ -772,13 +772,6 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
     });
   }
 
-  function markJobPaid(jobId) {
-    setState((s) => ({
-      ...s,
-      jobs: s.jobs.map((j) => (j.id === jobId ? { ...j, isPaid: true } : j)),
-    }));
-  }
-
   function useAndroidBackHandler({ page, setPage, closeAllModals }) {
     const lastBack = useRef(0);
 
@@ -962,25 +955,6 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                     />
-                    <button
-                      className="btn"
-                      style={{
-                        marginTop: 12,
-                        background: "#fee2e2",
-                        color: "#991b1b",
-                      }}
-                      onClick={() => {
-                        if (
-                          window.confirm(
-                            "Eski job kaynaklı tahsilatlar temizlenecek. Emin misiniz?"
-                          )
-                        ) {
-                          cleanupJobPaymentsOnce();
-                        }
-                      }}
-                    >
-                      🧹 Eski Job Tahsilatlarını Temizle (ONE TIME)
-                    </button>
 
                     {search && (
                       <button
@@ -1274,7 +1248,6 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                                       clockOut={clockOut}
                                       currency={currency}
                                       markJobComplete={markJobComplete} // ✅ ADD THIS LINE
-                                      markJobPaid={markJobPaid} // ✅ (optional but good)
                                       // ✅ ADD THIS (same as completed jobs)
                                       onOpenActions={(jobId) => {
                                         setEditingJobId(jobId);
@@ -1310,8 +1283,14 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                     ) : (
                       completedJobs
                         .slice()
-                        .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
-                        .slice(0, 10) // ✅ SHOW ONLY 10
+                        .sort((a, b) => {
+                          const at =
+                            a.createdAt || new Date(a.date || 0).getTime() || 0;
+                          const bt =
+                            b.createdAt || new Date(b.date || 0).getTime() || 0;
+                          return bt - at; // newest first
+                        })
+                        .slice(0, 10)
                         .map((job) => (
                           <JobCard
                             key={job.id}
@@ -1324,7 +1303,6 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                             setJobModalOpen={setJobModalOpen}
                             setConfirm={setConfirm}
                             markJobComplete={markJobComplete}
-                            markJobPaid={markJobPaid} // ✅ THIS FIXES THE ERROR
                             currency={currency} // ✅ ADD THIS
                             onOpenActions={(jobId) => {
                               setEditingJobId(jobId);
@@ -1494,10 +1472,8 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                           cursor: "pointer",
                         }}
                         onClick={() => {
-                          setState((s) => ({
-                            ...s,
-                            activeVaultId: vault.id,
-                          }));
+                          setSelectedVaultId(vault.id);
+                          setVaultDetailOpen(true);
                         }}
                       >
                         <div>
@@ -1535,32 +1511,10 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                               }}
                             />
                           ) : (
-                            <strong
-                              style={{ cursor: "pointer" }}
-                              title="Kasa detayını aç"
-                              onClick={(e) => {
-                                e.stopPropagation(); // 🔒 do not select vault again
-                                setSelectedVaultId(vault.id);
-                                setVaultDetailOpen(true);
-                              }}
-                            >
-                              {vault.name}
-                            </strong>
+                            <strong>{vault.name}</strong>
                           )}
 
-                          <div
-                            style={{
-                              fontSize: 12,
-                              color: "#555",
-                              cursor: "pointer",
-                            }}
-                            title="Kasa detayını aç"
-                            onClick={(e) => {
-                              e.stopPropagation(); // 🔒 do not select vault again
-                              setSelectedVaultId(vault.id);
-                              setVaultDetailOpen(true);
-                            }}
-                          >
+                          <div style={{ fontSize: 12, color: "#555" }}>
                             balance:{" "}
                             {(() => {
                               const { net } = getVaultTotals(vault.id);
@@ -1601,7 +1555,6 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                             createdAt: Date.now(),
                           },
                         ],
-                        activeVaultId: id,
                       }));
                     }}
                   >
@@ -1776,6 +1729,7 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
             jobs={state.jobs} // ✅ ADD THIS
             activeVaultId={state.activeVaultId} // ✅ ADD
             setVaultDeleteConfirm={setVaultDeleteConfirm} // ✅ ADD
+            setState={setState}
           />
           <ProfileModal
             open={profileOpen}
@@ -1955,7 +1909,7 @@ function JobCard({
   setJobModalOpen,
   setConfirm,
   markJobComplete,
-  markJobPaid, // ✅ ADD THIS
+
   currency, // ✅ ADD THIS
   onOpenActions, // ✅ ADD
   hideActions = false, // ✅ ADD THIS LINE
@@ -1977,15 +1931,8 @@ function JobCard({
 
   const total = jobTotalOf(job);
 
-  let jobStatusClass = "job-card";
-
-  if (!job.isCompleted) {
-    jobStatusClass += " job-active";
-  } else if (job.isCompleted && !job.isPaid) {
-    jobStatusClass += " job-unpaid";
-  } else if (job.isCompleted && job.isPaid) {
-    jobStatusClass += " job-paid";
-  }
+  // ✅ Jobs are ALWAYS debt (red)
+  let jobStatusClass = "job-card job-debt";
 
   return (
     <div className={jobStatusClass}>
@@ -2014,13 +1961,7 @@ function JobCard({
 
             <strong>{c ? `${c.name} ${c.surname}` : "Bilinmeyen"}</strong>
 
-            <span className="job-status-badge">
-              {!job.isCompleted
-                ? "Borç"
-                : job.isCompleted && !job.isPaid
-                ? "Bekleyen Ödeme"
-                : "Ödendi"}
-            </span>
+            <span className="job-status-badge debt">Borç</span>
 
             {job.isRunning && <span className="badge">Çalışıyor</span>}
           </div>
@@ -2209,17 +2150,6 @@ function JobCard({
                   }}
                 >
                   İş Tamamla (Borç Ekle)
-                </button>
-              )}
-              {job.isCompleted && !job.isPaid && (
-                <button
-                  className="btn btn-primary green"
-                  onClick={(e) => {
-                    e.stopPropagation(); // ✅ ADD THIS
-                    markJobPaid(job.id);
-                  }}
-                >
-                  Ödeme Tamamlandı
                 </button>
               )}
             </div>
@@ -2558,6 +2488,7 @@ function VaultDetailModal({
   onRenameVault,
   activeVaultId,
   setVaultDeleteConfirm,
+  setState, // ✅ ADD
 }) {
   const [editingName, setEditingName] = useState(false);
   const [vaultName, setVaultName] = useState("");
@@ -2843,6 +2774,24 @@ function VaultDetailModal({
         >
           <i className="fa-solid fa-trash"></i> Kasayı Sil
         </button>
+
+        {vault.id !== activeVaultId && (
+          <div className="btn-row" style={{ marginTop: 12 }}>
+            <button
+              className="btn btn-save"
+              style={{ width: "100%" }}
+              onClick={() => {
+                setState((s) => ({
+                  ...s,
+                  activeVaultId: vault.id,
+                }));
+                onClose();
+              }}
+            >
+              Bu Kasayı Aktif Yap
+            </button>
+          </div>
+        )}
       </div>
     </ModalBase>
   );

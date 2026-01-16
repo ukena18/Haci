@@ -315,6 +315,7 @@ export function JobModal({
   fixedCustomerId = null, // ✅ ADD THIS
 }) {
   const editing = editingJobId ? jobs.find((j) => j.id === editingJobId) : null;
+  const customerBoxRef = useRef(null);
 
   const [draft, setDraft] = useState(() => makeEmptyJob(customers));
   const [customerSearch, setCustomerSearch] = useState("");
@@ -349,13 +350,17 @@ export function JobModal({
   }, [customers, jobs, customerSearch]);
 
   useEffect(() => {
-    function close(e) {
-      if (!e.target.closest(".form-group")) {
+    function handleClickOutside(e) {
+      if (
+        customerBoxRef.current &&
+        !customerBoxRef.current.contains(e.target)
+      ) {
         setCustomerDropdownOpen(false);
       }
     }
-    document.addEventListener("click", close);
-    return () => document.removeEventListener("click", close);
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   useEffect(() => {
@@ -475,7 +480,11 @@ export function JobModal({
       zIndex={1300} // ✅ add this
     >
       {!fixedCustomerId ? (
-        <div className="form-group" style={{ position: "relative" }}>
+        <div
+          className="form-group"
+          ref={customerBoxRef}
+          style={{ position: "relative" }}
+        >
           <label>Müşteri Seç</label>
 
           {/* SEARCH INPUT */}
@@ -1538,15 +1547,7 @@ export function CustomerDetailModal({
                 // JOB ROW
                 // ======================
                 const j = item.data;
-                let jobStatusClass = "job-card";
-
-                if (!j.isCompleted) {
-                  jobStatusClass += " job-active"; // 🔴 active
-                } else if (j.isCompleted && !j.isPaid) {
-                  jobStatusClass += " job-unpaid"; // 🟠 completed unpaid
-                } else if (j.isCompleted && j.isPaid) {
-                  jobStatusClass += " job-paid"; // 🟢 paid
-                }
+                const jobStatusClass = "job-card job-debt";
 
                 const liveMs =
                   j.isRunning && j.clockInAt ? Date.now() - j.clockInAt : 0;
@@ -1568,7 +1569,11 @@ export function CustomerDetailModal({
                   <div
                     key={j.id}
                     className={jobStatusClass}
-                    style={{ cursor: "pointer" }}
+                    style={{
+                      cursor: "pointer",
+                      borderLeft: "6px solid #dc2626",
+                      background: "#fef2f2",
+                    }}
                     onClick={() => onEditJob(j.id)}
                   >
                     <div>

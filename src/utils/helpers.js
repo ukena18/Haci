@@ -180,7 +180,7 @@ export function makeEmptyJob(customers = []) {
     clockOutAt: null,
     workedMs: 0,
     isCompleted: false,
-    isPaid: false,
+
     createdAt: Date.now(),
   };
 }
@@ -189,7 +189,7 @@ export function computeCustomerTotals(customerId, jobs = [], payments = []) {
   let totalDebt = 0;
   let totalPayment = 0;
 
-  // 1️⃣ Explicit transactions
+  // 1) Explicit transactions
   for (const p of payments || []) {
     if (p.customerId !== customerId) continue;
 
@@ -197,13 +197,10 @@ export function computeCustomerTotals(customerId, jobs = [], payments = []) {
     if (p.type === "debt") totalDebt += toNum(p.amount);
   }
 
-  // 2️⃣ Jobs
+  // 2) Jobs are ALWAYS DEBT (no matter isPaid / isCompleted)
   for (const j of jobs || []) {
     if (j.customerId !== customerId) continue;
-
-    if (!j.isPaid) {
-      totalDebt += jobTotalOf(j);
-    }
+    totalDebt += jobTotalOf(j);
   }
 
   return {
