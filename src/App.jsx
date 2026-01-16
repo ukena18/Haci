@@ -962,6 +962,25 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                     />
+                    <button
+                      className="btn"
+                      style={{
+                        marginTop: 12,
+                        background: "#fee2e2",
+                        color: "#991b1b",
+                      }}
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            "Eski job kaynaklı tahsilatlar temizlenecek. Emin misiniz?"
+                          )
+                        ) {
+                          cleanupJobPaymentsOnce();
+                        }
+                      }}
+                    >
+                      🧹 Eski Job Tahsilatlarını Temizle (ONE TIME)
+                    </button>
 
                     {search && (
                       <button
