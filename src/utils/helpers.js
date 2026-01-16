@@ -201,14 +201,8 @@ export function computeCustomerTotals(customerId, jobs = [], payments = []) {
   for (const j of jobs || []) {
     if (j.customerId !== customerId) continue;
 
-    const jobTotal = jobTotalOf(j);
-
-    if (j.isCompleted && j.isPaid) {
-      // ✅ completed + paid → PAYMENT
-      totalPayment += jobTotal;
-    } else {
-      // ❌ active OR completed-unpaid → DEBT
-      totalDebt += jobTotal;
+    if (!j.isPaid) {
+      totalDebt += jobTotalOf(j);
     }
   }
 

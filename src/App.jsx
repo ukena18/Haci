@@ -397,12 +397,8 @@ function MainApp({ state, setState, user }) {
 
     // Jobs
     (state.jobs || []).forEach((job) => {
-      const total = jobTotalOf(job);
-
-      if (job.isCompleted && job.isPaid) {
-        totalPayment += total;
-      } else {
-        totalDebt += total;
+      if (!job.isPaid) {
+        totalDebt += jobTotalOf(job);
       }
     });
 
@@ -464,15 +460,6 @@ function MainApp({ state, setState, user }) {
       if (p.vaultId !== vaultId) return;
       if (p.type === "payment") totalPayment += toNum(p.amount);
       if (p.type === "debt") totalDebt += toNum(p.amount);
-    });
-
-    // ✅ jobs affect vault
-    (state.jobs || []).forEach((j) => {
-      if (j.vaultId !== vaultId) return;
-      const jt = jobTotalOf(j);
-
-      if (j.isPaid) totalPayment += jt;
-      else totalDebt += jt; // ✅ UNPAID JOBS COUNT AS DEBT
     });
 
     return {
@@ -2578,13 +2565,6 @@ function VaultDetailModal({
   vaultPayments.forEach((p) => {
     if (p.type === "payment") totalPayment += toNum(p.amount);
     if (p.type === "debt") totalDebt += toNum(p.amount);
-  });
-
-  // Jobs
-  vaultJobs.forEach((j) => {
-    const jt = jobTotalOf(j);
-    if (j.isPaid) totalPayment += jt;
-    else totalDebt += jt;
   });
 
   const net = totalPayment - totalDebt;

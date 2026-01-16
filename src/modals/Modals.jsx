@@ -1758,7 +1758,7 @@ export function CustomerDetailModal({
                 className="btn btn-delete"
                 onClick={() => deleteTransaction(editTx.id)}
               >
-                <i className="fa-solid fa-trash"></i>
+                <i className="fa-solid fa-trash"></i>Sil
               </button>
 
               <button
