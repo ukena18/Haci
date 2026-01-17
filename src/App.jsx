@@ -943,7 +943,6 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
         <div className="app-frame">
           <div className="container">
             {/* Search bar */}
-            {/* Search bar */}
             {page !== "settings" && (
               <div className="search-sticky">
                 <div className="search-wrap">
@@ -2333,6 +2332,7 @@ function PublicCustomerSharePage() {
         @media print {
           button { display: none; }
         }
+          
       </style>
     </head>
     <body>
@@ -2355,6 +2355,112 @@ function PublicCustomerSharePage() {
 
     w.document.close();
     w.focus();
+  }
+
+  function renderJobForPrint(job, currency) {
+    const hours =
+      job.timeMode === "clock"
+        ? clockHoursOf(job)
+        : job.timeMode === "manual"
+        ? calcHours(job.start, job.end)
+        : 0;
+
+    const laborTotal =
+      job.timeMode === "fixed"
+        ? toNum(job.fixedPrice)
+        : hours * toNum(job.rate);
+
+    const partsTotal = partsTotalOf(job);
+    const grandTotal = laborTotal + partsTotal;
+
+    return `
+  <div class="job-card">
+    <div class="job-card-header">
+      <div>
+        <strong>🛠 İş</strong>
+        <div class="job-date">${job.date || "-"}</div>
+      </div>
+      <div class="job-total">
+        ${money(grandTotal, currency)}
+      </div>
+    </div>
+
+    <div class="job-section">
+      <div class="row">
+        <span>Çalışma Türü</span>
+        <span>
+          ${
+            job.timeMode === "fixed"
+              ? "Sabit Ücret"
+              : job.timeMode === "clock"
+              ? "Saat Giriş / Çıkış"
+              : "Elle Giriş"
+          }
+        </span>
+      </div>
+
+      ${
+        job.timeMode !== "fixed"
+          ? `
+        <div class="row">
+          <span>Süre</span>
+          <span>${hours.toFixed(2)} saat</span>
+        </div>
+        <div class="row">
+          <span>Saatlik Ücret</span>
+          <span>${money(job.rate, currency)}</span>
+        </div>
+        <div class="row highlight">
+          <span>İşçilik</span>
+          <span>${money(laborTotal, currency)}</span>
+        </div>
+      `
+          : `
+        <div class="row highlight">
+          <span>Sabit Ücret</span>
+          <span>${money(job.fixedPrice, currency)}</span>
+        </div>
+      `
+      }
+    </div>
+
+    <div class="job-section">
+      <div class="section-title">Parçalar</div>
+
+      ${
+        job.parts?.length
+          ? job.parts
+              .map(
+                (p) => `
+            <div class="row">
+              <span>${p.name || "Parça"} ${p.qty ? `× ${p.qty}` : ""}</span>
+              <span>${money(partLineTotal(p), currency)}</span>
+            </div>
+          `
+              )
+              .join("") +
+            `
+            <div class="row highlight">
+              <span>Parça Toplamı</span>
+              <span>${money(partsTotal, currency)}</span>
+            </div>
+          `
+          : `<div class="muted">Parça yok</div>`
+      }
+    </div>
+
+    ${
+      job.notes
+        ? `
+      <div class="job-section note">
+        <strong>Not</strong>
+        <div>${job.notes}</div>
+      </div>
+    `
+        : ""
+    }
+  </div>
+  `;
   }
 
   return (
@@ -2509,7 +2615,7 @@ function PublicCustomerSharePage() {
             ) : (
               unifiedHistory.map((item) => {
                 // =====================
-                // PAYMENT / BORÇ ROW
+                // PAYMENT / DEBT  ROW
                 // =====================
                 if (item.kind === "payment") {
                   const p = item.data;
@@ -2567,53 +2673,15 @@ function PublicCustomerSharePage() {
                 }
 
                 // =====================
-                // JOB ROW
+                // JOB ROW (PRINT — DETAILED)
                 // =====================
-                const j = item.data;
-                const total = jobTotalOf(j);
-
-                const hours =
-                  j.timeMode === "clock"
-                    ? clockHoursOf(j)
-                    : j.timeMode === "manual"
-                    ? calcHours(j.start, j.end)
-                    : 0;
-
                 return (
                   <div
                     key={item.id}
-                    className="card list-item"
-                    style={{
-                      borderLeft: "6px solid #2563eb",
-                      background: "#f8fafc",
-                      alignItems: "center",
+                    dangerouslySetInnerHTML={{
+                      __html: renderJobForPrint(item.data, currency),
                     }}
-                  >
-                    <div style={{ flex: 1 }}>
-                      <strong>
-                        <i className="fa-solid fa-briefcase"></i> İş
-                      </strong>
-                      <div
-                        style={{ fontSize: 12, color: "#777", marginTop: 4 }}
-                      >
-                        {j.date} •{" "}
-                        <b>
-                          {j.timeMode === "clock"
-                            ? "Saat Giriş / Çıkış"
-                            : j.timeMode === "manual"
-                            ? "Elle Giriş"
-                            : "Sabit Ücret"}
-                        </b>
-                        {j.timeMode !== "fixed" && (
-                          <> • {hours.toFixed(2)} saat</>
-                        )}
-                      </div>
-                    </div>
-
-                    <div style={{ fontWeight: 700, color: "#2563eb" }}>
-                      {money(total, currency)}
-                    </div>
-                  </div>
+                  />
                 );
               })
             )}

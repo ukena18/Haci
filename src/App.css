@@ -1689,3 +1689,60 @@ textarea {
   font-size: 12px;
   color: #6b7280;
 }
+
+.job-card {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 16px;
+  border-left: 6px solid #2563eb;
+}
+
+.job-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.job-date {
+  font-size: 12px;
+  color: #666;
+}
+
+.job-total {
+  font-size: 18px;
+  font-weight: 700;
+  color: #2563eb;
+}
+
+.job-section {
+  margin-top: 10px;
+  font-size: 13px;
+}
+
+.section-title {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+}
+
+.row.highlight {
+  font-weight: 600;
+}
+
+.muted {
+  font-size: 12px;
+  color: #777;
+}
+
+.note {
+  background: #f9fafb;
+  padding: 10px;
+  border-radius: 10px;
+}
