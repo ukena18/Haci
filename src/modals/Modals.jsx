@@ -460,6 +460,10 @@ export function JobModal({
     // Save with cleaned numeric fields
     onSave({
       ...draft,
+
+      // ✅ persist fixed job duration
+      fixedDays: draft.timeMode === "fixed" ? workingDays : null,
+
       rate: toNum(draft.rate),
       parts: (draft.parts || []).map((p) => ({
         ...p,
@@ -1003,6 +1007,19 @@ export function CustomerDetailModal({
     return (vaults || []).find((k) => k.id === id)?.name || "—";
   }
 
+  function jobMetaLine(j, hours) {
+    if (j.timeMode === "fixed") {
+      return `${j.date} • Sabit Ücret`;
+    }
+
+    if (j.timeMode === "clock") {
+      return `${j.date} • Saat Giriş/Çıkış • ${hours.toFixed(2)} saat`;
+    }
+
+    // manual
+    return `${j.date} • Elle Giriş • ${hours.toFixed(2)} saat`;
+  }
+
   function buildShareText() {
     if (!customer) return "";
 
@@ -1113,6 +1130,13 @@ export function CustomerDetailModal({
       })
       .sort((a, b) => b.createdAt - a.createdAt);
   }, [payments, customer, fromDate, toDate]);
+
+  function jobTimeModeLabel(j) {
+    if (j.timeMode === "manual") return "Elle Giriş";
+    if (j.timeMode === "clock") return "Saat Giriş / Çıkış";
+    if (j.timeMode === "fixed") return "Sabit Ücret";
+    return "İş";
+  }
 
   const unifiedHistory = useMemo(() => {
     if (!customer) return [];
@@ -1507,17 +1531,19 @@ export function CustomerDetailModal({
                           )}
                         </strong>
 
-                        {p.note && (
-                          <div
-                            style={{
-                              fontSize: 12,
-                              color: "#555",
-                              marginTop: 4,
-                            }}
-                          >
-                            {p.note}
-                          </div>
-                        )}
+                        {p.note &&
+                          p.note !== "Tahsilat" &&
+                          p.note !== "Borç" && (
+                            <div
+                              style={{
+                                fontSize: 12,
+                                color: "#555",
+                                marginTop: 4,
+                              }}
+                            >
+                              {p.note}
+                            </div>
+                          )}
 
                         <div style={{ fontSize: 12, color: "#777" }}>
                           {p.date}
@@ -1547,11 +1573,9 @@ export function CustomerDetailModal({
                 // JOB ROW
                 // ======================
                 const j = item.data;
-                const jobStatusClass = "job-card job-debt";
 
                 const liveMs =
                   j.isRunning && j.clockInAt ? Date.now() - j.clockInAt : 0;
-                const totalMs = (j.workedMs || 0) + liveMs;
 
                 const total = jobTotalOf(j);
 
@@ -1568,27 +1592,67 @@ export function CustomerDetailModal({
                 return (
                   <div
                     key={j.id}
-                    className={jobStatusClass}
+                    className="card list-item"
                     style={{
-                      cursor: "pointer",
                       borderLeft: "6px solid #dc2626",
                       background: "#fef2f2",
+                      cursor: "pointer",
                     }}
                     onClick={() => onEditJob(j.id)}
                   >
                     <div>
-                      <strong>{j.date}</strong>
-                      <br />
-                      <small>
-                        {j.start || "--:--"}-{j.end || "--:--"} |{" "}
-                        {hours.toFixed(2)} saat
-                      </small>
+                      <strong style={{ color: "#7f1d1d" }}>
+                        <i className="fa-solid fa-briefcase"></i> İş
+                      </strong>
+
+                      <div style={{ fontSize: 12, color: "#777" }}>
+                        {j.date}
+                        {" • "}
+                        <b>{jobTimeModeLabel(j)}</b>
+
+                        {/* CLOCK → total hours */}
+                        {j.timeMode === "clock" && (
+                          <>
+                            {" • "}
+                            {hours.toFixed(2)} saat
+                          </>
+                        )}
+
+                        {/* MANUAL → entered hours */}
+                        {j.timeMode === "manual" && (
+                          <>
+                            {" • "}
+                            {hours.toFixed(2)} saat
+                          </>
+                        )}
+
+                        {/* FIXED → always 1 day */}
+                        {j.timeMode === "fixed" && j.fixedDays != null && (
+                          <>
+                            {" • "}
+                            {j.fixedDays} gün
+                          </>
+                        )}
+                      </div>
+
+                      {/* optional: job note, same style as payment note */}
+                      {j.notes && (
+                        <div
+                          style={{ fontSize: 12, color: "#555", marginTop: 4 }}
+                        >
+                          {j.notes}
+                        </div>
+                      )}
                     </div>
 
-                    <div style={{ textAlign: "right" }}>
-                      <strong style={{ color: "var(--primary)" }}>
-                        {money(total, currency)}
-                      </strong>
+                    <div
+                      style={{
+                        fontWeight: 700,
+                        color: "#dc2626",
+                        fontSize: 12,
+                      }}
+                    >
+                      -{money(total, currency)}
                     </div>
                   </div>
                 );

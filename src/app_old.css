@@ -125,17 +125,19 @@ body {
   gap: 4px;
 }
 
+.nav-item.active {
+  color: var(--primary);
+}
+
+/* Cards */
 .card {
   background: var(--grad-card);
   border-radius: var(--radius-lg);
   padding: 14px;
   margin-bottom: 12px;
+  box-shadow: var(--shadow-md);
   font-size: 12px;
-
-  box-shadow: none;
-  border: 1px solid #e5e7eb;
 }
-
 /* 👤 Admin Profile */
 .admin-profile {
   background: linear-gradient(180deg, #ffffff, #f8fafc);
@@ -272,7 +274,6 @@ body {
 }
 
 .modal-content {
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
   background: white;
   padding: 20px;
   width: 90%;
@@ -337,7 +338,7 @@ textarea {
   width: 100%;
   padding: 10px;
   border: 1px solid #ddd;
-  border-radius: var(--radius-md);
+  border-radius: 5px;
   box-sizing: border-box;
 }
 
@@ -349,10 +350,14 @@ textarea {
 .btn {
   padding: 10px 15px;
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: 5px;
   cursor: pointer;
   flex: 1;
-  font-weight: 700;
+  font-weight: bold;
+}
+
+.btn {
+  border-radius: 12px;
   font-size: 14px;
 }
 
@@ -678,6 +683,11 @@ textarea {
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
 }
 
+/* Softer primary actions */
+.btn-primary.green {
+  background: linear-gradient(135deg, #22c55e, #15803d);
+}
+
 .btn-primary.red {
   background: linear-gradient(135deg, #f87171, #b91c1c);
 }
@@ -876,14 +886,6 @@ textarea {
   transition: background 0.15s ease, transform 0.05s ease;
 }
 
-.history-card .list-item {
-  border: 1px solid transparent;
-}
-
-.history-card .list-item:hover {
-  border-color: #e5e7eb;
-}
-
 .list-item:active {
   transform: scale(0.99);
 }
@@ -900,6 +902,14 @@ textarea {
   align-items: center;
   justify-content: center;
   z-index: 9999;
+}
+
+.modal {
+  background: white;
+  width: 92%;
+  max-width: 420px;
+  border-radius: 14px;
+  padding: 16px;
 }
 
 /* =========================
@@ -969,6 +979,14 @@ textarea {
   margin: 12px 0 14px;
 }
 
+.cust-stat {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 10px 10px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+}
+
 .stat-label {
   font-size: 11px;
   color: #6b7280;
@@ -1001,6 +1019,96 @@ textarea {
   }
   .stat-value {
     font-size: 12px;
+  }
+}
+
+/* ================================
+   CONFIRM DELETE MODAL STYLING
+================================ */
+
+.confirm-modal .modal-content {
+  max-width: 420px;
+  width: calc(100% - 32px);
+  margin: auto;
+  border-radius: 16px;
+  padding: 20px;
+  animation: modalPop 0.2s ease-out;
+}
+
+/* Title row (ONLY confirm modal) */
+.confirm-modal .modal-content h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #991b1b; /* dark red */
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Message text */
+.modal .modal-content p {
+  margin-top: 12px;
+  font-size: 14px;
+  color: #444;
+  line-height: 1.4;
+}
+
+/* Buttons row */
+.modal .btn-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+/* Cancel button */
+.confirm-modal .btn-cancel {
+  flex: 1;
+  background: #e5e7eb;
+  color: #374151;
+  border-radius: 10px;
+  padding: 12px;
+  font-weight: 600;
+}
+
+/* Delete / Yes button */
+.confirm-modal .btn-delete {
+  flex: 1;
+  background: #dc2626;
+  color: white;
+  border-radius: 10px;
+  padding: 12px;
+  font-weight: 700;
+}
+
+.modal .btn-delete:hover {
+  background: #b91c1c;
+}
+
+/* Disabled delete */
+.modal .btn-delete:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Input (for SIL confirmation) */
+.confirm-modal input {
+  width: 100%;
+  margin-top: 8px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  font-size: 14px;
+}
+
+/* Animation */
+@keyframes modalPop {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
   }
 }
 
@@ -1100,6 +1208,11 @@ textarea {
 
 .history-card .list-item .red {
   color: #b91c1c;
+}
+
+/* Reduce visual noise */
+.card {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
 }
 
 .cust-stat {
@@ -1268,6 +1381,40 @@ textarea {
   line-height: 1;
 }
 
+/* ✅ ACTIVE STATE */
+.nav-item.active {
+  background: #e0e7ff; /* soft blue pill */
+  color: #2563eb; /* strong blue */
+}
+.nav-item:not(.active) .nav-label {
+  opacity: 0.6;
+}
+
+/* Optional top indicator */
+.nav-item.active::before {
+  content: "";
+  position: absolute;
+  top: 4px;
+  width: 24px;
+  height: 3px;
+  border-radius: 999px;
+  background: #2563eb;
+}
+
+/* Touch feedback */
+.nav-item:active {
+  transform: scale(0.96);
+}
+
+.nav-item.active::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #2563eb;
+  margin-top: 2px;
+}
+
 .nav-item.active {
   background: var(--primary-soft);
   color: var(--primary);
@@ -1335,6 +1482,19 @@ textarea {
 
 .bottom-nav {
   pointer-events: auto;
+}
+
+.time-mode-info {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+
+  background: #f1f5ff; /* soft blue-gray */
+  border: 1px solid #e0e7ff;
+
+  color: #334155; /* slate text */
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .time-mode-row {
