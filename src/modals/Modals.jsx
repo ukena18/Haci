@@ -1408,29 +1408,27 @@ export function CustomerDetailModal({
                 </h3>
 
                 <div className="customer-meta">
-                  <a
-                    href={`tel:${customer.phone}`}
-                    style={{
-                      color: "inherit",
-                      textDecoration: "none",
-                      fontWeight: 600,
-                    }}
-                  >
-                    <i className="fa-solid fa-phone"> </i>
-                    {customer.phone}
-                  </a>
+                  {customer.phone && (
+                    <div className="customer-meta-line">
+                      <a
+                        href={`tel:${customer.phone}`}
+                        style={{
+                          color: "inherit",
+                          textDecoration: "none",
+                          fontWeight: 600,
+                        }}
+                      >
+                        <i className="fa-solid fa-phone"></i> {customer.phone}
+                      </a>
+                    </div>
+                  )}
 
-                  {"       "}
-                  <span
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 6,
-                    }}
-                  >
-                    <i className="fa-solid fa-location-dot"></i>
-                    {customer.address}
-                  </span>
+                  {customer.address && (
+                    <div className="customer-meta-line">
+                      <i className="fa-solid fa-location-dot"></i>{" "}
+                      {customer.address}
+                    </div>
+                  )}
                 </div>
 
                 <div className="cust-meta">
@@ -2116,6 +2114,16 @@ export function ProfileModal({ open, onClose, user, profile, setState }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const [showCalendar, setShowCalendar] = useState(
+    profile?.settings?.showCalendar !== false
+  );
+
+  useEffect(() => {
+    if (!open) return;
+
+    setShowCalendar(profile?.settings?.showCalendar !== false);
+  }, [open, profile]);
+
   useEffect(() => {
     if (!open) return;
 
@@ -2187,8 +2195,13 @@ export function ProfileModal({ open, onClose, user, profile, setState }) {
       // ✅ SAVE extra profile fields to Firestore
       await saveUserData(user.uid, {
         profile: {
+          ...(profile || {}),
           phone,
           address,
+          settings: {
+            ...(profile?.settings || {}),
+            showCalendar,
+          },
         },
       });
 
@@ -2199,6 +2212,10 @@ export function ProfileModal({ open, onClose, user, profile, setState }) {
           ...(s.profile || {}),
           phone,
           address,
+          settings: {
+            ...(s.profile?.settings || {}),
+            showCalendar,
+          },
         },
       }));
 
@@ -2264,6 +2281,33 @@ export function ProfileModal({ open, onClose, user, profile, setState }) {
         />
       </div>
 
+      <div className="card settings-card">
+        <strong>Uygulama Ayarları</strong>
+
+        <button
+          type="button"
+          className={`settings-toggle ${showCalendar ? "active" : ""}`}
+          onClick={() => setShowCalendar((v) => !v)}
+        >
+          <span className="left">
+            <i
+              className={`fa-solid ${
+                showCalendar ? "fa-calendar-days" : "fa-calendar-xmark"
+              }`}
+            />
+            Takvim
+          </span>
+
+          <span className="pill" />
+        </button>
+
+        <div className="settings-hint">
+          {showCalendar
+            ? "Takvim menüde ve ana ekranda görünür."
+            : "Takvim tamamen gizlenir."}
+        </div>
+      </div>
+
       <hr />
 
       <div className="form-group">
@@ -2311,5 +2355,351 @@ export function ProfileModal({ open, onClose, user, profile, setState }) {
         </button>
       </div>
     </ModalBase>
+  );
+}
+
+export function CalendarPage({ jobs = [], customers = [] }) {
+  const [view, setView] = React.useState("monthly"); // daily | weekly | monthly
+  const [referenceDate, setReferenceDate] = React.useState(new Date());
+  const [selectedDate, setSelectedDate] = React.useState(
+    new Date().toISOString().slice(0, 10)
+  );
+
+  const WEEKDAYS = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
+
+  /* =============================
+     HELPERS
+  ============================= */
+
+  function formatDate(date) {
+    const d = new Date(date);
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${d.getFullYear()}-${m}-${day}`;
+  }
+
+  function formatDayHeader(dateStr) {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString("tr-TR", {
+      weekday: "long",
+      day: "numeric",
+      month: "short",
+    });
+  }
+
+  function groupJobsByDate(jobsArray) {
+    return jobsArray.reduce((acc, job) => {
+      if (!acc[job.date]) acc[job.date] = [];
+      acc[job.date].push(job);
+      return acc;
+    }, {});
+  }
+
+  function getJobTimeLabel(job) {
+    // Has valid time
+    if (job.start && job.end) {
+      return `${job.start} – ${job.end}`;
+    }
+
+    // Explicit time modes (if you use them)
+    if (job.timeMode === "manual") {
+      return "Saat girilmedi";
+    }
+
+    if (job.timeMode === "fixed") {
+      return "Sabit ücret";
+    }
+
+    // Safe fallback
+    return "Zamanlama bekleniyor";
+  }
+
+  /* =============================
+     NAVIGATION (← →)
+  ============================= */
+
+  function changePeriod(step) {
+    const d = new Date(referenceDate);
+
+    if (view === "daily") d.setDate(d.getDate() + step);
+    if (view === "weekly") d.setDate(d.getDate() + step * 7);
+    if (view === "monthly") d.setMonth(d.getMonth() + step);
+
+    setReferenceDate(d);
+    setSelectedDate(formatDate(d));
+  }
+
+  /* =============================
+     FILTER VISIBLE JOBS
+  ============================= */
+
+  const visibleJobs = React.useMemo(() => {
+    if (view === "daily") {
+      return jobs.filter((j) => j.date === selectedDate);
+    }
+
+    if (view === "weekly") {
+      const start = new Date(referenceDate);
+      start.setDate(start.getDate() - ((start.getDay() || 7) - 1));
+
+      const days = Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(start);
+        d.setDate(start.getDate() + i);
+        return formatDate(d);
+      });
+
+      return jobs.filter((j) => days.includes(j.date));
+    }
+
+    // monthly
+    return jobs.filter((j) => {
+      const d = new Date(j.date);
+      return (
+        d.getMonth() === referenceDate.getMonth() &&
+        d.getFullYear() === referenceDate.getFullYear()
+      );
+    });
+  }, [jobs, view, referenceDate, selectedDate]);
+
+  const groupedVisibleJobs = React.useMemo(() => {
+    if (view === "daily") return null;
+    return groupJobsByDate(visibleJobs);
+  }, [visibleJobs, view]);
+
+  const hasGroupedJobs =
+    groupedVisibleJobs && Object.keys(groupedVisibleJobs).length > 0;
+
+  /* =============================
+     RENDER
+  ============================= */
+
+  return (
+    <div className="container">
+      {/* VIEW SWITCH */}
+      <div className="view-switcher">
+        {[
+          { k: "daily", l: "Günlük" },
+          { k: "weekly", l: "Haftalık" },
+          { k: "monthly", l: "Aylık" },
+        ].map((v) => (
+          <button
+            key={v.k}
+            className={`view-btn ${view === v.k ? "active" : ""}`}
+            onClick={() => setView(v.k)}
+          >
+            {v.l}
+          </button>
+        ))}
+      </div>
+
+      {/* CALENDAR */}
+      <div className="calendar-container">
+        <div className="calendar-header">
+          <button className="btn" onClick={() => changePeriod(-1)}>
+            ‹
+          </button>
+
+          <strong>
+            {view === "monthly" &&
+              referenceDate.toLocaleDateString("tr-TR", {
+                month: "long",
+                year: "numeric",
+              })}
+
+            {view === "weekly" &&
+              referenceDate.toLocaleDateString("tr-TR", {
+                day: "numeric",
+                month: "short",
+              }) + " Haftası"}
+
+            {view === "daily" && referenceDate.toLocaleDateString("tr-TR")}
+          </strong>
+
+          <button className="btn" onClick={() => changePeriod(1)}>
+            ›
+          </button>
+        </div>
+
+        {/* MONTHLY GRID */}
+        {view === "monthly" && (
+          <>
+            <div className="weekday-row">
+              {WEEKDAYS.map((d) => (
+                <div key={d}>{d}</div>
+              ))}
+            </div>
+
+            <div className="calendar-grid grid-monthly">
+              {(() => {
+                const firstDay = new Date(
+                  referenceDate.getFullYear(),
+                  referenceDate.getMonth(),
+                  1
+                );
+                const offset = (firstDay.getDay() + 6) % 7;
+                const daysInMonth = new Date(
+                  referenceDate.getFullYear(),
+                  referenceDate.getMonth() + 1,
+                  0
+                ).getDate();
+
+                const cells = [];
+
+                for (let i = 0; i < offset; i++) {
+                  cells.push(<div key={`e-${i}`} />);
+                }
+
+                for (let d = 1; d <= daysInMonth; d++) {
+                  const dateObj = new Date(
+                    referenceDate.getFullYear(),
+                    referenceDate.getMonth(),
+                    d
+                  );
+                  const dStr = formatDate(dateObj);
+                  const hasJob = jobs.some((j) => j.date === dStr);
+
+                  cells.push(
+                    <div
+                      key={dStr}
+                      className={`calendar-day ${
+                        dStr === selectedDate ? "selected" : ""
+                      }`}
+                      onClick={() => setSelectedDate(dStr)}
+                    >
+                      <div>{d}</div>
+                      {hasJob && <small>•</small>}
+                    </div>
+                  );
+                }
+
+                return cells;
+              })()}
+            </div>
+          </>
+        )}
+
+        {/* WEEKLY GRID */}
+        {view === "weekly" && (
+          <>
+            <div className="weekday-row">
+              {WEEKDAYS.map((d) => (
+                <div key={d}>{d}</div>
+              ))}
+            </div>
+
+            <div className="calendar-grid grid-weekly">
+              {Array.from({ length: 7 }, (_, i) => {
+                const start = new Date(referenceDate);
+                start.setDate(start.getDate() - ((start.getDay() || 7) - 1));
+                const d = new Date(start);
+                d.setDate(start.getDate() + i);
+
+                const dStr = formatDate(d);
+                const hasJob = jobs.some((j) => j.date === dStr);
+
+                return (
+                  <div
+                    key={dStr}
+                    className={`calendar-day ${
+                      dStr === selectedDate ? "selected" : ""
+                    }`}
+                    onClick={() => setSelectedDate(dStr)}
+                  >
+                    <div>{d.getDate()}</div>
+                    {hasJob && <small>•</small>}
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* PROGRAM */}
+      <h4 style={{ marginTop: 16 }}>Program</h4>
+
+      {/* DAILY */}
+      {view === "daily" &&
+        (visibleJobs.length === 0 ? (
+          <div className="card">Bu tarih için iş yok.</div>
+        ) : (
+          visibleJobs.map((job) => {
+            const customer = customers.find((c) => c.id === job.customerId);
+
+            return (
+              <div key={job.id} className="card">
+                <strong>
+                  {customer
+                    ? `${customer.name} ${customer.surname}`
+                    : "Müşteri"}
+                </strong>
+                <div
+                  style={{
+                    fontSize: 13,
+                    color:
+                      job.start && job.end
+                        ? "#15803d" // green
+                        : "#b45309", // amber
+                  }}
+                >
+                  {getJobTimeLabel(job)}
+                </div>
+              </div>
+            );
+          })
+        ))}
+
+      {/* WEEKLY / MONTHLY */}
+      {view !== "daily" && (
+        <>
+          {!hasGroupedJobs && <div className="card">Bu dönem için iş yok.</div>}
+
+          {hasGroupedJobs &&
+            Object.keys(groupedVisibleJobs)
+              .sort()
+              .map((date) => (
+                <div key={date} style={{ marginBottom: 14 }}>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: "#374151",
+                      margin: "10px 4px 6px",
+                    }}
+                  >
+                    {formatDayHeader(date)}
+                  </div>
+
+                  {groupedVisibleJobs[date].map((job) => {
+                    const customer = customers.find(
+                      (c) => c.id === job.customerId
+                    );
+
+                    return (
+                      <div key={job.id} className="card">
+                        <strong>
+                          {customer
+                            ? `${customer.name} ${customer.surname}`
+                            : "Müşteri"}
+                        </strong>
+                        <div
+                          style={{
+                            fontSize: 13,
+                            color:
+                              job.start && job.end
+                                ? "#15803d" // green
+                                : "#b45309", // amber
+                          }}
+                        >
+                          {getJobTimeLabel(job)}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+        </>
+      )}
+    </div>
   );
 }

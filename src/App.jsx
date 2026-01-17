@@ -41,6 +41,7 @@ import {
   CustomerDetailModal,
   PaymentActionModal,
   ProfileModal,
+  CalendarPage,
 } from "./modals/Modals.jsx";
 
 import {
@@ -314,6 +315,8 @@ function MainApp({ state, setState, user }) {
   }
 
   const currency = state.currency || "TRY";
+
+  const showCalendar = state.profile?.settings?.showCalendar !== false;
 
   const activeVault = useMemo(() => {
     return (
@@ -923,12 +926,11 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
   ============================================================ */
   function onFabClick() {
     if (page === "home") {
-      setEditingJobId(null);
-      setJobFixedCustomerId(null); // ✅ allow selecting custome
       setJobModalOpen(true);
     } else if (page === "customers") {
-      setEditingCustId(null);
       setCustModalOpen(true);
+    } else if (page === "calendar") {
+      setJobModalOpen(true); // calendar add job
     }
   }
 
@@ -1455,6 +1457,10 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
               </div>
             )}
 
+            {page === "calendar" && showCalendar && (
+              <CalendarPage jobs={state.jobs} customers={state.customers} />
+            )}
+
             {/* SETTINGS PAGE */}
             {page === "settings" && (
               <div id="page-settings">
@@ -1649,6 +1655,18 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
 
               <span className="nav-label">Müşteriler</span>
             </button>
+
+            {showCalendar && (
+              <button
+                className={`nav-item ${page === "calendar" ? "active" : ""}`}
+                onClick={() => setPage("calendar")}
+              >
+                <span className="nav-icon">
+                  <i className="fa-solid fa-calendar-days"></i>
+                </span>
+                <span className="nav-label">Takvim</span>
+              </button>
+            )}
 
             <button
               className={`nav-item ${page === "settings" ? "active" : ""}`}
@@ -2229,6 +2247,8 @@ function PublicCustomerSharePage() {
   const [snap, setSnap] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const printRef = useRef(null);
+
   useEffect(() => {
     async function load() {
       try {
@@ -2260,30 +2280,244 @@ function PublicCustomerSharePage() {
   const currency = snap.currency || "TRY";
   const balance = computeCustomerBalance(customer.id, jobs, payments);
 
+  const totalPayment = payments
+    .filter((p) => p.type === "payment")
+    .reduce((sum, p) => sum + toNum(p.amount), 0);
+
+  const totalDebt =
+    payments
+      .filter((p) => p.type === "debt")
+      .reduce((sum, p) => sum + toNum(p.amount), 0) +
+    jobs.reduce((sum, j) => sum + jobTotalOf(j), 0);
+
+  // ✅ MIX jobs + payments into ONE historic timeline
+  const unifiedHistory = [
+    // payments
+    ...payments.map((p) => ({
+      kind: "payment",
+      id: `p_${p.id}`,
+      sortKey: p.createdAt || new Date(p.date || 0).getTime() || 0,
+      data: p,
+    })),
+
+    // jobs
+    ...jobs.map((j) => ({
+      kind: "job",
+      id: `j_${j.id}`,
+      sortKey: j.createdAt || new Date(j.date || 0).getTime() || 0,
+      data: j,
+    })),
+  ].sort((a, b) => b.sortKey - a.sortKey);
+
+  function printPage() {
+    const html = printRef.current?.innerHTML;
+    if (!html) return;
+
+    const w = window.open("", "_blank");
+    if (!w) {
+      alert("Popup engellendi");
+      return;
+    }
+
+    w.document.write(`
+    <!doctype html>
+    <html>
+    <head>
+      <meta charset="utf-8"/>
+      <title>Müşteri İş Dökümü</title>
+      <style>
+        body { font-family: system-ui, -apple-system, Segoe UI; padding: 24px; }
+        h1 { margin-bottom: 6px; }
+        .right { text-align: right; }
+        .card { border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+        @media print {
+          button { display: none; }
+        }
+      </style>
+    </head>
+    <body>
+      <button onclick="window.print()" style="
+        margin-bottom:16px;
+        padding:10px 14px;
+        background:#2563eb;
+        color:white;
+        border:none;
+        border-radius:8px;
+        font-weight:600;
+        cursor:pointer;">
+        Yazdır / PDF Kaydet
+      </button>
+
+      ${html}
+    </body>
+    </html>
+  `);
+
+    w.document.close();
+    w.focus();
+  }
+
   return (
     <>
-      <div className="header">
-        <h2>Müşteri İş Geçmişi</h2>
-        <div style={{ fontSize: "0.9rem", marginTop: 5 }}>
-          {customer.name} {customer.surname} — Borç:{" "}
-          <strong>{money(balance, currency)}</strong>
+      <div
+        className="header"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+        }}
+      >
+        {/* LEFT SIDE (TEXT) */}
+        <div style={{ flex: 1 }}>
+          <h2>Müşteri İş Geçmişi</h2>
+
+          <div style={{ fontSize: "0.9rem", marginTop: 5 }}>
+            <strong>
+              {customer.name} {customer.surname}
+            </strong>{" "}
+            — Borç: <strong>{money(balance, currency)}</strong>
+          </div>
+
+          {customer.phone && (
+            <div style={{ marginTop: 6, fontSize: "0.85rem" }}>
+              <i className="fa-solid fa-phone"></i>{" "}
+              <a
+                href={`tel:${customer.phone}`}
+                style={{
+                  color: "inherit",
+                  textDecoration: "none",
+                  fontWeight: 600,
+                }}
+              >
+                {customer.phone}
+              </a>
+            </div>
+          )}
+
+          {customer.address && (
+            <div
+              style={{
+                marginTop: 4,
+                fontSize: "0.85rem",
+                color: "rgba(255,255,255,0.9)",
+                whiteSpace: "normal",
+                overflowWrap: "anywhere",
+              }}
+            >
+              <i className="fa-solid fa-location-dot"></i> {customer.address}
+            </div>
+          )}
+        </div>
+
+        {/* RIGHT SIDE (PRINT BUTTON) */}
+        <button
+          onClick={printPage}
+          style={{
+            height: 40,
+            padding: "0 16px",
+            borderRadius: 10,
+            border: "none",
+            background: "rgba(255,255,255,0.15)",
+            color: "white",
+            fontWeight: 600,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            whiteSpace: "nowrap",
+          }}
+        >
+          <i className="fa-solid fa-print"></i>
+          Yazdır
+        </button>
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+          gap: 12,
+          margin: "16px",
+        }}
+      >
+        {/* TOPLAM TAHSİLAT */}
+        <div
+          className="card"
+          style={{
+            background: "#f0fdf4",
+            textAlign: "center",
+            padding: 14,
+          }}
+        >
+          <div style={{ fontSize: 12, color: "#166534" }}>Toplam Tahsilat</div>
+          <strong style={{ color: "#16a34a", fontSize: 16 }}>
+            +{money(totalPayment, currency)}
+          </strong>
+        </div>
+
+        {/* TOPLAM BORÇ */}
+        <div
+          className="card"
+          style={{
+            background: "#fef2f2",
+            textAlign: "center",
+            padding: 14,
+          }}
+        >
+          <div style={{ fontSize: 12, color: "#7f1d1d" }}>Toplam Borç</div>
+          <strong style={{ color: "#dc2626", fontSize: 16 }}>
+            -{money(totalDebt, currency)}
+          </strong>
+        </div>
+
+        {/* BAKİYE */}
+        <div
+          className="card"
+          style={{
+            background: balance >= 0 ? "#eff6ff" : "#fef2f2",
+            textAlign: "center",
+            padding: 14,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 12,
+              color: balance >= 0 ? "#1e40af" : "#7f1d1d",
+            }}
+          >
+            Bakiye
+          </div>
+          <strong
+            style={{
+              fontSize: 16,
+              color: balance >= 0 ? "#2563eb" : "#dc2626",
+            }}
+          >
+            {money(balance, currency)}
+          </strong>
         </div>
       </div>
 
       <div className="container">
-        <div style={{ marginTop: 12 }}>
-          {payments.length > 0 && (
-            <div style={{ marginBottom: 16 }}>
-              <h3 style={{ marginTop: 0 }}>💰 Tahsilat / Borç Geçmişi</h3>
+        <div ref={printRef}>
+          <div style={{ marginTop: 12 }}>
+            <h3 style={{ marginTop: 0 }}>📜 İşlem Geçmişi</h3>
 
-              {payments
-                .slice()
-                .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
-                .map((p) => {
+            {unifiedHistory.length === 0 ? (
+              <div className="card">Kayıt yok.</div>
+            ) : (
+              unifiedHistory.map((item) => {
+                // =====================
+                // PAYMENT / BORÇ ROW
+                // =====================
+                if (item.kind === "payment") {
+                  const p = item.data;
                   const isPayment = p.type === "payment";
+
                   return (
                     <div
-                      key={p.id}
+                      key={item.id}
                       className="card list-item"
                       style={{
                         borderLeft: `6px solid ${
@@ -2313,6 +2547,7 @@ function PublicCustomerSharePage() {
                             {p.note}
                           </div>
                         )}
+
                         <div style={{ fontSize: 12, color: "#777" }}>
                           {p.date}
                         </div>
@@ -2329,46 +2564,60 @@ function PublicCustomerSharePage() {
                       </div>
                     </div>
                   );
-                })}
-            </div>
-          )}
+                }
 
-          {jobs.length === 0 ? (
-            <div className="card">İş kaydı yok.</div>
-          ) : (
-            jobs
-              .slice()
-              .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
-              .map((j) => {
-                const hours = calcHours(j.start, j.end);
-                const total = hours * toNum(j.rate) + partsTotalOf(j);
+                // =====================
+                // JOB ROW
+                // =====================
+                const j = item.data;
+                const total = jobTotalOf(j);
+
+                const hours =
+                  j.timeMode === "clock"
+                    ? clockHoursOf(j)
+                    : j.timeMode === "manual"
+                    ? calcHours(j.start, j.end)
+                    : 0;
 
                 return (
                   <div
-                    key={j.id}
+                    key={item.id}
                     className="card list-item"
-                    style={{ alignItems: "center" }}
+                    style={{
+                      borderLeft: "6px solid #2563eb",
+                      background: "#f8fafc",
+                      alignItems: "center",
+                    }}
                   >
                     <div style={{ flex: 1 }}>
-                      <strong>{j.date}</strong>
-                      <br />
-                      <small>
-                        {j.start || "--:--"}-{j.end || "--:--"} |{" "}
-                        {hours.toFixed(2)} saat
-                      </small>
+                      <strong>
+                        <i className="fa-solid fa-briefcase"></i> İş
+                      </strong>
+                      <div
+                        style={{ fontSize: 12, color: "#777", marginTop: 4 }}
+                      >
+                        {j.date} •{" "}
+                        <b>
+                          {j.timeMode === "clock"
+                            ? "Saat Giriş / Çıkış"
+                            : j.timeMode === "manual"
+                            ? "Elle Giriş"
+                            : "Sabit Ücret"}
+                        </b>
+                        {j.timeMode !== "fixed" && (
+                          <> • {hours.toFixed(2)} saat</>
+                        )}
+                      </div>
                     </div>
 
-                    <div style={{ textAlign: "right", minWidth: 110 }}>
-                      <strong
-                        style={{ color: "var(--primary)", display: "block" }}
-                      >
-                        {money(total, currency)}
-                      </strong>
+                    <div style={{ fontWeight: 700, color: "#2563eb" }}>
+                      {money(total, currency)}
                     </div>
                   </div>
                 );
               })
-          )}
+            )}
+          </div>
         </div>
       </div>
     </>
