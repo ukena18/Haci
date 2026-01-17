@@ -1002,17 +1002,6 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
               <div id="page-home">
                 {/* 📊 FINANSAL ÖZET */}
                 <div className="card" style={{ marginBottom: 16 }}>
-                  <h3
-                    style={{
-                      marginTop: 0,
-                      display: "flex",
-                      gap: 6,
-                      alignItems: "center",
-                    }}
-                  >
-                    📊 Finansal Özet
-                  </h3>
-
                   {/* NUMBERS */}
                   <div
                     style={{
@@ -1025,30 +1014,57 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                   >
                     <div
                       style={{
-                        padding: 10,
-                        borderRadius: 10,
+                        padding: 14,
+                        borderRadius: 12,
                         background: "#fef2f2",
+                        textAlign: "center",
                       }}
                     >
-                      <div style={{ color: "#7f1d1d", fontSize: 12 }}>
+                      {/* Total debt  */}
+                      <div
+                        style={{
+                          color: "#7f1d1d",
+                          fontSize: 12,
+                          marginBottom: 4,
+                        }}
+                      >
                         Toplam Borç
                       </div>
-                      <div style={{ fontWeight: 700, color: "#dc2626" }}>
+                      <div
+                        style={{
+                          fontWeight: 700,
+                          color: "#dc2626",
+                          fontSize: 16,
+                        }}
+                      >
                         {money(financialSummary.totalDebt, currency)}
                       </div>
                     </div>
-
+                    {/* Total payment  */}
                     <div
                       style={{
-                        padding: 10,
-                        borderRadius: 10,
+                        padding: 14,
+                        borderRadius: 12,
                         background: "#f0fdf4",
+                        textAlign: "center",
                       }}
                     >
-                      <div style={{ color: "#166534", fontSize: 12 }}>
+                      <div
+                        style={{
+                          color: "#166534",
+                          fontSize: 12,
+                          marginBottom: 4,
+                        }}
+                      >
                         Toplam Tahsilat
                       </div>
-                      <div style={{ fontWeight: 700, color: "#16a34a" }}>
+                      <div
+                        style={{
+                          fontWeight: 700,
+                          color: "#16a34a",
+                          fontSize: 16,
+                        }}
+                      >
                         {money(financialSummary.totalPayment, currency)}
                       </div>
                     </div>
@@ -1057,26 +1073,34 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                   {/* NET */}
                   <div
                     style={{
-                      marginBottom: 12,
-                      padding: 10,
-                      borderRadius: 10,
+                      marginTop: 8,
+                      padding: 14,
+                      borderRadius: 12,
                       background:
                         financialSummary.net < 0 ? "#fef2f2" : "#f0fdf4",
-                      color: financialSummary.net < 0 ? "#7f1d1d" : "#166534",
-                      fontWeight: 600,
                       textAlign: "center",
                     }}
                   >
-                    Net Durum: {money(Math.abs(financialSummary.net), currency)}{" "}
-                  </div>
+                    <div
+                      style={{
+                        fontSize: 12,
+                        marginBottom: 4,
+                        color: financialSummary.net < 0 ? "#7f1d1d" : "#166534",
+                      }}
+                    >
+                      Net Durum
+                    </div>
 
-                  {/* BAR CHART */}
-                  {(() => {
-                    const max = Math.max(
-                      financialSummary.totalDebt,
-                      financialSummary.totalPayment
-                    );
-                  })()}
+                    <div
+                      style={{
+                        fontWeight: 700,
+                        fontSize: 16,
+                        color: financialSummary.net < 0 ? "#dc2626" : "#16a34a",
+                      }}
+                    >
+                      {money(financialSummary.net, currency)}
+                    </div>
+                  </div>
                 </div>
 
                 <div id="job-list">
@@ -1165,7 +1189,23 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                     <div
                       className="list-item"
                       style={{ cursor: "pointer" }}
-                      onClick={() => setActiveOpen((o) => !o)}
+                      onClick={() => {
+                        setActiveOpen((prev) => {
+                          const next = !prev;
+
+                          // ✅ WHEN OPENING → collapse all ACTIVE jobs
+                          if (!prev && next) {
+                            setState((s) => ({
+                              ...s,
+                              jobs: s.jobs.map((j) =>
+                                !j.isCompleted ? { ...j, isOpen: false } : j
+                              ),
+                            }));
+                          }
+
+                          return next;
+                        });
+                      }}
                     >
                       <strong>🟢 Aktif İşler ({activeJobs.length})</strong>
                       <span>{activeOpen ? "▾" : "▸"}</span>
@@ -1266,7 +1306,23 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                     <div
                       className="list-item"
                       style={{ cursor: "pointer" }}
-                      onClick={() => setCompletedOpen((o) => !o)}
+                      onClick={() => {
+                        setCompletedOpen((prev) => {
+                          const next = !prev;
+
+                          // ✅ WHEN OPENING → collapse all completed jobs
+                          if (!prev && next) {
+                            setState((s) => ({
+                              ...s,
+                              jobs: s.jobs.map((j) =>
+                                j.isCompleted ? { ...j, isOpen: false } : j
+                              ),
+                            }));
+                          }
+
+                          return next;
+                        });
+                      }}
                     >
                       <strong>
                         ✅ Tamamlanan İşler ({completedJobs.length})
