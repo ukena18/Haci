@@ -368,7 +368,11 @@ export function JobModal({
 
     if (editing) {
       // when editing, keep job's customerId
-      setDraft({ ...editing, parts: editing.parts || [] });
+      setDraft({
+        ...editing,
+        parts: editing.parts || [],
+        sessions: editing.sessions || [],
+      });
     } else {
       const fresh = makeEmptyJob(customers);
 
@@ -685,6 +689,86 @@ export function JobModal({
           )}
         </div>
       </div>
+
+      {/* ============================= */}
+      {/* CLOCK SESSION EDITOR (CLOCK ONLY) */}
+      {/* ============================= */}
+      {draft.timeMode === "clock" && (
+        <div className="form-group">
+          <label>Çalışma Geçmişi (Düzelt)</label>
+
+          {(draft.sessions || []).length === 0 ? (
+            <div style={{ fontSize: 12, color: "#666" }}>Henüz kayıt yok</div>
+          ) : (
+            (draft.sessions || []).map((s, idx) => (
+              <div
+                key={s.id || idx}
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  alignItems: "center",
+                  marginBottom: 8,
+                }}
+              >
+                <span style={{ fontSize: 12, width: 28 }}>#{idx + 1}</span>
+
+                <input
+                  type="time"
+                  value={new Date(s.inAt).toISOString().slice(11, 16)}
+                  onChange={(e) => {
+                    const t = e.target.value;
+                    setDraft((d) => ({
+                      ...d,
+                      sessions: (d.sessions || []).map((x) =>
+                        x.id === s.id
+                          ? {
+                              ...x,
+                              inAt: new Date(`${d.date}T${t}`).getTime(),
+                            }
+                          : x
+                      ),
+                    }));
+                  }}
+                />
+
+                <input
+                  type="time"
+                  value={new Date(s.outAt).toISOString().slice(11, 16)}
+                  onChange={(e) => {
+                    const t = e.target.value;
+                    setDraft((d) => ({
+                      ...d,
+                      sessions: (d.sessions || []).map((x) =>
+                        x.id === s.id
+                          ? {
+                              ...x,
+                              outAt: new Date(`${d.date}T${t}`).getTime(),
+                            }
+                          : x
+                      ),
+                    }));
+                  }}
+                />
+
+                <button
+                  type="button"
+                  className="btn btn-delete"
+                  style={{ padding: "6px 10px" }}
+                  onClick={() =>
+                    setDraft((d) => ({
+                      ...d,
+                      sessions: (d.sessions || []).filter((x) => x.id !== s.id),
+                    }))
+                  }
+                  title="Sil"
+                >
+                  <i className="fa-solid fa-trash"></i>
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      )}
 
       {/* ============================= */}
       {/* PLANLANAN İŞ SÜRESİ (FIXED ONLY) */}

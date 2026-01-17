@@ -843,17 +843,27 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
   function clockIn(jobId) {
     setState((s) => {
       const now = Date.now();
+
       const nextJobs = s.jobs.map((j) => {
-        // Stop any other running job
-        if (j.isRunning && j.id !== jobId) {
-          return { ...j, isRunning: false, clockOutAt: now };
+        // auto-stop any other running job
+        if (j.isRunning && j.clockInAt && j.id !== jobId) {
+          const autoSession = { id: uid(), inAt: j.clockInAt, outAt: now };
+          return {
+            ...j,
+            isRunning: false,
+            clockInAt: null,
+            sessions: [...(j.sessions || []), autoSession],
+          };
         }
-        // Start this one
+
+        // start selected job
         if (j.id === jobId) {
-          return { ...j, isRunning: true, clockInAt: now, clockOutAt: null };
+          return { ...j, isRunning: true, clockInAt: now };
         }
+
         return j;
       });
+
       return { ...s, jobs: nextJobs };
     });
   }
@@ -875,37 +885,25 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
    */
 
   function clockOut(jobId) {
-    setState((s) => {
-      const now = Date.now();
+    setState((s) => ({
+      ...s,
+      jobs: s.jobs.map((j) => {
+        if (j.id !== jobId || !j.clockInAt) return j;
 
-      const nextJobs = s.jobs.map((j) => {
-        if (j.id !== jobId) return j;
-        if (!j.clockInAt) return { ...j, isRunning: false };
-
-        const sessionMs = now - j.clockInAt;
+        const session = {
+          id: uid(),
+          inAt: j.clockInAt,
+          outAt: Date.now(),
+        };
 
         return {
           ...j,
           isRunning: false,
-          clockOutAt: now,
           clockInAt: null,
-
-          workedMs: (j.workedMs || 0) + sessionMs,
-
-          // ✅ SAVE SESSION HISTORY
-          clockSessions: [
-            ...(j.clockSessions || []),
-            {
-              in: j.clockInAt,
-              out: now,
-              ms: sessionMs,
-            },
-          ],
+          sessions: [...(j.sessions || []), session],
         };
-      });
-
-      return { ...s, jobs: nextJobs };
-    });
+      }),
+    }));
   }
 
   /** Toggle job folder open/close */
@@ -1919,13 +1917,10 @@ function JobCard({
   const liveMs =
     job.isRunning && job.clockInAt ? Date.now() - job.clockInAt : 0;
 
-  // ✅ TOTAL accumulated time (past sessions + current running session)
-  const totalMs =
-    (job.workedMs || 0) + (job.isRunning && job.clockInAt ? liveMs : 0);
-
-  // ✅ FINAL hours logic
   const hours =
-    job.timeMode === "clock" ? totalMs / 36e5 : calcHours(job.start, job.end);
+    job.timeMode === "clock"
+      ? clockHoursOf(job)
+      : calcHours(job.start, job.end);
 
   const partsTotal = partsTotalOf(job);
 
@@ -2027,7 +2022,7 @@ function JobCard({
                     clockOut(job.id);
                   }}
                 >
-                  Clock Out
+                  Saat Çıkışı
                 </button>
               ) : (
                 <button
@@ -2037,7 +2032,7 @@ function JobCard({
                     clockIn(job.id);
                   }}
                 >
-                  Clock In
+                  Saat Girişi
                 </button>
               ))}
           </div>
@@ -2096,21 +2091,20 @@ function JobCard({
               </div>
             )}
             {/* ⏱️ CLOCK IN / OUT HISTORY */}
-            {job.timeMode === "clock" && job.clockSessions?.length > 0 && (
+            {job.timeMode === "clock" && (job.sessions || []).length > 0 && (
               <div style={{ marginTop: 12 }}>
                 <div style={{ fontWeight: 700, marginBottom: 6 }}>
-                  <i className="fa-solid fa-clock"></i>
-                  Çalışma Geçmişi
+                  <i className="fa-solid fa-clock"></i> Çalışma Geçmişi
                 </div>
 
-                {job.clockSessions.map((s, i) => {
-                  const start = new Date(s.in);
-                  const end = new Date(s.out);
-                  const hours = (s.ms / 36e5).toFixed(2);
+                {(job.sessions || []).map((s, i) => {
+                  const start = new Date(s.inAt);
+                  const end = new Date(s.outAt);
+                  const h = ((s.outAt - s.inAt) / 36e5).toFixed(2);
 
                   return (
                     <div
-                      key={i}
+                      key={s.id || i}
                       className="miniRow"
                       style={{ fontSize: 12, color: "#444" }}
                     >
@@ -2127,7 +2121,7 @@ function JobCard({
                         })}
                       </span>
 
-                      <strong>{hours} saat</strong>
+                      <strong>{h} saat</strong>
                     </div>
                   );
                 })}
@@ -2158,6 +2152,20 @@ function JobCard({
       )}
     </div>
   );
+}
+
+function clockHoursOf(job) {
+  const sessions = job.sessions || [];
+
+  const pastMs = sessions.reduce((sum, s) => {
+    if (!s?.inAt || !s?.outAt) return sum;
+    return sum + (s.outAt - s.inAt);
+  }, 0);
+
+  const liveMs =
+    job.isRunning && job.clockInAt ? Date.now() - job.clockInAt : 0;
+
+  return (pastMs + liveMs) / 36e5;
 }
 
 function PublicCustomerSharePage() {

@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Usta Takip Pro - Final v3</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+    <style>
+      :root {
+        --primary: #2563eb;
+        --secondary: #64748b;
+        --success: #22c55e;
+        --danger: #ef4444;
+        --background: #f8fafc;
+        --surface: #ffffff;
+      }
+
+      body {
+        font-family: "Segoe UI", sans-serif;
+        margin: 0;
+        background: var(--background);
+        padding-bottom: 80px;
+        color: #1e293b;
+      }
+      .container {
+        padding: 15px;
+        margin-top: 10px;
+      }
+      .page {
+        display: none;
+      }
+      .active-page {
+        display: block;
+      }
+
+      /* FİNANSAL ÖZET */
+      .finansal-ozet {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 25px;
+        text-align: center;
+      }
+      .ozet-kart {
+        background: white;
+        padding: 15px;
+        border-radius: 15px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e2e8f0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+      .ozet-kart.tam-genislik {
+        grid-column: span 2;
+      }
+      .ozet-kart label {
+        font-size: 0.65rem;
+        color: var(--secondary);
+        font-weight: bold;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+      }
+      .ozet-kart .tutar {
+        font-size: 1.1rem;
+        font-weight: 800;
+        display: block;
+      }
+      .borc-renk {
+        color: var(--danger);
+      }
+      .tahsilat-renk {
+        color: var(--success);
+      }
+
+      /* GÖRÜNÜM BUTONLARI */
+      .view-switcher {
+        display: flex;
+        background: #e2e8f0;
+        border-radius: 12px;
+        padding: 4px;
+        margin-bottom: 15px;
+      }
+      .view-btn {
+        flex: 1;
+        padding: 10px;
+        border: none;
+        border-radius: 10px;
+        background: none;
+        font-weight: bold;
+        color: var(--secondary);
+        cursor: pointer;
+      }
+      .view-btn.active {
+        background: white;
+        color: var(--primary);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      /* TAKVİM */
+      .calendar-container {
+        background: white;
+        border-radius: 15px;
+        padding: 15px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        margin-bottom: 15px;
+      }
+      .calendar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-bottom: 15px;
+        font-weight: bold;
+      }
+      .calendar-grid {
+        display: grid;
+        gap: 5px;
+        text-align: center;
+      }
+      .grid-monthly,
+      .grid-weekly {
+        grid-template-columns: repeat(7, 1fr);
+      }
+      .grid-daily {
+        grid-template-columns: 1fr;
+      }
+      .calendar-day {
+        padding: 12px 5px;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        position: relative;
+      }
+      .calendar-day.selected {
+        background: var(--primary) !important;
+        color: white !important;
+      }
+      .calendar-day.today {
+        border: 1.5px solid var(--primary);
+        color: var(--primary);
+      }
+      .calendar-day.has-event::after {
+        content: "";
+        position: absolute;
+        bottom: 4px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 6px;
+        height: 6px;
+        background: var(--danger);
+        border-radius: 50%;
+      }
+
+      /* KARTLAR */
+      .card {
+        background: var(--surface);
+        border-radius: 12px;
+        padding: 15px;
+        margin-bottom: 12px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e2e8f0;
+      }
+      .card .musteri-adi {
+        margin: 0;
+        font-size: 1.1rem;
+        color: #1e293b;
+        font-weight: 800;
+        text-transform: uppercase;
+        border-bottom: 1px solid #f1f5f9;
+        padding-bottom: 5px;
+        margin-bottom: 8px;
+      }
+      .card .is-basligi {
+        margin: 0;
+        font-size: 0.95rem;
+        color: var(--primary);
+        font-weight: 600;
+      }
+      .note-box {
+        background: #f8fafc;
+        padding: 8px;
+        border-radius: 8px;
+        border-left: 3px solid var(--primary);
+        margin: 8px 0;
+        font-size: 0.85rem;
+      }
+
+      input,
+      select,
+      textarea {
+        width: 100%;
+        padding: 12px;
+        margin: 8px 0;
+        border: 1px solid #cbd5e1;
+        border-radius: 10px;
+        box-sizing: border-box;
+      }
+      .btn {
+        padding: 12px 15px;
+        border-radius: 10px;
+        border: none;
+        cursor: pointer;
+        font-weight: bold;
+      }
+      .btn-primary {
+        background: var(--primary);
+        color: white;
+        width: 100%;
+      }
+      .btn-success {
+        background: var(--success);
+        color: white;
+      }
+      .btn-danger {
+        background: var(--danger);
+        color: white;
+      }
+      .flex-buttons {
+        display: flex;
+        gap: 8px;
+        margin-top: 10px;
+      }
+      .flex-buttons button {
+        flex: 1;
+      }
+
+      /* ALT NAV */
+      .nav-bar {
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+        background: white;
+        display: flex;
+        border-top: 1px solid #e2e8f0;
+        height: 65px;
+        z-index: 100;
+      }
+      .nav-item {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: var(--secondary);
+        cursor: pointer;
+      }
+      .nav-item.active {
+        color: var(--primary);
+      }
+      .nav-item i {
+        font-size: 20px;
+      }
+      .nav-item span {
+        font-size: 11px;
+        margin-top: 4px;
+      }
+
+      .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 1000;
+        overflow-y: auto;
+      }
+      .modal-content {
+        background: white;
+        margin: 20px auto;
+        padding: 25px;
+        width: 90%;
+        border-radius: 20px;
+        max-width: 450px;
+      }
+      .fab {
+        position: fixed;
+        bottom: 85px;
+        right: 20px;
+        width: 60px;
+        height: 60px;
+        background: var(--primary);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 24px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        border: none;
+        cursor: pointer;
+        z-index: 99;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div id="page-anasayfa" class="page active-page">
+        <input
+          type="text"
+          class="search-input"
+          id="search-is"
+          placeholder="Müşteri veya İş ara..."
+          onkeyup="listeleGecmisIsler()"
+          style="
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+            margin-bottom: 15px;
+          "
+        />
+        <div class="finansal-ozet">
+          <div class="ozet-kart">
+            <label>TOPLAM ALACAK</label
+            ><span class="tutar borc-renk" id="ozet-borc">- 0.00 TL</span>
+          </div>
+          <div class="ozet-kart">
+            <label>TOPLAM TAHSİLAT</label
+            ><span class="tutar tahsilat-renk" id="ozet-tahsilat">0.00 TL</span>
+          </div>
+          <div class="ozet-kart tam-genislik">
+            <label>NET DURUM</label
+            ><span class="tutar" id="ozet-net">0.00 TL</span>
+          </div>
+        </div>
+        <div id="gecmis-is-listesi"></div>
+        <button class="fab" onclick="yeniIsEkleModal()">
+          <i class="fas fa-plus"></i>
+        </button>
+      </div>
+
+      <div id="page-musteriler" class="page">
+        <div id="musteri-listesi"></div>
+        <button class="fab" onclick="modalAc('modal-musteri')">
+          <i class="fas fa-user-plus"></i>
+        </button>
+      </div>
+
+      <div id="page-randevular" class="page">
+        <div class="view-switcher">
+          <button
+            class="view-btn active"
+            id="btn-günlük"
+            onclick="setView('günlük')"
+          >
+            Günlük
+          </button>
+          <button
+            class="view-btn"
+            id="btn-haftalık"
+            onclick="setView('haftalık')"
+          >
+            Haftalık
+          </button>
+          <button class="view-btn" id="btn-aylık" onclick="setView('aylık')">
+            Aylık
+          </button>
+        </div>
+        <div class="calendar-container">
+          <div class="calendar-header">
+            <button class="btn" onclick="changePeriod(-1)">
+              <i class="fas fa-chevron-left"></i>
+            </button>
+            <span id="calendar-title"></span>
+            <button class="btn" onclick="changePeriod(1)">
+              <i class="fas fa-chevron-right"></i>
+            </button>
+          </div>
+          <div id="calendar-grid" class="calendar-grid"></div>
+        </div>
+        <h4 id="list-title">Program</h4>
+        <div id="randevu-listesi"></div>
+        <button class="fab" onclick="yeniIsEkleModal()">
+          <i class="fas fa-calendar-plus"></i>
+        </button>
+      </div>
+
+      <div id="page-ayarlar" class="page">
+        <div class="card">
+          <h3>Sistem Ayarları</h3>
+          <button
+            class="btn btn-danger"
+            style="width: 100%"
+            onclick="verileriSifirla()"
+          >
+            Tüm Verileri Sıfırla
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav-bar">
+      <div class="nav-item active" onclick="sayfaDegistir('anasayfa')">
+        <i class="fas fa-chart-pie"></i><span>Özet</span>
+      </div>
+      <div class="nav-item" onclick="sayfaDegistir('musteriler')">
+        <i class="fas fa-users"></i><span>Müşteriler</span>
+      </div>
+      <div class="nav-item" onclick="sayfaDegistir('randevular')">
+        <i class="fas fa-calendar-alt"></i><span>Takvim</span>
+      </div>
+      <div class="nav-item" onclick="sayfaDegistir('ayarlar')">
+        <i class="fas fa-cog"></i><span>Ayarlar</span>
+      </div>
+    </div>
+
+    <div id="modal-is" class="modal">
+      <div class="modal-content">
+        <h2 id="is-modal-title">İş Kaydı</h2>
+        <input type="hidden" id="edit-is-id" />
+        <label>Müşteri Seçin:</label
+        ><select id="is-musteri-select"></select>
+        <label>Tarih:</label><input type="date" id="is-tarih" />
+        <div style="display: flex; gap: 10px">
+          <div style="flex: 1">
+            <label>Başlangıç:</label><input type="time" id="is-baslangic" />
+          </div>
+          <div style="flex: 1">
+            <label>Bitiş:</label><input type="time" id="is-bitis" />
+          </div>
+        </div>
+        <label>İş Başlığı:</label
+        ><input type="text" id="is-baslik" placeholder="Örn: Lavabo Montajı" />
+        <label>Notlar:</label><textarea id="is-not" rows="3"></textarea>
+        <label>Fiyat Teklifi:</label><input type="number" id="is-teklif" />
+        <button class="btn btn-primary" onclick="isKaydet()">Kaydet</button>
+        <button
+          class="btn"
+          style="width: 100%; margin-top: 8px"
+          onclick="modalKapat('modal-is')"
+        >
+          Vazgeç
+        </button>
+      </div>
+    </div>
+
+    <div id="modal-musteri" class="modal">
+      <div class="modal-content">
+        <h2>Yeni Müşteri</h2>
+        <input type="text" id="m-ad" placeholder="Ad Soyad" />
+        <input type="tel" id="m-tel" placeholder="Telefon" />
+        <button class="btn btn-primary" onclick="musteriKaydet()">
+          Müşteriyi Kaydet
+        </button>
+        <button
+          class="btn"
+          style="width: 100%; margin-top: 8px"
+          onclick="modalKapat('modal-musteri')"
+        >
+          İptal
+        </button>
+      </div>
+    </div>
+
+    <script>
+      let musteriler = JSON.parse(localStorage.getItem("musteriler")) || [];
+      let isler = JSON.parse(localStorage.getItem("isler")) || [];
+      let kasaBakiye = parseFloat(localStorage.getItem("kasaBakiye")) || 0;
+
+      let currentMode = "günlük";
+      let referenceDate = new Date();
+      let selectedDateStr = formatDate(new Date());
+
+      function formatDate(date) {
+        let d = new Date(date);
+        let month = "" + (d.getMonth() + 1);
+        let day = "" + d.getDate();
+        let year = d.getFullYear();
+        if (month.length < 2) month = "0" + month;
+        if (day.length < 2) day = "0" + day;
+        return [year, month, day].join("-");
+      }
+
+      function sakla() {
+        localStorage.setItem("musteriler", JSON.stringify(musteriler));
+        localStorage.setItem("isler", JSON.stringify(isler));
+        localStorage.setItem("kasaBakiye", kasaBakiye.toString());
+        finansalGuncelle();
+      }
+
+      function finansalGuncelle() {
+        let toplamBorc = musteriler.reduce((sum, m) => sum + (m.borc || 0), 0);
+        let gercekNet = kasaBakiye - toplamBorc;
+        document.getElementById("ozet-borc").innerText =
+          "- " + toplamBorc.toFixed(2) + " TL";
+        document.getElementById("ozet-tahsilat").innerText =
+          kasaBakiye.toFixed(2) + " TL";
+
+        const netEl = document.getElementById("ozet-net");
+        if (gercekNet < 0) {
+          netEl.innerText = "- " + Math.abs(gercekNet).toFixed(2) + " TL";
+          netEl.className = "tutar borc-renk";
+        } else {
+          netEl.innerText = gercekNet.toFixed(2) + " TL";
+          netEl.className = "tutar tahsilat-renk";
+        }
+      }
+
+      function sayfaDegistir(p) {
+        document
+          .querySelectorAll(".page, .nav-item")
+          .forEach((el) => el.classList.remove("active", "active-page"));
+        document.getElementById("page-" + p).classList.add("active-page");
+        document
+          .querySelector(`.nav-item[onclick="sayfaDegistir('${p}')"]`)
+          .classList.add("active");
+        if (p === "randevular") renderCalendar();
+        if (p === "anasayfa") listeleGecmisIsler();
+        if (p === "musteriler") listeleMusteriler();
+      }
+
+      // TAKVİM SİSTEMİ
+      function setView(mode) {
+        currentMode = mode;
+        document
+          .querySelectorAll(".view-btn")
+          .forEach((b) => b.classList.remove("active"));
+        document.getElementById("btn-" + mode).classList.add("active");
+        renderCalendar();
+      }
+
+      function changePeriod(step) {
+        if (currentMode === "günlük")
+          referenceDate.setDate(referenceDate.getDate() + step);
+        else if (currentMode === "haftalık")
+          referenceDate.setDate(referenceDate.getDate() + step * 7);
+        else referenceDate.setMonth(referenceDate.getMonth() + step);
+        renderCalendar();
+      }
+
+      function renderCalendar() {
+        const grid = document.getElementById("calendar-grid");
+        const title = document.getElementById("calendar-title");
+        grid.innerHTML = "";
+        grid.className =
+          "calendar-grid grid-" +
+          (currentMode === "aylık"
+            ? "monthly"
+            : currentMode === "haftalık"
+            ? "weekly"
+            : "daily");
+
+        if (currentMode === "aylık") {
+          title.innerText = referenceDate.toLocaleString("tr-TR", {
+            month: "long",
+            year: "numeric",
+          });
+          const firstDay = new Date(
+            referenceDate.getFullYear(),
+            referenceDate.getMonth(),
+            1
+          ).getDay();
+          let emptyDays = firstDay === 0 ? 6 : firstDay - 1;
+          const daysInMonth = new Date(
+            referenceDate.getFullYear(),
+            referenceDate.getMonth() + 1,
+            0
+          ).getDate();
+          for (let i = 0; i < emptyDays; i++) grid.innerHTML += "<div></div>";
+          for (let d = 1; d <= daysInMonth; d++)
+            createDayEl(
+              new Date(
+                referenceDate.getFullYear(),
+                referenceDate.getMonth(),
+                d
+              ),
+              grid
+            );
+        } else if (currentMode === "haftalık") {
+          const startOfWeek = new Date(referenceDate);
+          let dayOff =
+            referenceDate.getDay() === 0 ? 6 : referenceDate.getDay() - 1;
+          startOfWeek.setDate(referenceDate.getDate() - dayOff);
+          title.innerText =
+            startOfWeek.toLocaleDateString("tr-TR", {
+              day: "numeric",
+              month: "short",
+            }) + " Haftası";
+          for (let i = 0; i < 7; i++) {
+            let d = new Date(startOfWeek);
+            d.setDate(startOfWeek.getDate() + i);
+            createDayEl(d, grid);
+          }
+        } else {
+          title.innerText = referenceDate.toLocaleDateString("tr-TR");
+          createDayEl(referenceDate, grid);
+        }
+        listeleRandevular();
+      }
+
+      function createDayEl(date, container) {
+        const dStr = formatDate(date);
+        const hasEvent = isler.some((i) => i.tarih === dStr);
+        const div = document.createElement("div");
+        div.className = `calendar-day ${
+          dStr === selectedDateStr ? "selected" : ""
+        } ${hasEvent ? "has-event" : ""}`;
+        if (dStr === formatDate(new Date())) div.classList.add("today");
+        div.innerHTML = `<span>${date.getDate()}</span><br><small style="font-size:0.6rem">${date.toLocaleString(
+          "tr-TR",
+          { weekday: "short" }
+        )}</small>`;
+        div.onclick = () => {
+          selectedDateStr = dStr;
+          referenceDate = new Date(date);
+          renderCalendar();
+        };
+        container.appendChild(div);
+      }
+
+      function isKartOlustur(is) {
+        const m = musteriler.find((m) => m.id === is.musteriId);
+        return `<div class="card">
+            <h2 class="musteri-adi">${m ? m.ad : "Belirsiz"}</h2>
+            <h3 class="is-basligi">${is.baslik || "İş Kaydı"}</h3>
+            <p><i class="far fa-calendar-alt"></i> ${
+              is.tarih
+            } | <i class="far fa-clock"></i> ${is.baslangic} - ${is.bitis}</p>
+            <div style="font-weight:bold; color:var(--secondary); font-size:0.9rem;">Teklif: ${parseFloat(
+              is.teklif || 0
+            ).toFixed(2)} TL</div>
+            <div class="flex-buttons">
+                <button class="btn" style="background:#f1f5f9; color:var(--primary)" onclick="isDuzenle('${
+                  is.id
+                }')"><i class="fas fa-edit"></i></button>
+                <button class="btn btn-danger" onclick="isSil('${
+                  is.id
+                }')"><i class="fas fa-trash"></i></button>
+            </div>
+        </div>`;
+      }
+
+      function listeleRandevular() {
+        const list = document.getElementById("randevu-listesi");
+        list.innerHTML = "";
+        let filtered = [];
+        if (currentMode === "günlük")
+          filtered = isler.filter((i) => i.tarih === selectedDateStr);
+        else if (currentMode === "haftalık") {
+          const start = new Date(referenceDate);
+          start.setDate(
+            referenceDate.getDate() -
+              (referenceDate.getDay() === 0 ? 6 : referenceDate.getDay() - 1)
+          );
+          const weekDays = Array.from({ length: 7 }, (_, i) => {
+            let d = new Date(start);
+            d.setDate(start.getDate() + i);
+            return formatDate(d);
+          });
+          filtered = isler.filter((i) => weekDays.includes(i.tarih));
+        } else {
+          const m = referenceDate.getMonth();
+          const y = referenceDate.getFullYear();
+          filtered = isler.filter((i) => {
+            let d = new Date(i.tarih);
+            return d.getMonth() === m && d.getFullYear() === y;
+          });
+        }
+        filtered.sort(
+          (a, b) =>
+            a.tarih.localeCompare(b.tarih) ||
+            a.baslangic.localeCompare(b.baslangic)
+        );
+        filtered.forEach((is) => (list.innerHTML += isKartOlustur(is)));
+      }
+
+      function isKaydet() {
+        const id = document.getElementById("edit-is-id").value;
+        const yeniIs = {
+          id: id || "W" + Date.now(),
+          musteriId: document.getElementById("is-musteri-select").value,
+          baslik: document.getElementById("is-baslik").value,
+          tarih: document.getElementById("is-tarih").value,
+          baslangic: document.getElementById("is-baslangic").value,
+          bitis: document.getElementById("is-bitis").value,
+          not: document.getElementById("is-not").value,
+          teklif: parseFloat(document.getElementById("is-teklif").value || 0),
+        };
+        if (id) isler = isler.map((i) => (i.id === id ? yeniIs : i));
+        else isler.push(yeniIs);
+        sakla();
+        modalKapat("modal-is");
+        sayfaDegistir("anasayfa");
+      }
+
+      function listeleGecmisIsler() {
+        const div = document.getElementById("gecmis-is-listesi");
+        div.innerHTML = isler
+          .slice()
+          .reverse()
+          .map((is) => isKartOlustur(is))
+          .join("");
+      }
+
+      function listeleMusteriler() {
+        document.getElementById("musteri-listesi").innerHTML = musteriler
+          .map(
+            (m) => `
+            <div class="card">
+                <h2 class="musteri-adi">${m.ad}</h2>
+                <p>Borç: ${(m.borc || 0).toFixed(2)} TL</p>
+                <div class="flex-buttons">
+                    <button class="btn btn-primary" onclick="borclandirModal('${
+                      m.id
+                    }')">Borçlandır</button>
+                    <button class="btn btn-success" onclick="tahsilatYap('${
+                      m.id
+                    }')">Tahsilat</button>
+                    <button class="btn btn-danger" style="flex:0.2" onclick="musteriSil('${
+                      m.id
+                    }')"><i class="fas fa-trash"></i></button>
+                </div>
+            </div>
+        `
+          )
+          .join("");
+      }
+
+      function borclandirModal(mId) {
+        let miktar = parseFloat(prompt(`Borç miktarı?`));
+        if (!isNaN(miktar) && miktar > 0) {
+          let idx = musteriler.findIndex((m) => m.id === mId);
+          musteriler[idx].borc = (musteriler[idx].borc || 0) + miktar;
+          sakla();
+          listeleMusteriler();
+        }
+      }
+
+      function tahsilatYap(mId) {
+        let idx = musteriler.findIndex((m) => m.id === mId);
+        let miktar = parseFloat(
+          prompt(`Tahsilat miktarı?`, (musteriler[idx].borc || 0).toFixed(2))
+        );
+        if (!isNaN(miktar) && miktar > 0) {
+          musteriler[idx].borc -= miktar;
+          kasaBakiye += miktar;
+          sakla();
+          listeleMusteriler();
+        }
+      }
+
+      function musteriKaydet() {
+        musteriler.push({
+          id: "M" + Date.now(),
+          ad: document.getElementById("m-ad").value,
+          tel: document.getElementById("m-tel").value,
+          borc: 0,
+        });
+        sakla();
+        modalKapat("modal-musteri");
+        listeleMusteriler();
+      }
+
+      function isDuzenle(id) {
+        const is = isler.find((i) => i.id === id);
+        document.getElementById("edit-is-id").value = is.id;
+        document.getElementById("is-modal-title").innerText = "Düzenle";
+        document.getElementById("is-baslik").value = is.baslik;
+        document.getElementById("is-tarih").value = is.tarih;
+        document.getElementById("is-baslangic").value = is.baslangic;
+        document.getElementById("is-bitis").value = is.bitis;
+        document.getElementById("is-not").value = is.not;
+        document.getElementById("is-teklif").value = is.teklif;
+        document.getElementById("is-musteri-select").innerHTML = musteriler
+          .map(
+            (m) =>
+              `<option value="${m.id}" ${
+                m.id === is.musteriId ? "selected" : ""
+              }>${m.ad}</option>`
+          )
+          .join("");
+        modalAc("modal-is");
+      }
+
+      function yeniIsEkleModal() {
+        document.getElementById("edit-is-id").value = "";
+        document.getElementById("is-tarih").value = selectedDateStr;
+        document.getElementById("is-musteri-select").innerHTML = musteriler
+          .map((m) => `<option value="${m.id}">${m.ad}</option>`)
+          .join("");
+        if (musteriler.length === 0) alert("Önce müşteri ekleyin!");
+        else modalAc("modal-is");
+      }
+
+      function modalAc(id) {
+        document.getElementById(id).style.display = "block";
+      }
+      function modalKapat(id) {
+        document.getElementById(id).style.display = "none";
+      }
+      function isSil(id) {
+        if (confirm("Silinsin mi?")) {
+          isler = isler.filter((i) => i.id !== id);
+          sakla();
+          renderCalendar();
+          listeleGecmisIsler();
+        }
+      }
+      function musteriSil(id) {
+        if (confirm("Müşteri silinsin mi?")) {
+          musteriler = musteriler.filter((m) => m.id !== id);
+          sakla();
+          listeleMusteriler();
+        }
+      }
+      function verileriSifirla() {
+        if (confirm("Tüm veriler silinsin mi?")) {
+          localStorage.clear();
+          location.reload();
+        }
+      }
+
+      finansalGuncelle();
+      listeleGecmisIsler();
+      renderCalendar();
+    </script>
+  </body>
+</html>
