@@ -50,7 +50,9 @@
     margin: 20px 0;
     border-radius: 16px;
 
-    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.04), 0 20px 60px rgba(0, 0, 0, 0.15);
+    box-shadow:
+      0 0 0 1px rgba(0, 0, 0, 0.04),
+      0 20px 60px rgba(0, 0, 0, 0.15);
   }
 }
 
@@ -59,7 +61,9 @@
   .app-frame {
     margin: 24px 0;
     border-radius: 18px;
-    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.04), 0 24px 70px rgba(0, 0, 0, 0.18);
+    box-shadow:
+      0 0 0 1px rgba(0, 0, 0, 0.04),
+      0 24px 70px rgba(0, 0, 0, 0.18);
   }
 }
 
@@ -70,7 +74,11 @@
 }
 
 body {
-  font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont,
+  font-family:
+    "Segoe UI",
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
     sans-serif;
   font-size: 13px; /* 🔥 key change */
   line-height: 1.45;
@@ -226,7 +234,9 @@ body {
   align-items: center;
   justify-content: center;
 
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 /* Desktop FAB positioning (attach to app frame) */
@@ -724,7 +734,10 @@ textarea {
   opacity: 0;
   transform: translateY(-4px);
 
-  transition: max-height 0.35s ease, opacity 0.25s ease, transform 0.25s ease;
+  transition:
+    max-height 0.35s ease,
+    opacity 0.25s ease,
+    transform 0.25s ease;
 }
 
 .job-folder.open {
@@ -857,7 +870,9 @@ textarea {
 }
 
 .list-item {
-  transition: background 0.15s ease, transform 0.05s ease;
+  transition:
+    background 0.15s ease,
+    transform 0.05s ease;
 }
 
 .history-card .list-item {
@@ -1745,4 +1760,58 @@ textarea {
   background: #f9fafb;
   padding: 10px;
   border-radius: 10px;
+}
+
+.due-dismiss-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 6px 12px;
+  margin-top: 8px;
+
+  border-radius: 999px; /* pill */
+  border: 1px solid #d1fae5;
+
+  background: #ecfdf5;
+  color: #047857;
+
+  font-size: 12px;
+  font-weight: 600;
+
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.due-dismiss-btn:hover {
+  background: #d1fae5;
+  border-color: #6ee7b7;
+}
+
+.due-dismiss-btn:active {
+  transform: scale(0.97);
+}
+.due-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 12px 14px;
+  border-radius: 12px;
+
+  transition: background 0.15s ease;
+}
+
+.due-header:hover {
+  background: #f8fafc;
+}
+
+.due-arrow {
+  font-size: 12px;
+  color: #64748b;
+  transition: transform 0.15s ease;
+}
+
+.due-header:hover .due-arrow {
+  color: #334155;
 }

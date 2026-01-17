@@ -100,6 +100,12 @@ export function calcHours(start, end) {
   return diff > 0 ? diff : 0;
 }
 
+export function calcHoursWithBreak(start, end, breakMinutes = 0) {
+  const rawHours = calcHours(start, end);
+  const breakHours = (Number(breakMinutes) || 0) / 60;
+  return Math.max(0, rawHours - breakHours);
+}
+
 /** Format milliseconds to HH:MM:SS for live timer */
 export function formatTimer(ms) {
   const sec = Math.max(0, Math.floor(ms / 1000));
@@ -173,6 +179,7 @@ export function makeEmptyJob(customers = []) {
     // 🗓 FIXED JOB DATE RANGE (NEW)
     plannedStartDate: "",
     plannedEndDate: "",
+    breakMinutes: 0,
     parts: [],
     notes: "",
     isRunning: false,

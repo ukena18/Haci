@@ -1,0 +1,801 @@
+export const CHANGELOG = [
+  {
+    version: "1.2.6",
+    title: {
+      en: "Job Modals & Interaction Polish",
+      tr: "İş Modalları ve Etkileşim Rötuşları",
+    },
+    sections: [
+      {
+        label: { en: "Modals & Interaction", tr: "Modallar ve Etkileşim" },
+        items: {
+          en: [
+            "Active Job and Completed Job modals now open in a collapsed state by default",
+            "Job modals expand only when the user interacts",
+            "Prevented all job modals from expanding at the same time",
+            "Improved Clock In / Clock Out editing experience",
+            "Unified interaction behavior across active and completed job modals",
+          ],
+          tr: [
+            "Aktif İş ve Tamamlanan İş modalları varsayılan olarak küçük / kapalı halde açılır",
+            "İş modalları yalnızca kullanıcı etkileşimiyle genişler",
+            "Tüm işlerin aynı anda açılması engellendi",
+            "Saat Giriş / Saat Çıkış düzenleme deneyimi iyileştirildi",
+            "Aktif ve tamamlanan işlerde etkileşim davranışı tekilleştirildi",
+          ],
+        },
+      },
+    ],
+  },
+
+  {
+    version: "1.2.5",
+    title: {
+      en: "Customer Portal (Public) Improvements",
+      tr: "Herkese Açık Müşteri Portalı İyileştirmeleri",
+    },
+    sections: [
+      {
+        label: { en: "Public Portal", tr: "Genel Müşteri Portalı" },
+        items: {
+          en: [
+            "Public Customer Portal now displays phone number",
+            "Public Customer Portal now displays address",
+            "Jobs are listed below Payments and Debts for clearer financial flow",
+            "Added Print option to public customer page",
+            "Public customer page now shows Total Paid",
+            "Public customer page now shows Total Owed",
+            "Public customer page now shows Net Balance",
+            "Improved public page layout and clarity",
+          ],
+          tr: [
+            "Herkese açık Müşteri Portalı artık telefon numarasını gösterir",
+            "Herkese açık Müşteri Portalı artık adres bilgisini gösterir",
+            "İşler, finansal akışa uygun şekilde Tahsilat ve Borçların altında listelenir",
+            "Herkese açık müşteri sayfasına Yazdır seçeneği eklendi",
+            "Genel müşteri sayfasında artık Toplam Tahsilat gösterilir",
+            "Genel müşteri sayfasında artık Toplam Borç gösterilir",
+            "Genel müşteri sayfasında artık Net Bakiye gösterilir",
+            "Genel sayfa düzeni ve okunabilirlik iyileştirildi",
+          ],
+        },
+      },
+    ],
+  },
+
+  {
+    version: "1.2.4",
+    title: {
+      en: "Calendar Integration & Admin Controls",
+      tr: "Takvim Entegrasyonu ve Admin Kontrolleri",
+    },
+    sections: [
+      {
+        label: { en: "Calendar", tr: "Takvim" },
+        items: {
+          en: [
+            "Added full Calendar feature",
+            "Calendar views: Daily",
+            "Calendar views: Weekly (grouped by day)",
+            "Calendar views: Monthly (grouped by day)",
+            "Replaced placeholder --:-- with meaningful job status labels",
+            "Added Admin toggle to enable / disable calendar visibility",
+            "Improved calendar readability and consistency",
+          ],
+          tr: [
+            "Tam kapsamlı Takvim özelliği eklendi",
+            "Takvim görünümleri: Günlük",
+            "Takvim görünümleri: Haftalık (günlere göre gruplanmış)",
+            "Takvim görünümleri: Aylık (günlere göre gruplanmış)",
+            "--:-- yerine anlamlı durum etiketleri kullanıldı",
+            "Takvim görünürlüğü için Admin aç/kapat seçeneği eklendi",
+            "Takvim okunabilirliği ve tutarlılığı iyileştirildi",
+          ],
+        },
+      },
+    ],
+  },
+
+  {
+    version: "1.2.3",
+    title: {
+      en: "Search Bar, Layout & Text Fixes",
+      tr: "Arama Çubuğu, Yerleşim ve Metin Düzeltmeleri",
+    },
+    sections: [
+      {
+        label: { en: "UI Fixes", tr: "Arayüz Düzeltmeleri" },
+        items: {
+          en: [
+            "Fixed search bar tilting and alignment issues",
+            "Centered Total Payment and Total Debt on the home page",
+            "Removed Financial Summary label for a cleaner dashboard",
+            "Ensured phone number and address display on separate lines in Customer Details",
+            "Improved handling of long address text in customer modal",
+            "Unified terminology: Clock In / Clock Out labels fully localized",
+          ],
+          tr: [
+            "Arama çubuğunun kayma / eğilme sorunu giderildi",
+            "Ana sayfada Toplam Tahsilat ve Toplam Borç ortalandı",
+            "Finansal Özet başlığı kaldırılarak daha sade bir görünüm sağlandı",
+            "Müşteri Detay ekranında telefon ve adres ayrı satırlarda gösterilir",
+            "Uzun adres metinlerinin taşma sorunu giderildi",
+            "Saat Giriş / Saat Çıkış ifadeleri tamamen Türkçeleştirildi",
+          ],
+        },
+      },
+    ],
+  },
+
+  {
+    version: "1.2.2",
+    title: {
+      en: "Active & Completed Jobs Final Polish",
+      tr: "Aktif ve Tamamlanan İşler Son Rötuş",
+    },
+    sections: [
+      {
+        label: { en: "Final UX & Logic", tr: "Son UX ve Mantık" },
+        items: {
+          en: [
+            "Active Jobs now only require Complete Job action",
+            "Removed incorrect payment-related actions from Active Jobs",
+            "Completed Jobs list now shows only the latest 10 completed jobs",
+            "Ensured job states (Active / Completed / Paid) are visually and logically correct",
+          ],
+          tr: [
+            "Aktif İşler artık yalnızca İşi Tamamla aksiyonunu içerir",
+            "Aktif İşler’den yanlış ödeme ile ilgili aksiyonlar kaldırıldı",
+            "Tamamlanan İşler listesi yalnızca son 10 işi gösterir",
+            "İş durumları (Aktif / Tamamlandı / Ödendi) hem görsel hem mantıksal olarak netleştirildi",
+          ],
+        },
+      },
+    ],
+  },
+
+  {
+    version: "1.2.1",
+    title: {
+      en: "Customer Selection, Modals & Desktop Compatibility",
+      tr: "Müşteri Seçimi, Modallar ve Masaüstü Uyumluluğu",
+    },
+    sections: [
+      {
+        label: { en: "UX & Compatibility", tr: "UX ve Uyumluluk" },
+        items: {
+          en: [
+            "Fixed customer selector not closing when clicking outside",
+            "Added search bar inside customer dropdown",
+            "Live filtering while typing enabled",
+            "Fixed desktop compatibility issues on wide screens",
+            "CSS cleaned and reviewed",
+            "Improved modal positioning and responsiveness",
+          ],
+          tr: [
+            "Müşteri seçme alanının dışarı tıklanınca kapanmaması sorunu giderildi",
+            "Dropdown içine arama çubuğu eklendi",
+            "Canlı filtreleme eklendi",
+            "Geniş ekranlarda modallerin sağa kayma sorunu giderildi",
+            "CSS temizliği ve düzenlemesi yapıldı",
+            "Modal konumlandırma ve responsive davranış iyileştirildi",
+          ],
+        },
+      },
+    ],
+  },
+
+  {
+    version: "1.2.0",
+    title: {
+      en: "Financial Flow (Recep Logic) & Vault Rules",
+      tr: "Finans Akışı (Recep Mantığı) ve Kasa Kuralları",
+    },
+    sections: [
+      {
+        label: { en: "Financial Rules", tr: "Finansal Kurallar" },
+        items: {
+          en: [
+            "Money can only enter the system via manual Payment",
+            "Job completion alone does not create income",
+            "Fixed history showing incorrect colors or missing signs",
+            "Vault Active button is available only after opening Vault Details",
+            "Improved vault activation workflow clarity",
+            "All job and payment flows follow a single financial source of truth",
+          ],
+          tr: [
+            "Sisteme para girişi yalnızca manuel Tahsilat ile olur",
+            "İşin tamamlanması tek başına gelir oluşturmaz",
+            "Geçmişteki yanlış renk ve işaret sorunları giderildi",
+            "Kasa Aktif Yap butonu yalnızca Kasa Detay sayfası içinden erişilebilir",
+            "Kasa aktivasyon akışı daha net hale getirildi",
+            "Tüm iş ve ödeme akışları tek bir finans kaynağı mantığına bağlandı",
+          ],
+        },
+      },
+    ],
+  },
+
+  {
+    version: "1.1.9",
+    title: {
+      en: "Job Method Consistency & History Cleanup",
+      tr: "İş Yöntemi Tutarlılığı ve Geçmiş Temizliği",
+    },
+    sections: [
+      {
+        label: { en: "UX & History", tr: "UX ve Geçmiş" },
+        items: {
+          en: [
+            "Renamed job method label to Çalışma Yöntemi",
+            "Fixed history styling issues for minus values",
+            "Reorganized Job History modal",
+            "Limited Completed Jobs list to last 10 jobs",
+            "Active Jobs now focus only on job completion",
+          ],
+          tr: [
+            "İş yöntemi etiketi Çalışma Yöntemi olarak değiştirildi",
+            "Geçmiş ekranındaki eksi değer ve stil sorunları düzeltildi",
+            "İş Geçmişi modalı düzenlendi",
+            "Tamamlanan İşler son 10 kayıt ile sınırlandı",
+            "Aktif İşler yalnızca iş tamamlama odaklı hale getirildi",
+          ],
+        },
+      },
+    ],
+  },
+
+  {
+    version: "1.1.8",
+    title: {
+      en: "Currency Rules, Vault Ownership & Job Flow Fixes",
+      tr: "Para Birimi Kuralları, Kasa Sahipliği ve İş Akışı Düzeltmeleri",
+    },
+    sections: [
+      {
+        label: { en: "Rules & Consistency", tr: "Kurallar ve Tutarlılık" },
+        items: {
+          en: [
+            "Each user must be linked to a Vault",
+            "Each Vault now has its own currency",
+            "Currency mismatch warnings added",
+            "Active Jobs auto-paid issue fixed",
+            "Improved vault–job relationship consistency",
+          ],
+          tr: [
+            "Her kullanıcı bir kasaya bağlı olmak zorundadır",
+            "Her kasanın kendine ait para birimi vardır",
+            "Para birimi uyumsuzluğunda kullanıcı uyarılır",
+            "Aktif işlerin otomatik ödenmiş sayılması sorunu giderildi",
+            "Kasa–iş ilişkisi iyileştirildi",
+          ],
+        },
+      },
+    ],
+  },
+
+  {
+    version: "1.1.7",
+    title: {
+      en: "Vault Logic, Pagination & Sticky Navigation",
+      tr: "Kasa Mantığı, Sayfalama ve Sabit Navigasyon",
+    },
+    sections: [
+      {
+        label: { en: "UX & Performance", tr: "UX ve Performans" },
+        items: {
+          en: [
+            "Fixed Vault delete functionality",
+            "Vault active selection moved to Vault Details",
+            "Vault selection now uses modal only",
+            "Customer pagination added",
+            "Bottom navigation and search bar are sticky",
+            "Customer list performance improved",
+          ],
+          tr: [
+            "Kasa silme özelliği düzeltildi",
+            "Aktif kasa seçimi Kasa Detay sayfasına taşındı",
+            "Kasa seçimi yalnızca modal üzerinden yapılır",
+            "Müşteri listesine sayfalama eklendi",
+            "Alt navigasyon ve arama çubuğu sabit hale getirildi",
+            "Müşteri listesi performansı iyileştirildi",
+          ],
+        },
+      },
+    ],
+  },
+
+  {
+    version: "1.1.6",
+    title: {
+      en: "History Order, Printing & Data Integrity",
+      tr: "Geçmiş Sıralaması, Yazdırma ve Veri Bütünlüğü",
+    },
+    sections: [
+      {
+        label: { en: "Fixes & Safety", tr: "Düzeltmeler ve Güvenlik" },
+        items: {
+          en: [
+            "Added Vault Statement printing",
+            "Completed jobs move to end of history",
+            "Duplicate customer creation prevented",
+            "Completed jobs no longer auto-marked as paid",
+            "Active Jobs now include Edit option",
+            "Closing a job no longer removes it from customer profile",
+          ],
+          tr: [
+            "Kasa Dökümü yazdırma eklendi",
+            "Tamamlanan işler geçmişin sonuna taşınır",
+            "Aynı müşterinin tekrar oluşturulması engellendi",
+            "Tahsilat sırasında otomatik ödeme işaretleme kaldırıldı",
+            "Aktif işlere Düzenle seçeneği eklendi",
+            "İş kapatıldığında müşteri profilinden silinmez",
+          ],
+        },
+      },
+    ],
+  },
+
+  {
+    version: "1.1.5",
+    title: {
+      en: "Job Headers, Layout Symmetry & UX Consistency",
+      tr: "İş Başlıkları, Yerleşim Simetrisi ve UX Tutarlılığı",
+    },
+    sections: [
+      {
+        label: { en: "UI & Layout", tr: "Arayüz ve Yerleşim" },
+        items: {
+          en: [
+            "Job start and end fields displayed in headers",
+            "Helper text added to red warning sections",
+            "Duration displayed consistently across job types",
+            "Visual hierarchy improved across job forms",
+          ],
+          tr: [
+            "İş başlangıç ve bitiş alanları başlıklarda gösterilir",
+            "Kırmızı uyarı alanlarına açıklayıcı metinler eklendi",
+            "İş türlerinde süre bilgisi aynı konumda gösterilir",
+            "İş formlarında görsel hiyerarşi iyileştirildi",
+          ],
+        },
+      },
+    ],
+  },
+
+  {
+    version: "1.1.4",
+    title: {
+      en: "Financial Integrity & Universal Totals",
+      tr: "Finansal Bütünlük ve Evrensel Toplamlar",
+    },
+    sections: [
+      {
+        label: { en: "Financial Integrity", tr: "Finansal Bütünlük" },
+        items: {
+          en: [
+            "Fixed discrepancies between Total Owed, Total Paid, and Total Balance",
+            "Ensured all financial summaries use a universal job total calculation",
+            "Home page, Customer page, Vault page, and PDFs now always show matching totals",
+            "Improved overall financial data integrity across the application",
+          ],
+          tr: [
+            "Toplam Borç, Toplam Tahsilat ve Toplam Bakiye arasındaki uyumsuzluklar giderildi",
+            "Tüm finansal özetler artık tek ve evrensel iş toplamı hesaplamasını kullanır",
+            "Ana sayfa, müşteri sayfası, kasa sayfası ve PDF çıktılarındaki tutarlar birebir uyumludur",
+            "Uygulama genelinde finansal veri bütünlüğü sağlandı",
+          ],
+        },
+      },
+    ],
+  },
+
+  {
+    version: "1.1.3",
+    title: {
+      en: "Multi-Vault Jobs & Financial Sync Fixes",
+      tr: "Çoklu Kasa İşleri ve Finansal Senkron Düzeltmeleri",
+    },
+    sections: [
+      {
+        label: { en: "Fixes & Consistency", tr: "Düzeltmeler ve Tutarlılık" },
+        items: {
+          en: [
+            "Improved and confirmed multi-vault job support",
+            "Jobs can now be assigned to a selected vault during creation",
+            "Fixed job payment completion not reflecting in Customer Details",
+            "Resolved stale financial data after deleting jobs, payments, or debts",
+            "Ensured deleted payments and debts are fully removed from all calculations",
+            "Unified Total Owed, Total Paid, and Net Balance from a single job total source",
+          ],
+          tr: [
+            "Çoklu kasa iş desteği doğrulandı ve iyileştirildi",
+            "İş oluştururken ilgili kasa seçimi yapılabilir hale getirildi",
+            "Tamamlanan ve ödemesi yapılan işlerin müşteri detayına yansımaması sorunu giderildi",
+            "İş, tahsilat veya borç silindikten sonra kalan hatalı finansal veriler düzeltildi",
+            "Silinen tahsilat ve borç kayıtları tüm hesaplamalardan tamamen kaldırıldı",
+            "Toplam Borç, Toplam Tahsilat ve Net Bakiye tek bir iş toplamı kaynağından hesaplanır",
+          ],
+        },
+      },
+    ],
+  },
+
+  {
+    version: "1.1.2",
+    title: {
+      en: "Input Fixes, Active Jobs & Visual Consistency",
+      tr: "Girdi Düzeltmeleri, Aktif İşler ve Görsel Tutarlılık",
+    },
+    sections: [
+      {
+        label: {
+          en: "UI & UX Improvements",
+          tr: "Arayüz ve UX İyileştirmeleri",
+        },
+        items: {
+          en: [
+            "Fixed numeric inputs showing unnecessary trailing zeros",
+            "Active Job modal now fully expands when clicking anywhere on the card",
+            "Corrected Net Balance color logic (green for positive, red for negative)",
+            "Customer selector on Home page no longer auto-selects by default",
+            "Removed search bar from the Settings page",
+            "Unified spacing and layout across all job time sections",
+            "Added explanatory text under Planned Job Duration field",
+          ],
+          tr: [
+            "Bazı sayısal girişlerde görünen gereksiz sıfırlar giderildi",
+            "Aktif İşler’de kartın tamamına tıklandığında modal tamamen açılır",
+            "Net Durum renk mantığı düzeltildi (pozitif yeşil, negatif kırmızı)",
+            "Ana sayfadaki müşteri seçimi artık otomatik atanmaz",
+            "Ayarlar sayfasındaki arama çubuğu kaldırıldı",
+            "İş zamanı bölümlerinde tüm alanlar için eşit boşluk ve düzen sağlandı",
+            "Planlanan iş süresi alanı altına açıklayıcı metin eklendi",
+          ],
+        },
+      },
+    ],
+  },
+
+  {
+    version: "1.1.1",
+    title: {
+      en: "Portal, PWA & Security Fixes",
+      tr: "Portal, PWA ve Güvenlik Düzeltmeleri",
+    },
+    sections: [
+      {
+        label: { en: "Fixes & Stability", tr: "Düzeltmeler ve Kararlılık" },
+        items: {
+          en: [
+            "Fixed Customer Portal access (no longer requires admin login)",
+            "Public customer links are now globally accessible",
+            "Resolved Customer not found errors in shared links",
+            "Improved PWA back button behavior",
+            "Improved routing stability across the application",
+          ],
+          tr: [
+            "Müşteri Portalı erişim sorunları giderildi (artık admin girişi gerekmez)",
+            "Paylaşılan müşteri linkleri herkese açık hale getirildi",
+            "Paylaşılan linklerdeki müşteri bulunamadı hatası düzeltildi",
+            "PWA geri tuşu davranışı iyileştirildi",
+            "Uygulama genelinde yönlendirme kararlılığı artırıldı",
+          ],
+        },
+      },
+    ],
+  },
+
+  {
+    version: "1.1.0",
+    title: {
+      en: "Navigation, Language & Performance",
+      tr: "Navigasyon, Dil ve Performans",
+    },
+    sections: [
+      {
+        label: { en: "Improvements", tr: "İyileştirmeler" },
+        items: {
+          en: [
+            "Added English and Turkish language support",
+            "Improved menu navigation and active page highlighting",
+            "Removed confusing blue header behavior",
+            "Home page financial summary now updates based on selected Vault",
+            "Moved vault currency selection into Vault Edit page",
+            "Enabled code splitting for better performance",
+            "Integrated Font Awesome as a font-based icon system",
+          ],
+          tr: [
+            "Türkçe ve İngilizce dil desteği eklendi",
+            "Menü navigasyonu ve aktif sayfa vurgulaması iyileştirildi",
+            "Kafa karıştıran mavi header davranışı kaldırıldı",
+            "Ana sayfa finansal özeti seçilen Kasaya göre güncellenir hale getirildi",
+            "Kasa para birimi seçimi Kasa Düzenleme sayfasına taşındı",
+            "Daha iyi performans için code splitting uygulandı",
+            "Font Awesome font tabanlı ikon sistemi entegre edildi",
+          ],
+        },
+      },
+    ],
+  },
+
+  {
+    version: "1.0.9",
+    title: {
+      en: "Jobs, Pricing Models & Time Logic",
+      tr: "İşler, Fiyatlandırma Modelleri ve Zaman Mantığı",
+    },
+    sections: [
+      {
+        label: { en: "New Features", tr: "Yeni Özellikler" },
+        items: {
+          en: [
+            "Added Lunch Break field to Job Creation modal",
+            "Added Job Start Date for non-hourly jobs",
+            "Introduced three job pricing models (Hourly, Daily, Fixed)",
+            "Prevented completed jobs from showing time-tracking options",
+            "Improved clarity and flow of job creation process",
+          ],
+          tr: [
+            "İş ekleme modaline Öğle Molası alanı eklendi",
+            "Saatlik olmayan işler için İş Başlama Tarihi eklendi",
+            "Üç farklı iş fiyatlandırma modeli eklendi (Saatlik, Günlük, Sabit)",
+            "Tamamlanan işlerde saat takibi seçenekleri kaldırıldı",
+            "İş ekleme süreci daha anlaşılır hale getirildi",
+          ],
+        },
+      },
+    ],
+  },
+
+  {
+    version: "1.0.8",
+    title: {
+      en: "UI Cleanup, Layout & Accessibility",
+      tr: "Arayüz Temizliği, Yerleşim ve Erişilebilirlik",
+    },
+    sections: [
+      {
+        label: { en: "UI & UX", tr: "Arayüz ve UX" },
+        items: {
+          en: [
+            "Removed bar chart graphic from the home page",
+            "Fixed Net Balance color logic (red shown only when negative)",
+            "Wrapped main layout in a container to prevent overly wide screens",
+            "Improved spacing and padding across job history, customer history, and summaries",
+            "Improved Vault information page design",
+            "Customer page now clearly displays balance on the right side",
+            "Added direct phone call button to customer profile",
+            "Active Job actions now open in a single modal",
+          ],
+          tr: [
+            "Ana sayfadaki bar grafik kaldırıldı",
+            "Net Durum renk hatası düzeltildi (yalnızca negatifse kırmızı)",
+            "Web görünümü çok geniş olduğu için ana içerik container içine alındı",
+            "İş geçmişi, müşteri geçmişi ve finansal özetlerde boşluklar iyileştirildi",
+            "Kasa bilgi sayfası görsel olarak düzenlendi",
+            "Müşteri sayfasında bakiye sağ tarafta net şekilde gösterilir hale getirildi",
+            "Müşteri profiline doğrudan arama (telefon) butonu eklendi",
+            "Aktif İşler işlemleri tek bir modal içinde toplandı",
+          ],
+        },
+      },
+    ],
+  },
+
+  {
+    version: "1.0.7",
+    title: {
+      en: "History, Modals & Safety Improvements",
+      tr: "Geçmiş, Modallar ve Güvenlik İyileştirmeleri",
+    },
+    sections: [
+      {
+        label: {
+          en: "Improvements & Safety",
+          tr: "İyileştirmeler ve Güvenlik",
+        },
+        items: {
+          en: [
+            "Editing a job inside Customer Details no longer closes the customer detail modal",
+            "Job history now shows jobs, payments, and debts in strict chronological order",
+            "Added verified delete option for job payments and debt entries",
+            "Improved modal interaction stability across customer and job workflows",
+          ],
+          tr: [
+            "Müşteri detay ekranı içinden iş düzenlerken modalın kapanması sorunu giderildi",
+            "İş geçmişi artık işler, tahsilatlar ve borçları tarihe göre sıralı şekilde gösterir",
+            "İş geçmişinde tahsilat ve borç kayıtları için onaylı silme seçeneği eklendi",
+            "Müşteri ve iş akışlarında modal kararlılığı artırıldı",
+          ],
+        },
+      },
+    ],
+  },
+
+  {
+    version: "1.0.6",
+    title: {
+      en: "Job Creation Flow & Vault Fixes",
+      tr: "İş Oluşturma Akışı ve Kasa Düzeltmeleri",
+    },
+    sections: [
+      {
+        label: { en: "Fixes & Workflow", tr: "Düzeltmeler ve İş Akışı" },
+        items: {
+          en: [
+            "Creating a job from the customer profile now auto-selects the customer",
+            "Creating a job from the home page allows manual customer selection",
+            "Fixed inability to rename vaults",
+            "Prevented vault selection button from automatically opening vault detail modal",
+            "Fixed issue where clicking Payment did not open its modal",
+            "Improved admin page stability and resolved rendering issues",
+          ],
+          tr: [
+            "Müşteri profilinden iş oluşturulduğunda müşteri otomatik olarak seçilir",
+            "Ana sayfadan iş oluştururken müşteri manuel olarak seçilebilir",
+            "Kasa adının değiştirilememesi sorunu giderildi",
+            "Kasa seçme butonunun detay modalını otomatik açması engellendi",
+            "Tahsilat butonuna basıldığında modalın açılmaması sorunu düzeltildi",
+            "Yönetici (Admin) sayfası hataları giderildi ve kararlılığı artırıldı",
+          ],
+        },
+      },
+    ],
+  },
+
+  {
+    version: "1.0.5",
+    title: {
+      en: "UI Fixes & Job / Parts Corrections",
+      tr: "Arayüz Düzeltmeleri ve İş / Parça Hesaplamaları",
+    },
+    sections: [
+      {
+        label: { en: "Fixes", tr: "Düzeltmeler" },
+        items: {
+          en: [
+            "Fixed incorrect button logic between Completed Jobs and Add Debt",
+            "Parts now correctly affect job total (quantity × unit price)",
+            "Clarified parts input fields to avoid confusion",
+            "Limited Completed Jobs list to a maximum of 10 items",
+            "Completed Jobs now show only jobs completed today and not yet paid",
+            "Improved customer search with clear (✕) button",
+            "Fixed modal stacking issue when adding customers",
+          ],
+          tr: [
+            "Tamamlanan İşler ve Borç Ekle buton mantığı düzeltildi",
+            "Parçalar artık iş toplamına doğru şekilde eklenir (adet × birim fiyat)",
+            "Parça giriş alanları daha anlaşılır hale getirildi",
+            "Tamamlanan İşler listesi maksimum 10 kayıt ile sınırlandı",
+            "Tamamlanan İşler yalnızca bugün tamamlanan ve ödenmemiş işleri gösterir",
+            "Arama kutusuna temizleme (✕) butonu eklendi",
+            "Müşteri eklerken oluşan modal üst üste binme sorunu giderildi",
+          ],
+        },
+      },
+    ],
+  },
+
+  {
+    version: "0.9.6",
+    title: {
+      en: "Customer Portal, PDF & Printing",
+      tr: "Müşteri Portalı, PDF ve Yazdırma",
+    },
+    sections: [
+      {
+        label: { en: "New Features", tr: "Yeni Özellikler" },
+        items: {
+          en: [
+            "Added Customer Portal link for public transaction viewing",
+            "PDF preview now opens inside a modal",
+            "Added Print and Download PDF options",
+            "Added sharing options via Email and WhatsApp",
+            "Print view now includes all transaction details clearly",
+          ],
+          tr: [
+            "Herkese açık işlem görüntüleme için Müşteri Portalı eklendi",
+            "PDF önizleme artık modal içinde açılır",
+            "Yazdır ve PDF İndir seçenekleri eklendi",
+            "E-posta ve WhatsApp ile paylaşım seçenekleri eklendi",
+            "Yazdırma görünümü tüm işlem detaylarını net şekilde gösterir",
+          ],
+        },
+      },
+    ],
+  },
+
+  {
+    version: "0.9.4",
+    title: {
+      en: "Jobs, Time Tracking & History",
+      tr: "İşler, Zaman Takibi ve Geçmiş",
+    },
+    sections: [
+      {
+        label: { en: "Changes", tr: "Değişiklikler" },
+        items: {
+          en: [
+            "Added Clock In / Clock Out time tracking",
+            "Manual job entries now calculate due dates correctly",
+            "Prevented new jobs from auto-selecting the most recent customer",
+            "Job and payment history can be filtered by date range",
+            "Clicking history items now opens a modal",
+            "Main screen now shows the last 5 transactions",
+          ],
+          tr: [
+            "Saat Giriş / Saat Çıkış sistemi eklendi",
+            "Manuel iş girişlerinde vade tarihi doğru şekilde hesaplanır",
+            "Yeni iş eklerken son müşterinin otomatik seçilmesi engellendi",
+            "İş ve ödeme geçmişi tarih aralığına göre filtrelenebilir",
+            "Geçmiş kayıtlar artık modal içinde açılır",
+            "Ana ekranda son 5 işlem görüntülenir",
+          ],
+        },
+      },
+    ],
+  },
+
+  {
+    version: "0.9.2",
+    title: {
+      en: "Payments, Vaults & Accounting Logic",
+      tr: "Tahsilat, Kasalar ve Muhasebe Mantığı",
+    },
+    sections: [
+      {
+        label: { en: "Improvements", tr: "İyileştirmeler" },
+        items: {
+          en: [
+            "Added multi-currency support",
+            "Introduced multiple Vaults per user",
+            "Vaults can represent different physical locations",
+            "Payments now require selecting Vault and Payment Method",
+            "Payment method and vault name added to history and PDFs",
+            "Implemented clear plus / minus logic for payments and debts",
+            "Customer balance can go negative and prints correctly in PDFs",
+            "Mandatory notes added for payments and debts",
+          ],
+          tr: [
+            "Çoklu para birimi desteği eklendi",
+            "Kullanıcılar için çoklu kasa sistemi eklendi",
+            "Kasalar farklı fiziksel lokasyonları temsil edebilir",
+            "Ödeme sırasında kasa ve ödeme yöntemi seçimi zorunlu hale getirildi",
+            "Kasa adı ve ödeme yöntemi geçmişte ve PDF’lerde gösterilir",
+            "Tahsilat (+) ve borç (−) mantığı netleştirildi",
+            "Negatif bakiye desteği ve doğru PDF gösterimi eklendi",
+            "Tahsilat ve borç işlemleri için açıklama zorunlu yapıldı",
+          ],
+        },
+      },
+    ],
+  },
+
+  {
+    version: "0.9.0",
+    title: {
+      en: "Core Architecture & UI Refactor",
+      tr: "Çekirdek Mimari ve Arayüz Yenilemesi",
+    },
+    sections: [
+      {
+        label: { en: "Refactor", tr: "Yeniden Yapılandırma" },
+        items: {
+          en: [
+            "Refactored project structure (Jobs & Customers separated into folders)",
+            "Moved all CSS into dedicated stylesheet files",
+            "Adopted new, cleaner UI design",
+            "Improved overall layout consistency and readability",
+          ],
+          tr: [
+            "Proje yapısı yeniden düzenlendi (İşler ve Müşteriler klasörlere ayrıldı)",
+            "Tüm CSS kodları ayrı dosyalara taşındı",
+            "Daha temiz ve modern bir arayüz tasarımı benimsendi",
+            "Genel görünüm ve okunabilirlik iyileştirildi",
+          ],
+        },
+      },
+    ],
+  },
+];

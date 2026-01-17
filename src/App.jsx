@@ -44,6 +44,8 @@ import {
   CalendarPage,
 } from "./modals/Modals.jsx";
 
+import Changelog from "./components/Changelog";
+
 import {
   isWeekend,
   moveToNextBusinessDay,
@@ -230,6 +232,7 @@ function MainApp({ state, setState, user }) {
   const [customerSort, setCustomerSort] = useState("latest");
 
   const [profileOpen, setProfileOpen] = useState(false);
+  const [showChangelog, setShowChangelog] = useState(false);
 
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [paymentMode, setPaymentMode] = useState("payment");
@@ -240,6 +243,8 @@ function MainApp({ state, setState, user }) {
   const [openCustomerFolders, setOpenCustomerFolders] = useState({});
 
   const [visibleCustomers, setVisibleCustomers] = useState(10);
+
+  const [dismissedDueJobs, setDismissedDueJobs] = useState(() => new Set());
 
   useEffect(() => {
     if (search.trim()) {
@@ -413,11 +418,13 @@ function MainApp({ state, setState, user }) {
   }, [state.jobs, state.payments]);
 
   const unpaidCompletedJobs = filteredJobs.filter(
-    (j) => j.isCompleted && !j.isPaid
+    (j) => j.isCompleted && !j.isPaid,
   );
 
   const paymentWatchList = filteredJobs
-    .filter((j) => j.isCompleted && !j.isPaid)
+    .filter(
+      (j) => j.isCompleted && !j.isPaid && !j.dueDismissed, // ✅ PERSISTENT UI FLAG
+    )
     .map((job) => {
       const startDate = getJobStartDate(job);
       if (!startDate) return null;
@@ -480,7 +487,7 @@ function MainApp({ state, setState, user }) {
           ? typeof update === "string"
             ? { ...k, name: update } // old behavior
             : { ...k, ...update } // new behavior (currency etc.)
-          : k
+          : k,
       ),
     }));
   }
@@ -507,12 +514,12 @@ function MainApp({ state, setState, user }) {
           const aDate = getLatestCustomerTransaction(
             a.id,
             state.jobs,
-            state.payments || []
+            state.payments || [],
           );
           const bDate = getLatestCustomerTransaction(
             b.id,
             state.jobs,
-            state.payments || []
+            state.payments || [],
           );
           return bDate - aDate; // newest first
         });
@@ -536,14 +543,14 @@ function MainApp({ state, setState, user }) {
 
       case "name_desc":
         list.sort((a, b) =>
-          `${b.name} ${b.surname}`.localeCompare(`${a.name} ${a.surname}`)
+          `${b.name} ${b.surname}`.localeCompare(`${a.name} ${a.surname}`),
         );
         break;
 
       case "name_asc":
       default:
         list.sort((a, b) =>
-          `${a.name} ${a.surname}`.localeCompare(`${b.name} ${b.surname}`)
+          `${a.name} ${a.surname}`.localeCompare(`${b.name} ${b.surname}`),
         );
         break;
     }
@@ -647,7 +654,7 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
       const before = s.payments?.length || 0;
 
       const cleanedPayments = (s.payments || []).filter(
-        (p) => p.source !== "job"
+        (p) => p.source !== "job",
       );
 
       const after = cleanedPayments.length;
@@ -752,7 +759,7 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
       const newAmt = toNum(updated.amount);
 
       const nextPayments = (s.payments || []).map((p) =>
-        p.id === updated.id ? { ...p, ...updated, amount: newAmt } : p
+        p.id === updated.id ? { ...p, ...updated, amount: newAmt } : p,
       );
 
       return { ...s, payments: nextPayments };
@@ -761,16 +768,31 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
 
   function markJobComplete(jobId) {
     setState((s) => {
-      const job = s.jobs.find((j) => j.id === jobId);
-      if (!job) return s;
+      const now = Date.now();
 
-      const nextJobs = s.jobs.map((j) =>
-        j.id === jobId
-          ? { ...j, isCompleted: true, isPaid: false, isRunning: false }
-          : j
-      );
+      const nextJobs = s.jobs.map((j) => {
+        if (j.id !== jobId) return j;
 
-      // ✅ no customer.balanceOwed updates — balance is derived
+        // ✅ if still running, close the session and add workedMs
+        if (j.isRunning && j.clockInAt) {
+          const deltaMs = Math.max(0, now - j.clockInAt);
+
+          const session = { id: uid(), inAt: j.clockInAt, outAt: now };
+
+          return {
+            ...j,
+            isCompleted: true,
+            isPaid: false,
+            isRunning: false,
+            clockInAt: null,
+            sessions: [...(j.sessions || []), session],
+            workedMs: (j.workedMs || 0) + deltaMs,
+          };
+        }
+
+        return { ...j, isCompleted: true, isPaid: false, isRunning: false };
+      });
+
       return { ...s, jobs: nextJobs };
     });
   }
@@ -850,12 +872,16 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
       const nextJobs = s.jobs.map((j) => {
         // auto-stop any other running job
         if (j.isRunning && j.clockInAt && j.id !== jobId) {
+          const deltaMs = Math.max(0, now - j.clockInAt);
+
           const autoSession = { id: uid(), inAt: j.clockInAt, outAt: now };
+
           return {
             ...j,
             isRunning: false,
             clockInAt: null,
             sessions: [...(j.sessions || []), autoSession],
+            workedMs: (j.workedMs || 0) + deltaMs, // ✅ IMPORTANT
           };
         }
 
@@ -888,15 +914,18 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
    */
 
   function clockOut(jobId) {
-    setState((s) => ({
-      ...s,
-      jobs: s.jobs.map((j) => {
+    setState((s) => {
+      const now = Date.now();
+
+      const nextJobs = s.jobs.map((j) => {
         if (j.id !== jobId || !j.clockInAt) return j;
+
+        const deltaMs = Math.max(0, now - j.clockInAt);
 
         const session = {
           id: uid(),
           inAt: j.clockInAt,
-          outAt: Date.now(),
+          outAt: now,
         };
 
         return {
@@ -904,9 +933,12 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
           isRunning: false,
           clockInAt: null,
           sessions: [...(j.sessions || []), session],
+          workedMs: (j.workedMs || 0) + deltaMs, // ✅ IMPORTANT
         };
-      }),
-    }));
+      });
+
+      return { ...s, jobs: nextJobs };
+    });
   }
 
   /** Toggle job folder open/close */
@@ -914,7 +946,7 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
     setState((s) => ({
       ...s,
       jobs: s.jobs.map((j) =>
-        j.id === jobId ? { ...j, isOpen: !j.isOpen } : j
+        j.id === jobId ? { ...j, isOpen: !j.isOpen } : j,
       ),
     }));
   }
@@ -925,15 +957,14 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
      - Customers: Add Customer
   ============================================================ */
   function onFabClick() {
-    if (page === "home") {
+    if (page === "home" || page === "calendar") {
+      setEditingJobId(null); // ✅ FORCE NEW JOB
+      setJobFixedCustomerId(null);
       setJobModalOpen(true);
     } else if (page === "customers") {
       setCustModalOpen(true);
-    } else if (page === "calendar") {
-      setJobModalOpen(true); // calendar add job
     }
   }
-
   /* ============================================================
      RENDER
   ============================================================ */
@@ -1108,15 +1139,16 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                   {/* 🔔 30 GÜNLÜK ÖDEME TAKİBİ */}
                   <div className="card">
                     <div
-                      className="list-item section-header"
-                      style={{ cursor: "pointer" }}
+                      className="list-item section-header due-header"
                       onClick={() => setPaymentOpen((o) => !o)}
                     >
                       <strong>
                         <i className="fa-solid fa-bell"></i> 30 Günlük Ödeme
                         Takibi ({paymentWatchList.length})
                       </strong>
-                      <span>{paymentOpen ? "▾" : "▸"}</span>
+                      <i
+                        className={`fa-solid fa-chevron-${paymentOpen ? "down" : "right"} due-arrow`}
+                      />
                     </div>
                   </div>
 
@@ -1141,14 +1173,14 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                                 daysLeft <= 0
                                   ? "#fee2e2"
                                   : daysLeft <= 5
-                                  ? "#fef3c7"
-                                  : "white",
+                                    ? "#fef3c7"
+                                    : "white",
                               borderLeft:
                                 daysLeft <= 0
                                   ? "6px solid #dc2626"
                                   : daysLeft <= 5
-                                  ? "6px solid #f59e0b"
-                                  : "6px solid #16a34a",
+                                    ? "6px solid #f59e0b"
+                                    : "6px solid #16a34a",
                             }}
                           >
                             <div>
@@ -1167,6 +1199,36 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                             </div>
 
                             <div style={{ fontWeight: 700 }}>
+                              <button
+                                className="due-dismiss-btn"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+
+                                  setState((s) => {
+                                    const nextJobs = s.jobs.map((j) =>
+                                      j.id === job.id
+                                        ? { ...j, dueDismissed: true } // ✅ SAVE FLAG
+                                        : j,
+                                    );
+
+                                    const nextState = {
+                                      ...s,
+                                      jobs: nextJobs,
+                                    };
+
+                                    // 🔒 persist immediately
+                                    saveUserData(
+                                      auth.currentUser.uid,
+                                      nextState,
+                                    );
+
+                                    return nextState;
+                                  });
+                                }}
+                              >
+                                ✓ Takipten Kaldır
+                              </button>
+
                               {(() => {
                                 const totalMs = job.workedMs || 0;
                                 const hours =
@@ -1176,7 +1238,7 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
 
                                 return money(
                                   hours * toNum(job.rate) + partsTotalOf(job),
-                                  currency
+                                  currency,
                                 );
                               })()}
                             </div>
@@ -1199,7 +1261,7 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                             setState((s) => ({
                               ...s,
                               jobs: s.jobs.map((j) =>
-                                !j.isCompleted ? { ...j, isOpen: false } : j
+                                !j.isCompleted ? { ...j, isOpen: false } : j,
                               ),
                             }));
                           }
@@ -1226,7 +1288,7 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
 
                           const totalAmount = jobs.reduce(
                             (sum, j) => sum + jobTotalOf(j),
-                            0
+                            0,
                           );
 
                           return (
@@ -1298,7 +1360,7 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                               </div>
                             </div>
                           );
-                        }
+                        },
                       )
                     ))}
 
@@ -1316,7 +1378,7 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                             setState((s) => ({
                               ...s,
                               jobs: s.jobs.map((j) =>
-                                j.isCompleted ? { ...j, isOpen: false } : j
+                                j.isCompleted ? { ...j, isOpen: false } : j,
                               ),
                             }));
                           }
@@ -1381,7 +1443,7 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                       const balance = computeCustomerBalance(
                         c.id,
                         state.jobs,
-                        state.payments
+                        state.payments,
                       );
 
                       return (
@@ -1554,7 +1616,7 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                                   vaults: s.vaults.map((k) =>
                                     k.id === vault.id
                                       ? { ...k, name: editingVaultName.trim() }
-                                      : k
+                                      : k,
                                   ),
                                 }));
                                 setEditingVaultId(null);
@@ -1620,6 +1682,29 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                     + Yeni Kasa Ekle
                   </button>
                 </div>
+                {/* 📦 UPDATES & CHANGELOG */}
+                <div className="card" style={{ marginTop: 20 }}>
+                  <div
+                    className="list-item"
+                    style={{ cursor: "pointer" }}
+                    onClick={() => setShowChangelog((v) => !v)}
+                  >
+                    <div>
+                      <strong>📦 Güncellemeler & Sürüm Geçmişi</strong>
+                      <div style={{ fontSize: 12, color: "#666" }}>
+                        Mevcut sürüm: v1.2.6
+                      </div>
+                    </div>
+
+                    <i
+                      className={`fa-solid fa-chevron-${
+                        showChangelog ? "down" : "right"
+                      }`}
+                    />
+                  </div>
+
+                  {showChangelog && <Changelog language="tr" />}
+                </div>
               </div>
             )}
           </div>
@@ -1684,7 +1769,8 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
             open={jobModalOpen}
             onClose={() => {
               setJobModalOpen(false);
-              setJobFixedCustomerId(null);
+              setEditingJobId(null); // ✅ RESET EDIT MODE
+              setJobFixedCustomerId(null); // ✅ RESET FIXED CUSTOMER
             }}
             customers={state.customers}
             jobs={state.jobs}
@@ -1782,7 +1868,7 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                   note,
                   date,
                   vaultId,
-                  method
+                  method,
                 );
               } else {
                 // ✅ Borç: vault yok → active vault kullanılır
@@ -1832,7 +1918,7 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
               if (confirm.type === "payment") {
                 setState((s) => {
                   const nextPayments = (s.payments || []).filter(
-                    (p) => p.id !== confirm.id
+                    (p) => p.id !== confirm.id,
                   );
 
                   const nextState = {
@@ -1851,13 +1937,13 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
 
                 setState((s) => {
                   const idx = s.customers.findIndex(
-                    (c) => c.id === customer.id
+                    (c) => c.id === customer.id,
                   );
 
                   const nextCustomers =
                     idx >= 0
                       ? s.customers.map((c) =>
-                          c.id === customer.id ? customer : c
+                          c.id === customer.id ? customer : c,
                         )
                       : [...s.customers, customer];
 
@@ -1924,12 +2010,12 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                     setState((s) => {
                       // 1️⃣ Remove vault
                       const nextVaults = (s.vaults || []).filter(
-                        (k) => k.id !== vaultId
+                        (k) => k.id !== vaultId,
                       );
 
                       // 2️⃣ Remove all payments tied to this vault
                       const nextPayments = (s.payments || []).filter(
-                        (p) => p.vaultId !== vaultId
+                        (p) => p.vaultId !== vaultId,
                       );
 
                       // 3️⃣ If deleted vault was active, switch to first remaining
@@ -2058,7 +2144,31 @@ function JobCard({
           </div>
         </div>
 
-        <div style={{ textAlign: "right" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "flex-end",
+            gap: 8,
+            minWidth: 180,
+          }}
+        >
+          {/* 1) Saat Girişi */}
+          {job.timeMode === "clock" && !job.isCompleted && (
+            <button
+              className="due-dismiss-btn"
+              style={{ padding: "6px 10px" }}
+              onClick={(e) => {
+                e.stopPropagation();
+                clockIn(job.id);
+              }}
+            >
+              <i className="fa-solid fa-clock"></i>
+              Saat Girişi
+            </button>
+          )}
+
+          {/* 2) ⋮ menu */}
           {!hideActions && onOpenActions && (
             <button
               className="job-options-btn"
@@ -2071,44 +2181,10 @@ function JobCard({
             </button>
           )}
 
-          <strong style={{ color: "var(--primary)" }}>
+          {/* 3) price */}
+          <strong style={{ color: "var(--primary)", whiteSpace: "nowrap" }}>
             {money(total, currency)}
           </strong>
-
-          <div
-            style={{
-              marginTop: 8,
-              display: "flex",
-              gap: 6,
-              justifyContent: "flex-end",
-              flexWrap: "wrap",
-            }}
-          >
-            {/* ⏱ Clock actions — ONLY for ACTIVE (not completed) jobs */}
-            {job.timeMode === "clock" &&
-              !job.isCompleted &&
-              (job.isRunning ? (
-                <button
-                  className="btn btn-delete"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    clockOut(job.id);
-                  }}
-                >
-                  Saat Çıkışı
-                </button>
-              ) : (
-                <button
-                  className="btn btn-save"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    clockIn(job.id);
-                  }}
-                >
-                  Saat Girişi
-                </button>
-              ))}
-          </div>
         </div>
       </div>
 
@@ -2362,8 +2438,8 @@ function PublicCustomerSharePage() {
       job.timeMode === "clock"
         ? clockHoursOf(job)
         : job.timeMode === "manual"
-        ? calcHours(job.start, job.end)
-        : 0;
+          ? calcHours(job.start, job.end)
+          : 0;
 
     const laborTotal =
       job.timeMode === "fixed"
@@ -2393,8 +2469,8 @@ function PublicCustomerSharePage() {
             job.timeMode === "fixed"
               ? "Sabit Ücret"
               : job.timeMode === "clock"
-              ? "Saat Giriş / Çıkış"
-              : "Elle Giriş"
+                ? "Saat Giriş / Çıkış"
+                : "Elle Giriş"
           }
         </span>
       </div>
@@ -2436,7 +2512,7 @@ function PublicCustomerSharePage() {
               <span>${p.name || "Parça"} ${p.qty ? `× ${p.qty}` : ""}</span>
               <span>${money(partLineTotal(p), currency)}</span>
             </div>
-          `
+          `,
               )
               .join("") +
             `
@@ -2722,7 +2798,7 @@ function CustomerSharePage({ state }) {
   const balance = computeCustomerBalance(
     customer.id,
     state.jobs,
-    state.payments
+    state.payments,
   );
 
   return (

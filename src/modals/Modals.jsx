@@ -8,6 +8,7 @@ import {
   makeEmptyJob,
   jobTotalOf, // ✅ ADD THIS
   partsTotalOf,
+  calcHoursWithBreak, // ✅ ADD THIS
 } from "../utils/helpers";
 
 import {
@@ -36,6 +37,24 @@ import { publishCustomerSnapshot, saveUserData } from "../firestoreService";
  * Modal base
  * - matches your overlay style
  */
+
+function utcTimestampFromDateAndTime(dateStr, timeStr) {
+  if (!dateStr || !timeStr) return null;
+
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const [hh, mm] = timeStr.split(":").map(Number);
+
+  return Date.UTC(y, m - 1, d, hh, mm);
+}
+
+function utcTimeFromTimestamp(ts) {
+  if (!ts) return "";
+  const d = new Date(ts);
+  const hh = String(d.getUTCHours()).padStart(2, "0");
+  const mm = String(d.getUTCMinutes()).padStart(2, "0");
+  return `${hh}:${mm}`;
+}
+
 export function ModalBase({
   open,
   title,
@@ -405,7 +424,7 @@ export function JobModal({
     setDraft((d) => ({
       ...d,
       parts: (d.parts || []).map((p) =>
-        p.id === partId ? { ...p, ...patch } : p
+        p.id === partId ? { ...p, ...patch } : p,
       ),
     }));
   }
@@ -416,12 +435,20 @@ export function JobModal({
       parts: (d.parts || []).filter((p) => p.id !== partId),
     }));
   }
+  function recalcWorkedMsFromSessions(sessions = []) {
+    return (sessions || []).reduce((sum, s) => {
+      const inAt = toNum(s.inAt);
+      const outAt = toNum(s.outAt);
+      if (!inAt || !outAt) return sum;
+      return sum + Math.max(0, outAt - inAt);
+    }, 0);
+  }
 
   // Auto totals in modal
-  const hours = useMemo(
-    () => calcHours(draft.start, draft.end),
-    [draft.start, draft.end]
-  );
+  const hours = useMemo(() => {
+    if (draft.timeMode !== "manual") return 0;
+    return calcHoursWithBreak(draft.start, draft.end, draft.breakMinutes);
+  }, [draft.start, draft.end, draft.breakMinutes, draft.timeMode]);
 
   const workingDays = useMemo(() => {
     if (!draft.plannedStartDate || !draft.plannedEndDate) return 0;
@@ -440,9 +467,9 @@ export function JobModal({
     () =>
       (draft.parts || []).reduce(
         (sum, p) => sum + toNum(p.qty) * toNum(p.unitPrice),
-        0
+        0,
       ),
-    [draft.parts]
+    [draft.parts],
   );
   const laborTotal = draft.timeMode === "fixed" ? 0 : hours * toNum(draft.rate);
 
@@ -464,6 +491,12 @@ export function JobModal({
     // Save with cleaned numeric fields
     onSave({
       ...draft,
+
+      // ✅ IMPORTANT: if clock mode, workedMs must come from sessions
+      workedMs:
+        draft.timeMode === "clock"
+          ? recalcWorkedMsFromSessions(draft.sessions)
+          : draft.workedMs,
 
       // ✅ persist fixed job duration
       fixedDays: draft.timeMode === "fixed" ? workingDays : null,
@@ -714,18 +747,18 @@ export function JobModal({
 
                 <input
                   type="time"
-                  value={new Date(s.inAt).toISOString().slice(11, 16)}
+                  value={utcTimeFromTimestamp(s.inAt)}
                   onChange={(e) => {
                     const t = e.target.value;
                     setDraft((d) => ({
                       ...d,
-                      sessions: (d.sessions || []).map((x) =>
+                      sessions: d.sessions.map((x) =>
                         x.id === s.id
                           ? {
                               ...x,
-                              inAt: new Date(`${d.date}T${t}`).getTime(),
+                              inAt: utcTimestampFromDateAndTime(d.date, t),
                             }
-                          : x
+                          : x,
                       ),
                     }));
                   }}
@@ -733,18 +766,18 @@ export function JobModal({
 
                 <input
                   type="time"
-                  value={new Date(s.outAt).toISOString().slice(11, 16)}
+                  value={utcTimeFromTimestamp(s.outAt)}
                   onChange={(e) => {
                     const t = e.target.value;
                     setDraft((d) => ({
                       ...d,
-                      sessions: (d.sessions || []).map((x) =>
+                      sessions: d.sessions.map((x) =>
                         x.id === s.id
                           ? {
                               ...x,
-                              outAt: new Date(`${d.date}T${t}`).getTime(),
+                              outAt: utcTimestampFromDateAndTime(d.date, t),
                             }
-                          : x
+                          : x,
                       ),
                     }));
                   }}
@@ -753,20 +786,51 @@ export function JobModal({
                 <button
                   type="button"
                   className="btn btn-delete"
-                  style={{ padding: "6px 10px" }}
                   onClick={() =>
                     setDraft((d) => ({
                       ...d,
-                      sessions: (d.sessions || []).filter((x) => x.id !== s.id),
+                      sessions: d.sessions.filter((x) => x.id !== s.id),
                     }))
                   }
-                  title="Sil"
                 >
-                  <i className="fa-solid fa-trash"></i>
+                  <i className="fa-solid fa-trash" />
                 </button>
               </div>
             ))
           )}
+
+          {/* ✅ ADD BUTTON (ONLY ONCE) */}
+          <button
+            type="button"
+            className="btn"
+            style={{ marginTop: 8, background: "#eef2ff", color: "#1e40af" }}
+            onClick={() =>
+              setDraft((d) => {
+                const dateStr = d.date || new Date().toISOString().slice(0, 10);
+                const now = new Date();
+
+                const hh = String(now.getHours()).padStart(2, "0");
+                const mm = String(now.getMinutes()).padStart(2, "0");
+
+                return {
+                  ...d,
+                  sessions: [
+                    ...(d.sessions || []),
+                    {
+                      id: uid(),
+                      inAt: utcTimestampFromDateAndTime(dateStr, `${hh}:${mm}`),
+                      outAt: utcTimestampFromDateAndTime(
+                        dateStr,
+                        `${hh}:${mm}`,
+                      ),
+                    },
+                  ],
+                };
+              })
+            }
+          >
+            + Çalışma Ekle
+          </button>
         </div>
       )}
 
@@ -829,6 +893,29 @@ export function JobModal({
               />
             </div>
           </div>
+          {draft.timeMode === "manual" && (
+            <div className="form-group">
+              <label>Öğle Molası (dakika)</label>
+
+              <input
+                type="number"
+                min="0"
+                step="5"
+                placeholder="Örn: 30"
+                value={draft.breakMinutes || ""}
+                onChange={(e) =>
+                  setDraft((d) => ({
+                    ...d,
+                    breakMinutes: Number(e.target.value) || 0,
+                  }))
+                }
+              />
+
+              <small style={{ color: "#6b7280" }}>
+                Mola süresi toplam çalışmadan otomatik düşülür
+              </small>
+            </div>
+          )}
 
           <div className="form-group">
             <label>Saatlik Ücret ({currency})</label>
@@ -1149,11 +1236,11 @@ export function CustomerDetailModal({
             ? ((j.workedMs || 0) +
                 (j.isRunning && j.clockInAt ? Date.now() - j.clockInAt : 0)) /
               36e5
-            : calcHours(j.start, j.end);
+            : calcHoursWithBreak(j.start, j.end, j.breakMinutes);
 
         text += `${j.date}\n`;
         text += `${j.start || "--:--"} - ${j.end || "--:--"} | ${hours.toFixed(
-          2
+          2,
         )} saat\n`;
         text += `Toplam: ${money(total, currency)}\n`;
         const statusKey = j.isCompleted ? "completed" : "open";
@@ -1303,7 +1390,7 @@ export function CustomerDetailModal({
         (j) =>
           j.customerId === customer.id &&
           (!j.isCompleted || // 🟡 ACTIVE JOBS
-            (j.isCompleted && !j.isPaid)) // ⚙️ COMPLETED BUT UNPAID
+            (j.isCompleted && !j.isPaid)), // ⚙️ COMPLETED BUT UNPAID
       )
       .reduce((sum, j) => sum + jobTotalOf(j), 0);
   }, [jobs, customer]);
@@ -1591,7 +1678,7 @@ export function CustomerDetailModal({
                         setEditAmount(String(p.amount ?? ""));
                         setEditNote(p.note || "");
                         setEditDate(
-                          p.date || new Date().toISOString().slice(0, 10)
+                          p.date || new Date().toISOString().slice(0, 10),
                         );
                         setEditMethod(p.method || "cash");
                         setEditVaultId(p.vaultId || activeVaultId || "");
@@ -1669,7 +1756,7 @@ export function CustomerDetailModal({
                           ? Date.now() - j.clockInAt
                           : 0)) /
                       36e5
-                    : calcHours(j.start, j.end);
+                    : calcHoursWithBreak(j.start, j.end, j.breakMinutes);
 
                 return (
                   <div
@@ -1960,7 +2047,7 @@ export function PaymentActionModal({
 
   // ✅ NEW: date picker state (today default)
   const [paymentDate, setPaymentDate] = useState(
-    new Date().toISOString().slice(0, 10)
+    new Date().toISOString().slice(0, 10),
   );
 
   useEffect(() => {
@@ -2089,7 +2176,7 @@ export function PaymentActionModal({
                   note,
                   vaultId,
                   paymentDate,
-                  mode === "payment" ? method : null
+                  mode === "payment" ? method : null,
                 );
                 onClose();
               }}
@@ -2115,7 +2202,7 @@ export function ProfileModal({ open, onClose, user, profile, setState }) {
   const [loading, setLoading] = useState(false);
 
   const [showCalendar, setShowCalendar] = useState(
-    profile?.settings?.showCalendar !== false
+    profile?.settings?.showCalendar !== false,
   );
 
   useEffect(() => {
@@ -2362,7 +2449,7 @@ export function CalendarPage({ jobs = [], customers = [] }) {
   const [view, setView] = React.useState("monthly"); // daily | weekly | monthly
   const [referenceDate, setReferenceDate] = React.useState(new Date());
   const [selectedDate, setSelectedDate] = React.useState(
-    new Date().toISOString().slice(0, 10)
+    new Date().toISOString().slice(0, 10),
   );
 
   const WEEKDAYS = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
@@ -2534,13 +2621,13 @@ export function CalendarPage({ jobs = [], customers = [] }) {
                 const firstDay = new Date(
                   referenceDate.getFullYear(),
                   referenceDate.getMonth(),
-                  1
+                  1,
                 );
                 const offset = (firstDay.getDay() + 6) % 7;
                 const daysInMonth = new Date(
                   referenceDate.getFullYear(),
                   referenceDate.getMonth() + 1,
-                  0
+                  0,
                 ).getDate();
 
                 const cells = [];
@@ -2553,7 +2640,7 @@ export function CalendarPage({ jobs = [], customers = [] }) {
                   const dateObj = new Date(
                     referenceDate.getFullYear(),
                     referenceDate.getMonth(),
-                    d
+                    d,
                   );
                   const dStr = formatDate(dateObj);
                   const hasJob = jobs.some((j) => j.date === dStr);
@@ -2568,7 +2655,7 @@ export function CalendarPage({ jobs = [], customers = [] }) {
                     >
                       <div>{d}</div>
                       {hasJob && <small>•</small>}
-                    </div>
+                    </div>,
                   );
                 }
 
@@ -2672,7 +2759,7 @@ export function CalendarPage({ jobs = [], customers = [] }) {
 
                   {groupedVisibleJobs[date].map((job) => {
                     const customer = customers.find(
-                      (c) => c.id === job.customerId
+                      (c) => c.id === job.customerId,
                     );
 
                     return (
