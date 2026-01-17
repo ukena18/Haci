@@ -2055,7 +2055,7 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
     </>
   );
 }
-
+// job card
 function JobCard({
   job,
   customersById,
