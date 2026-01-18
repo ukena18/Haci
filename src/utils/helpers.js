@@ -151,6 +151,20 @@ export function jobTotalOf(job) {
   return hours * toNum(job?.rate) + parts;
 }
 
+export function clockHoursOf(job) {
+  const sessions = job.sessions || [];
+
+  const pastMs = sessions.reduce((sum, s) => {
+    if (!s?.inAt || !s?.outAt) return sum;
+    return sum + (s.outAt - s.inAt);
+  }, 0);
+
+  const liveMs =
+    job?.isRunning && job?.clockInAt ? Date.now() - job.clockInAt : 0;
+
+  return (pastMs + liveMs) / 36e5;
+}
+
 /** Optional: keep these if your modals/app use them */
 export function makeEmptyCustomer() {
   return {
