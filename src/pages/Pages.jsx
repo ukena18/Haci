@@ -584,6 +584,7 @@ export function SettingsPage({
   setProfileOpen,
   setSelectedVaultId,
   setVaultDetailOpen,
+  setVaultListOpen,
 
   editingVaultId,
   setEditingVaultId,
@@ -602,187 +603,110 @@ export function SettingsPage({
   Changelog,
 }) {
   return (
-    <div id="page-settings">
-      <div className="card">
-        {/* 🔓 LOGOUT BUTTON */}
-        <button
-          className="logout-btn"
-          onClick={() => signOut(auth)}
-          style={{ marginTop: 12, width: "100%" }}
-        >
-          <i className="fa-solid fa-right-from-bracket"></i> Çıkış Yap
-        </button>
+    <div className="settings-dashboard">
+      <h2 className="settings-title">Ayarlar</h2>
+      {/* ADMIN HEADER */}
+      <div className="settings-admin-card">
+        <div className="admin-left">
+          <div className="admin-avatar">
+            {user?.email?.[0]?.toUpperCase() || "A"}
+          </div>
 
-        {/* 👤 ADMIN PROFILE */}
-        <div
-          className="card admin-profile"
-          style={{ cursor: "pointer" }}
-          onClick={() => setProfileOpen(true)}
-        >
-          <div className="admin-row">
-            <div className="admin-avatar">
-              {user?.email?.[0]?.toUpperCase() || "A"}
+          <div className="admin-info">
+            <strong className="admin-name">
+              {user?.displayName || "Yönetici"}
+            </strong>
+
+            <div className="admin-email">
+              {user?.email || "admin@example.com"}
             </div>
 
-            <div className="admin-info" style={{ flex: 1 }}>
-              <strong className="admin-name">
-                {user?.displayName || "Yönetici"}
-              </strong>
-
-              <div className="admin-email">
-                {user?.email || "admin@example.com"}
-              </div>
-
-              <span className="admin-role">ADMIN</span>
-            </div>
-
-            {/* RIGHT SIDE */}
-            <div className="admin-meta-right">
-              {state.profile?.phone && (
-                <div className="admin-meta">
-                  <i className="fa-solid fa-phone"></i> {state.profile.phone}
-                </div>
-              )}
-
-              {state.profile?.address && (
-                <div className="admin-meta">
-                  <i className="fa-solid fa-location-dot"></i>{" "}
-                  {state.profile.address}
-                </div>
-              )}
-            </div>
+            <span className="admin-role">ADMIN</span>
           </div>
         </div>
 
-        <h3>Kasa Yönetimi</h3>
-
-        {/* Vault LIST */}
-        {state.vaults.map((vault) => {
-          const isActive = vault.id === state.activeVaultId;
-
-          return (
-            <div
-              key={vault.id}
-              className="card list-item"
-              style={{
-                borderLeft: isActive
-                  ? "6px solid #2563eb"
-                  : "6px solid transparent",
-                background: isActive ? "#eff6ff" : "white",
-                cursor: "pointer",
-              }}
-              onClick={() => {
-                setSelectedVaultId(vault.id);
-                setVaultDetailOpen(true);
-              }}
-            >
-              <div>
-                {editingVaultId === vault.id ? (
-                  <input
-                    value={editingVaultName}
-                    autoFocus
-                    onChange={(e) => setEditingVaultName(e.target.value)}
-                    onBlur={() => {
-                      if (!editingVaultName.trim()) {
-                        setEditingVaultId(null);
-                        return;
-                      }
-
-                      setState((s) => ({
-                        ...s,
-                        vaults: s.vaults.map((k) =>
-                          k.id === vault.id
-                            ? { ...k, name: editingVaultName.trim() }
-                            : k,
-                        ),
-                      }));
-                      setEditingVaultId(null);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") e.target.blur();
-                      if (e.key === "Escape") setEditingVaultId(null);
-                    }}
-                    style={{
-                      fontSize: 12,
-                      padding: "4px 6px",
-                      width: "100%",
-                    }}
-                  />
-                ) : (
-                  <strong>{vault.name}</strong>
-                )}
-
-                <div style={{ fontSize: 12, color: "#555" }}>
-                  balance:{" "}
-                  {(() => {
-                    const { net } = getVaultTotals(vault.id);
-                    return money(net, vault.currency);
-                  })()}
-                </div>
-              </div>
-
-              {isActive ? (
-                <div className="vault-active-badge">AKTİF</div>
-              ) : (
-                <div style={{ display: "flex", gap: 6 }}></div>
-              )}
+        <div className="admin-right">
+          {state.profile?.phone && (
+            <div className="admin-meta">
+              <i className="fa-solid fa-phone"></i> {state.profile.phone}
             </div>
-          );
-        })}
+          )}
 
-        {/* ADD NEW vault */}
-        <button
-          className="btn"
-          style={{
-            marginTop: 12,
-            background: "#eee",
-            color: "#333",
-          }}
-          onClick={() => {
-            const id = uid();
+          {state.profile?.address && (
+            <div className="admin-meta">
+              <i className="fa-solid fa-location-dot"></i>{" "}
+              {state.profile.address}
+            </div>
+          )}
 
-            setState((s) => ({
-              ...s,
-              vaults: [
-                ...(s.vaults || []),
-                {
-                  id,
-                  name: `Yeni Kasa ${s.vaults.length + 1}`,
-                  balance: 0,
-                  currency: s.currency || "TRY", // ✅ add this
-                  createdAt: Date.now(),
-                },
-              ],
-            }));
-          }}
-        >
-          + Yeni Kasa Ekle
-        </button>
+          <button className="logout-btn" onClick={() => signOut(auth)}>
+            <i className="fa-solid fa-right-from-bracket"></i> Çıkış Yap
+          </button>
+        </div>
       </div>
 
-      {/*   UPDATES & CHANGELOG */}
-      <div className="card" style={{ marginTop: 20 }}>
-        <div
-          className="list-item"
-          style={{ cursor: "pointer" }}
-          onClick={() => setShowChangelog((v) => !v)}
+      <div className="settings-grid">
+        {/* VAULTS */}
+        <button
+          className="settings-card"
+          onClick={() => setVaultListOpen(true)}
         >
-          <div>
-            <strong>
-              <i className="fa-solid fa-box-open"></i> Güncellemeler & Sürüm
-              Geçmişi
-            </strong>
-            <div style={{ fontSize: 12, color: "#666" }}>
-              Mevcut sürüm: v1.2.7
-            </div>
+          <div className="settings-icon blue">
+            <i className="fa-solid fa-vault"></i>
           </div>
 
-          <i
-            className={`fa-solid fa-chevron-${showChangelog ? "down" : "right"}`}
-          />
-        </div>
+          <div className="settings-content">
+            <h3>Kasa Yönetimi</h3>
+            <p>Kasaları görüntüle, düzenle ve aktif kasa seç</p>
+          </div>
 
-        {showChangelog && <Changelog language="tr" />}
+          <i className="fa-solid fa-chevron-right arrow"></i>
+        </button>
+
+        {/* PROFILE */}
+        <button className="settings-card" onClick={() => setProfileOpen(true)}>
+          <div className="settings-icon green">
+            <i className="fa-solid fa-user-gear"></i>
+          </div>
+
+          <div className="settings-content">
+            <h3>Profil & Yönetici</h3>
+            <p>Hesap bilgileri, şifre ve kişisel ayarlar</p>
+          </div>
+
+          <i className="fa-solid fa-chevron-right arrow"></i>
+        </button>
+
+        {/* UPDATES */}
+        <button
+          className="settings-card"
+          onClick={() => setShowChangelog(true)}
+        >
+          <div className="settings-icon orange">
+            <i className="fa-solid fa-box-open"></i>
+          </div>
+
+          <div className="settings-content">
+            <h3>Güncellemeler</h3>
+            <p>Sürüm geçmişi ve yeni özellikler</p>
+          </div>
+
+          <i className="fa-solid fa-chevron-right arrow"></i>
+        </button>
+
+        {/* OTHER */}
+        <button className="settings-card" onClick={() => alert("Yakında 👀")}>
+          <div className="settings-icon gray">
+            <i className="fa-solid fa-sliders"></i>
+          </div>
+
+          <div className="settings-content">
+            <h3>Diğer Ayarlar</h3>
+            <p>Uygulama tercihleri ve gelişmiş seçenekler</p>
+          </div>
+
+          <i className="fa-solid fa-chevron-right arrow"></i>
+        </button>
       </div>
     </div>
   );
@@ -870,46 +794,7 @@ export function PublicCustomerSharePage() {
   ].sort((a, b) => b.sortKey - a.sortKey);
 
   function printPage() {
-    const html = printRef.current?.innerHTML;
-    if (!html) return;
-
-    const w = window.open("", "_blank");
-    if (!w) {
-      alert("Popup engellendi");
-      return;
-    }
-
-    w.document.write(`
-      <!doctype html>
-      <html>
-      <head>
-        <meta charset="utf-8"/>
-        <title>Müşteri İş Dökümü</title>
-        <style>
-          body { font-family: system-ui, -apple-system, Segoe UI; padding: 24px; }
-          .card { border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px; margin-bottom: 10px; }
-          @media print { button { display: none; } }
-        </style>
-      </head>
-      <body>
-        <button onclick="window.print()" style="
-          margin-bottom:16px;
-          padding:10px 14px;
-          background:#2563eb;
-          color:white;
-          border:none;
-          border-radius:8px;
-          font-weight:600;
-          cursor:pointer;">
-          Yazdır / PDF Kaydet
-        </button>
-        ${html}
-      </body>
-      </html>
-    `);
-
-    w.document.close();
-    w.focus();
+    window.print();
   }
 
   function renderJobForPrint(job, currency) {
@@ -959,77 +844,94 @@ export function PublicCustomerSharePage() {
   return (
     <>
       <div
-        className="header"
+        className="card"
         style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 12,
+          margin: "16px",
+          padding: "16px 18px",
         }}
       >
-        {/* LEFT SIDE (TEXT) */}
-        <div style={{ flex: 1 }}>
-          <h2>Müşteri İş Geçmişi</h2>
-
-          <div style={{ fontSize: "0.9rem", marginTop: 5 }}>
-            <strong>
-              {customer.name} {customer.surname}
-            </strong>{" "}
-            — Borç: <strong>{money(balance, currency)}</strong>
-          </div>
-
-          {customer.phone && (
-            <div style={{ marginTop: 6, fontSize: "0.85rem" }}>
-              <i className="fa-solid fa-phone"></i>{" "}
-              <a
-                href={`tel:${customer.phone}`}
-                style={{
-                  color: "inherit",
-                  textDecoration: "none",
-                  fontWeight: 600,
-                }}
-              >
-                {customer.phone}
-              </a>
-            </div>
-          )}
-
-          {customer.address && (
-            <div
-              style={{
-                marginTop: 4,
-                fontSize: "0.85rem",
-                color: "rgba(255,255,255,0.9)",
-                whiteSpace: "normal",
-                overflowWrap: "anywhere",
-              }}
-            >
-              <i className="fa-solid fa-location-dot"></i> {customer.address}
-            </div>
-          )}
-        </div>
-
-        {/* RIGHT SIDE (PRINT BUTTON) */}
-        <button
-          onClick={printPage}
+        <div
           style={{
-            height: 40,
-            padding: "0 16px",
-            borderRadius: 10,
-            border: "none",
-            background: "rgba(255,255,255,0.15)",
-            color: "white",
-            fontWeight: 600,
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            whiteSpace: "nowrap",
+            display: "grid",
+            gridTemplateColumns: "1fr auto",
+            gap: 16,
+            alignItems: "stretch",
           }}
         >
-          <i className="fa-solid fa-print"></i>
-          Yazdır
-        </button>
+          {/* LEFT — CUSTOMER INFO */}
+          <div>
+            <h2 style={{ margin: 0 }}>
+              {customer.name} {customer.surname}
+            </h2>
+
+            <div
+              style={{
+                marginTop: 6,
+                fontSize: 13,
+                color: "#555",
+              }}
+            >
+              Bakiye:{" "}
+              <strong style={{ color: balance >= 0 ? "#16a34a" : "#dc2626" }}>
+                {money(balance, currency)}
+              </strong>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 14,
+                marginTop: 10,
+                fontSize: 13,
+                color: "#444",
+              }}
+            >
+              {customer.phone && (
+                <div>
+                  <i className="fa-solid fa-phone"></i>{" "}
+                  <a
+                    href={`tel:${customer.phone}`}
+                    style={{
+                      color: "inherit",
+                      textDecoration: "none",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {customer.phone}
+                  </a>
+                </div>
+              )}
+
+              {customer.address && (
+                <div>
+                  <i className="fa-solid fa-location-dot"></i>{" "}
+                  {customer.address}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* RIGHT — PRINT BUTTON */}
+          <button
+            onClick={printPage}
+            className="btn"
+            style={{
+              minWidth: 180,
+              padding: "0 20px",
+              fontSize: 14,
+              fontWeight: 600,
+              borderRadius: 12,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 10,
+            }}
+          >
+            <i className="fa-solid fa-print"></i>
+            Yazdır / PDF
+          </button>
+        </div>
       </div>
 
       <div

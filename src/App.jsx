@@ -248,6 +248,8 @@ function MainApp({ state, setState, user }) {
   const [vaultDetailOpen, setVaultDetailOpen] = useState(false);
   const [selectedVaultId, setSelectedVaultId] = useState(null);
 
+  const [vaultListOpen, setVaultListOpen] = useState(false);
+
   const [openCustomerFolders, setOpenCustomerFolders] = useState({});
 
   const [visibleCustomers, setVisibleCustomers] = useState(10);
@@ -299,6 +301,10 @@ function MainApp({ state, setState, user }) {
       }
       if (profileOpen) {
         setProfileOpen(false);
+        return true;
+      }
+      if (vaultListOpen) {
+        setVaultListOpen(false);
         return true;
       }
       if (vaultDetailOpen) {
@@ -982,7 +988,7 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
         <div className="app-frame">
           <div className="container">
             {/* Search bar */}
-            {page !== "settings" && (
+            {page !== "settings" && page !== "calendar" && (
               <div className="search-sticky">
                 <div className="search-wrap">
                   <div className="search-input-wrapper">
@@ -1105,6 +1111,7 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                 setProfileOpen={setProfileOpen}
                 setSelectedVaultId={setSelectedVaultId}
                 setVaultDetailOpen={setVaultDetailOpen}
+                setVaultListOpen={setVaultListOpen} // ✅ ADD THIS
                 editingVaultId={editingVaultId}
                 setEditingVaultId={setEditingVaultId}
                 editingVaultName={editingVaultName}
@@ -1287,6 +1294,18 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
             }}
           />
 
+          {/* CHANGELOG MODAL */}
+          {showChangelog && (
+            <ModalBase
+              open={true}
+              title="Güncellemeler & Sürüm Geçmişi"
+              onClose={() => setShowChangelog(false)}
+              zIndex={2000}
+            >
+              <Changelog language="tr" />
+            </ModalBase>
+          )}
+
           <VaultDetailModal
             open={vaultDetailOpen}
             onClose={() => setVaultDetailOpen(false)}
@@ -1298,6 +1317,70 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
             setVaultDeleteConfirm={setVaultDeleteConfirm} // ✅ ADD
             setState={setState}
           />
+
+          {/* VAULT LIST MODAL */}
+          {vaultListOpen && (
+            <ModalBase
+              open={true}
+              title="Kasalar"
+              onClose={() => setVaultListOpen(false)}
+              zIndex={1800}
+            >
+              <div className="vault-list">
+                {state.vaults.map((vault) => {
+                  const isActive = vault.id === state.activeVaultId;
+
+                  return (
+                    <div
+                      key={vault.id}
+                      className="vault-list-item"
+                      onClick={() => {
+                        setVaultListOpen(false);
+                        setSelectedVaultId(vault.id);
+                        setVaultDetailOpen(true);
+                      }}
+                    >
+                      <div>
+                        <strong>{vault.name}</strong>
+
+                        <div className="vault-balance">
+                          {money(getVaultTotals(vault.id).net, vault.currency)}
+                        </div>
+                      </div>
+
+                      {isActive && (
+                        <span className="vault-active-badge">AKTİF</span>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* ADD NEW VAULT */}
+                <button
+                  className="btn add-vault-btn"
+                  onClick={() => {
+                    const id = uid();
+
+                    setState((s) => ({
+                      ...s,
+                      vaults: [
+                        ...(s.vaults || []),
+                        {
+                          id,
+                          name: `Yeni Kasa ${s.vaults.length + 1}`,
+                          balance: 0,
+                          currency: s.currency || "TRY",
+                          createdAt: Date.now(),
+                        },
+                      ],
+                    }));
+                  }}
+                >
+                  + Yeni Kasa Ekle
+                </button>
+              </div>
+            </ModalBase>
+          )}
           <ProfileModal
             open={profileOpen}
             onClose={() => setProfileOpen(false)}
@@ -1870,10 +1953,7 @@ function VaultDetailModal({
               <select
                 value={vault.currency}
                 onChange={(e) =>
-                  onRenameVault(vault.id, {
-                    ...vault,
-                    currency: e.target.value,
-                  })
+                  onRenameVault(vault.id, { currency: e.target.value })
                 }
                 style={{
                   width: "100%",

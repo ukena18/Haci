@@ -1836,3 +1836,245 @@ input[type="date"] {
     font-size: 16px; /* 🔥 forces iOS/Chrome fullscreen picker */
   }
 }
+
+.settings-dashboard {
+  padding: 16px;
+}
+
+.settings-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.settings-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.settings-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    transform 0.1s ease,
+    box-shadow 0.1s ease;
+}
+
+.settings-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+}
+
+.settings-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.settings-icon.blue {
+  background: #2563eb;
+}
+.settings-icon.green {
+  background: #16a34a;
+}
+.settings-icon.orange {
+  background: #ea580c;
+}
+.settings-icon.gray {
+  background: #6b7280;
+}
+
+.settings-content {
+  flex: 1;
+}
+
+.settings-content h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.settings-content p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.settings-card .arrow {
+  color: #9ca3af;
+}
+
+.settings-admin-card {
+  background: white;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 18px;
+  border: 1px solid #e5e7eb;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.admin-left {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.admin-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: white;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.admin-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.admin-name {
+  font-size: 15px;
+}
+
+.admin-email {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.admin-role {
+  margin-top: 4px;
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #2563eb;
+  background: #eff6ff;
+  padding: 2px 8px;
+  border-radius: 999px;
+  width: fit-content;
+}
+
+.admin-right {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+}
+
+.admin-meta {
+  font-size: 12px;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.logout-btn {
+  margin-top: 6px;
+  background: #fee2e2;
+  color: #991b1b;
+  border: none;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.logout-btn:hover {
+  background: #fecaca;
+}
+
+.vault-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.vault-list-item {
+  background: #fff;
+  border-radius: 12px;
+  padding: 14px;
+  border: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+}
+
+.vault-list-item:hover {
+  background: #f9fafb;
+}
+
+.vault-balance {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+.add-vault-btn {
+  margin-top: 10px;
+  background: #f3f4f6;
+  color: #111827;
+}
+
+/* =========================
+   PRINT MODE (GLOBAL)
+========================= */
+@media print {
+  /* Hide all buttons */
+  button,
+  .btn,
+  .fab,
+  .bottom-nav,
+  .logout-btn,
+  .portal-btn,
+  .due-dismiss-btn {
+    display: none !important;
+  }
+
+  /* Remove app frame styling */
+  body {
+    background: white !important;
+    padding: 0 !important;
+  }
+
+  .app-frame,
+  .app-shell {
+    box-shadow: none !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  /* Remove card shadows/borders for clean PDF */
+  .card {
+    box-shadow: none !important;
+    border-color: #ddd !important;
+  }
+
+  /* Ensure content uses full width */
+  .container {
+    padding: 0 !important;
+  }
+}
