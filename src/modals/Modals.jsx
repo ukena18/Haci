@@ -2325,12 +2325,31 @@ export function ProfileModal({ open, onClose, user, profile, setState }) {
   );
 }
 
-export function CalendarPage({ jobs = [], customers = [] }) {
+export function CalendarPage({
+  jobs = [],
+  reservations = [],
+  customers = [],
+  onAddReservation,
+  onUpdateReservation,
+  onDeleteReservation,
+}) {
   const [view, setView] = React.useState("monthly"); // daily | weekly | monthly
   const [referenceDate, setReferenceDate] = React.useState(new Date());
   const [selectedDate, setSelectedDate] = React.useState(
     new Date().toISOString().slice(0, 10),
   );
+
+  const [reservationModalOpen, setReservationModalOpen] = useState(false);
+
+  const [editingReservation, setEditingReservation] = useState(null);
+
+  const [reservationForm, setReservationForm] = useState({
+    customerId: "",
+    date: selectedDate,
+    start: "",
+    end: "",
+    note: "",
+  });
 
   const WEEKDAYS = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
 
@@ -2361,6 +2380,43 @@ export function CalendarPage({ jobs = [], customers = [] }) {
       return acc;
     }, {});
   }
+
+  function groupReservationsByDate(resArray) {
+    return resArray.reduce((acc, r) => {
+      if (!acc[r.date]) acc[r.date] = [];
+      acc[r.date].push(r);
+      return acc;
+    }, {});
+  }
+
+  const groupedVisibleReservations = React.useMemo(() => {
+    if (view === "daily") return null;
+
+    const visible = reservations.filter((r) => {
+      const d = new Date(r.date);
+
+      if (view === "weekly") {
+        const start = new Date(referenceDate);
+        start.setDate(start.getDate() - ((start.getDay() || 7) - 1));
+
+        const days = Array.from({ length: 7 }, (_, i) => {
+          const dd = new Date(start);
+          dd.setDate(start.getDate() + i);
+          return formatDate(dd);
+        });
+
+        return days.includes(r.date);
+      }
+
+      // monthly
+      return (
+        d.getMonth() === referenceDate.getMonth() &&
+        d.getFullYear() === referenceDate.getFullYear()
+      );
+    });
+
+    return groupReservationsByDate(visible);
+  }, [reservations, view, referenceDate]);
 
   function getJobTimeLabel(job) {
     // Has valid time
@@ -2428,13 +2484,19 @@ export function CalendarPage({ jobs = [], customers = [] }) {
     });
   }, [jobs, view, referenceDate, selectedDate]);
 
+  const visibleReservations = useMemo(() => {
+    return reservations.filter((r) => r.date === selectedDate);
+  }, [reservations, selectedDate]);
+
   const groupedVisibleJobs = React.useMemo(() => {
     if (view === "daily") return null;
     return groupJobsByDate(visibleJobs);
   }, [visibleJobs, view]);
 
-  const hasGroupedJobs =
-    groupedVisibleJobs && Object.keys(groupedVisibleJobs).length > 0;
+  const hasGroupedItems =
+    (groupedVisibleJobs && Object.keys(groupedVisibleJobs).length > 0) ||
+    (groupedVisibleReservations &&
+      Object.keys(groupedVisibleReservations).length > 0);
 
   /* =============================
      RENDER
@@ -2524,6 +2586,9 @@ export function CalendarPage({ jobs = [], customers = [] }) {
                   );
                   const dStr = formatDate(dateObj);
                   const hasJob = jobs.some((j) => j.date === dStr);
+                  const hasReservation = reservations.some(
+                    (r) => r.date === dStr,
+                  );
 
                   cells.push(
                     <div
@@ -2534,7 +2599,12 @@ export function CalendarPage({ jobs = [], customers = [] }) {
                       onClick={() => setSelectedDate(dStr)}
                     >
                       <div>{d}</div>
-                      {hasJob && <small>•</small>}
+                      <div className="day-indicators">
+                        {hasJob && <span className="day-badge job">İş</span>}
+                        {hasReservation && (
+                          <span className="day-badge reservation">Rez</span>
+                        )}
+                      </div>
                     </div>,
                   );
                 }
@@ -2563,6 +2633,9 @@ export function CalendarPage({ jobs = [], customers = [] }) {
 
                 const dStr = formatDate(d);
                 const hasJob = jobs.some((j) => j.date === dStr);
+                const hasReservation = reservations.some(
+                  (r) => r.date === dStr,
+                );
 
                 return (
                   <div
@@ -2573,7 +2646,10 @@ export function CalendarPage({ jobs = [], customers = [] }) {
                     onClick={() => setSelectedDate(dStr)}
                   >
                     <div>{d.getDate()}</div>
-                    {hasJob && <small>•</small>}
+                    {hasJob && <small className="dot job-dot">•</small>}
+                    {hasReservation && (
+                      <small className="dot reservation-dot">•</small>
+                    )}
                   </div>
                 );
               })}
@@ -2586,46 +2662,75 @@ export function CalendarPage({ jobs = [], customers = [] }) {
       <h4 style={{ marginTop: 16 }}>Program</h4>
 
       {/* DAILY */}
-      {view === "daily" &&
-        (visibleJobs.length === 0 ? (
-          <div className="card">Bu tarih için iş yok.</div>
-        ) : (
-          visibleJobs.map((job) => {
+      {view === "daily" && (
+        <>
+          {visibleJobs.length === 0 && visibleReservations.length === 0 && (
+            <div className="card">Bu tarih için kayıt yok.</div>
+          )}
+
+          {visibleJobs.map((job) => {
             const customer = customers.find((c) => c.id === job.customerId);
 
             return (
-              <div key={job.id} className="card">
+              <div
+                key={r.id}
+                className="card"
+                style={{ borderLeft: "6px solid #16a34a", cursor: "pointer" }}
+                onClick={() => setEditingReservation(r)} // ✅ THIS IS STEP 9
+              >
                 <strong>
                   {customer
                     ? `${customer.name} ${customer.surname}`
                     : "Müşteri"}
                 </strong>
-                <div
-                  style={{
-                    fontSize: 13,
-                    color:
-                      job.start && job.end
-                        ? "#15803d" // green
-                        : "#b45309", // amber
-                  }}
-                >
-                  {getJobTimeLabel(job)}
-                </div>
+                <div style={{ fontSize: 13 }}>{getJobTimeLabel(job)}</div>
               </div>
             );
-          })
-        ))}
+          })}
+
+          {visibleReservations.map((r) => {
+            const customer = customers.find((c) => c.id === r.customerId);
+
+            return (
+              <div
+                key={r.id}
+                className="card"
+                style={{ borderLeft: "6px solid #16a34a", cursor: "pointer" }}
+                onClick={() => setEditingReservation(r)}
+              >
+                <strong>
+                  {customer
+                    ? `${customer.name} ${customer.surname}`
+                    : "Müşteri"}
+                </strong>
+                <div style={{ fontSize: 13, color: "#15803d" }}>
+                  {r.start} – {r.end}
+                </div>
+                {r.note && <div style={{ fontSize: 12 }}>{r.note}</div>}
+              </div>
+            );
+          })}
+        </>
+      )}
 
       {/* WEEKLY / MONTHLY */}
       {view !== "daily" && (
         <>
-          {!hasGroupedJobs && <div className="card">Bu dönem için iş yok.</div>}
+          {!hasGroupedItems && (
+            <div className="card">Bu dönem için kayıt yok.</div>
+          )}
 
-          {hasGroupedJobs &&
-            Object.keys(groupedVisibleJobs)
+          {hasGroupedItems &&
+            Array.from(
+              new Set([
+                ...Object.keys(groupedVisibleJobs || {}),
+                ...Object.keys(groupedVisibleReservations || {}),
+              ]),
+            )
               .sort()
               .map((date) => (
                 <div key={date} style={{ marginBottom: 14 }}>
+                  {/* DATE HEADER */}
                   <div
                     style={{
                       fontSize: 13,
@@ -2637,7 +2742,8 @@ export function CalendarPage({ jobs = [], customers = [] }) {
                     {formatDayHeader(date)}
                   </div>
 
-                  {groupedVisibleJobs[date].map((job) => {
+                  {/* JOBS */}
+                  {(groupedVisibleJobs?.[date] || []).map((job) => {
                     const customer = customers.find(
                       (c) => c.id === job.customerId,
                     );
@@ -2649,23 +2755,285 @@ export function CalendarPage({ jobs = [], customers = [] }) {
                             ? `${customer.name} ${customer.surname}`
                             : "Müşteri"}
                         </strong>
-                        <div
-                          style={{
-                            fontSize: 13,
-                            color:
-                              job.start && job.end
-                                ? "#15803d" // green
-                                : "#b45309", // amber
-                          }}
-                        >
+                        <div style={{ fontSize: 13 }}>
                           {getJobTimeLabel(job)}
                         </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* RESERVATIONS */}
+                  {(groupedVisibleReservations?.[date] || []).map((r) => {
+                    const customer = customers.find(
+                      (c) => c.id === r.customerId,
+                    );
+
+                    return (
+                      <div
+                        key={r.id}
+                        className="card"
+                        style={{
+                          borderLeft: "6px solid #16a34a",
+                          cursor: "pointer",
+                        }}
+                        onClick={() => setEditingReservation(r)}
+                      >
+                        <strong>
+                          {customer
+                            ? `${customer.name} ${customer.surname}`
+                            : "Müşteri"}
+                        </strong>
+                        <div style={{ fontSize: 13, color: "#15803d" }}>
+                          {r.start} – {r.end}
+                        </div>
+                        {r.note && <div style={{ fontSize: 12 }}>{r.note}</div>}
                       </div>
                     );
                   })}
                 </div>
               ))}
         </>
+      )}
+      <button
+        className=" fab reservation-fab"
+        onClick={() => {
+          if (!customers || customers.length === 0) {
+            alert("Rezervasyon eklemek için önce müşteri eklemelisiniz.");
+            return;
+          }
+
+          setReservationForm({
+            customerId: customers[0]?.id || "",
+            date: selectedDate,
+            start: "",
+            end: "",
+            note: "",
+          });
+          setReservationModalOpen(true);
+        }}
+      >
+        <i className="fas fa-calendar-plus"></i>
+      </button>
+      {reservationModalOpen && (
+        <ModalBase
+          open={true}
+          title="Yeni Rezervasyon"
+          onClose={() => setReservationModalOpen(false)}
+        >
+          <div className="form-stack">
+            {/* CUSTOMER */}
+            <label>Müşteri</label>
+            <select
+              value={reservationForm.customerId}
+              onChange={(e) =>
+                setReservationForm((f) => ({
+                  ...f,
+                  customerId: e.target.value,
+                }))
+              }
+            >
+              {customers.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name} {c.surname}
+                </option>
+              ))}
+            </select>
+
+            {/* DATE */}
+            <label>Tarih</label>
+            <input
+              type="date"
+              value={reservationForm.date}
+              onChange={(e) =>
+                setReservationForm((f) => ({ ...f, date: e.target.value }))
+              }
+            />
+
+            {/* TIME */}
+            <div style={{ display: "flex", gap: 8 }}>
+              <div style={{ flex: 1 }}>
+                <label>Başlangıç</label>
+                <input
+                  type="time"
+                  value={reservationForm.start}
+                  onChange={(e) =>
+                    setReservationForm((f) => ({ ...f, start: e.target.value }))
+                  }
+                />
+              </div>
+
+              <div style={{ flex: 1 }}>
+                <label>Bitiş</label>
+                <input
+                  type="time"
+                  value={reservationForm.end}
+                  onChange={(e) =>
+                    setReservationForm((f) => ({ ...f, end: e.target.value }))
+                  }
+                />
+              </div>
+            </div>
+
+            {/* NOTE */}
+            <label>Not</label>
+            <textarea
+              placeholder="Rezervasyon notu"
+              value={reservationForm.note}
+              onChange={(e) =>
+                setReservationForm((f) => ({ ...f, note: e.target.value }))
+              }
+            />
+
+            {/* ACTIONS */}
+            <div className="btn-row" style={{ marginTop: 12 }}>
+              <button
+                className="btn btn-cancel"
+                onClick={() => setReservationModalOpen(false)}
+              >
+                Vazgeç
+              </button>
+
+              <button
+                className="btn btn-save"
+                disabled={
+                  !reservationForm.customerId ||
+                  !reservationForm.date ||
+                  !reservationForm.start ||
+                  !reservationForm.end
+                }
+                onClick={() => {
+                  onAddReservation({
+                    id: uid(),
+                    customerId: reservationForm.customerId,
+                    date: reservationForm.date,
+                    start: reservationForm.start,
+                    end: reservationForm.end,
+                    note: reservationForm.note,
+                    createdAt: Date.now(),
+                  });
+
+                  setReservationModalOpen(false);
+                }}
+              >
+                Kaydet
+              </button>
+            </div>
+          </div>
+        </ModalBase>
+      )}
+
+      {editingReservation && (
+        <ModalBase
+          open={true}
+          title="Rezervasyonu Düzenle"
+          onClose={() => setEditingReservation(null)}
+        >
+          <div className="form-stack">
+            {/* CUSTOMER */}
+            <label>Müşteri</label>
+            <select
+              value={editingReservation.customerId}
+              onChange={(e) =>
+                setEditingReservation((r) => ({
+                  ...r,
+                  customerId: e.target.value,
+                }))
+              }
+            >
+              {customers.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name} {c.surname}
+                </option>
+              ))}
+            </select>
+
+            {/* DATE */}
+            <label>Tarih</label>
+            <input
+              type="date"
+              value={editingReservation.date}
+              onChange={(e) =>
+                setEditingReservation((r) => ({
+                  ...r,
+                  date: e.target.value,
+                }))
+              }
+            />
+
+            {/* TIME */}
+            <div style={{ display: "flex", gap: 8 }}>
+              <div style={{ flex: 1 }}>
+                <label>Başlangıç</label>
+                <input
+                  type="time"
+                  value={editingReservation.start}
+                  onChange={(e) =>
+                    setEditingReservation((r) => ({
+                      ...r,
+                      start: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+
+              <div style={{ flex: 1 }}>
+                <label>Bitiş</label>
+                <input
+                  type="time"
+                  value={editingReservation.end}
+                  onChange={(e) =>
+                    setEditingReservation((r) => ({
+                      ...r,
+                      end: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+            </div>
+
+            {/* NOTE */}
+            <label>Not</label>
+            <textarea
+              value={editingReservation.note || ""}
+              onChange={(e) =>
+                setEditingReservation((r) => ({
+                  ...r,
+                  note: e.target.value,
+                }))
+              }
+            />
+
+            {/* ACTIONS */}
+            <div className="btn-row" style={{ marginTop: 14 }}>
+              <button
+                className="btn btn-delete"
+                onClick={() => {
+                  onDeleteReservation(editingReservation.id);
+                  setEditingReservation(null);
+                }}
+              >
+                Sil
+              </button>
+
+              <button
+                className="btn btn-cancel"
+                onClick={() => setEditingReservation(null)}
+              >
+                İptal
+              </button>
+
+              <button
+                className="btn btn-save"
+                onClick={() => {
+                  onUpdateReservation(editingReservation);
+                  setEditingReservation(null);
+                }}
+              >
+                Kaydet
+              </button>
+            </div>
+          </div>
+        </ModalBase>
       )}
     </div>
   );

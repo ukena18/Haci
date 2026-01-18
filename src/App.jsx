@@ -171,6 +171,11 @@ function AppRoutes({ user }) {
       const data = await loadUserData(user.uid);
       // ✅ MIGRATION: support old users that still have vaultName/vaultBalance
       const fixed = { ...data };
+
+      // ✅ RESERVATIONS INIT (REQUIRED)
+      if (!fixed.reservations || !Array.isArray(fixed.reservations)) {
+        fixed.reservations = [];
+      }
       if (!fixed.currency) {
         fixed.currency = "TRY"; // default
       }
@@ -695,6 +700,34 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
     }));
   }
 
+  function updateReservation(updatedReservation) {
+    setState((s) => {
+      const next = {
+        ...s,
+        reservations: (s.reservations || []).map((r) =>
+          r.id === updatedReservation.id ? updatedReservation : r,
+        ),
+      };
+
+      saveUserData(auth.currentUser.uid, next);
+      return next;
+    });
+  }
+
+  function deleteReservation(reservationId) {
+    setState((s) => {
+      const next = {
+        ...s,
+        reservations: (s.reservations || []).filter(
+          (r) => r.id !== reservationId,
+        ),
+      };
+
+      saveUserData(auth.currentUser.uid, next);
+      return next;
+    });
+  }
+
   /**
    * Make Payment:
    * - Reduce customer's balance owed
@@ -971,7 +1004,7 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
      - Customers: Add Customer
   ============================================================ */
   function onFabClick() {
-    if (page === "home" || page === "calendar") {
+    if (page === "home") {
       setEditingJobId(null); // ✅ FORCE NEW JOB
       setJobFixedCustomerId(null);
       setJobModalOpen(true);
@@ -1097,7 +1130,26 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
             )}
 
             {page === "calendar" && showCalendar && (
-              <CalendarPage jobs={state.jobs} customers={state.customers} />
+              <CalendarPage
+                jobs={state.jobs}
+                reservations={state.reservations || []} // ✅ ADD
+                customers={state.customers}
+                onAddReservation={(reservation) => {
+                  setState((s) => {
+                    const next = {
+                      ...s,
+                      reservations: [...(s.reservations || []), reservation],
+                    };
+
+                    //   persist immediately (important for calendar)
+                    saveUserData(auth.currentUser.uid, next);
+
+                    return next;
+                  });
+                }}
+                onUpdateReservation={updateReservation} // ✅ ADD
+                onDeleteReservation={deleteReservation} // ✅ ADD
+              />
             )}
 
             {/* SETTINGS PAGE */}
@@ -1128,7 +1180,7 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
 
           {/* Floating Action Button */}
           {/* Floating Action Button */}
-          {page !== "settings" && (
+          {page !== "settings" && page !== "calendar" && (
             <button className="fab" id="fab-btn" onClick={onFabClick}>
               <i className="fa-solid fa-plus"></i>
             </button>

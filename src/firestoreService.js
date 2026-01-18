@@ -27,6 +27,9 @@ export async function ensureUserData(userId) {
       jobs: [],
       payments: [],
 
+      // ✅ ADD THIS
+      reservations: [],
+
       createdAt: Date.now(),
     });
   }
@@ -47,6 +50,9 @@ export async function loadUserData(userId) {
     // ✅ normalize Vaults → vaults
     vaults: data.vaults || data.Vaults || [],
 
+    // ✅ ADD THIS
+    reservations: data.reservations || [],
+
     // optional cleanup
     Vaults: undefined,
   };
@@ -62,12 +68,16 @@ export async function saveUserData(userId, data) {
       customers: data.customers ?? [],
       jobs: data.jobs ?? [],
       payments: data.payments ?? [],
+
+      // ✅ ADD THIS
+      reservations: data.reservations ?? [],
+
       vaults: data.vaults ?? [],
 
       activeVaultId: data.activeVaultId ?? null,
       updatedAt: Date.now(),
     },
-    { merge: false } // 🔥 FULL overwrite
+    { merge: false }, // 🔥 FULL overwrite
   );
 }
 
@@ -79,6 +89,6 @@ export async function publishCustomerSnapshot(customerId, payload) {
       ...payload,
       updatedAt: Date.now(),
     },
-    { merge: true }
+    { merge: true },
   );
 }
