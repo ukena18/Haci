@@ -242,7 +242,8 @@ body {
 /* Desktop FAB positioning (attach to app frame) */
 @media (min-width: 640px) {
   .fab {
-    right: calc(52% - 360px); /* 👈 pulls FAB toward app edge */
+    right: calc(52% - 360px); /* 👈 
+    lls FAB toward app edge */
   }
 }
 
@@ -883,7 +884,7 @@ textarea {
   border-color: #e5e7eb;
 }
 
-.list-item:active {
+.list-item:active:not(:has(input, select, textarea)) {
   transform: scale(0.99);
 }
 
@@ -1814,4 +1815,24 @@ textarea {
 
 .due-header:hover .due-arrow {
   color: #334155;
+}
+
+/* 🚫 Prevent native picker misalignment */
+input[type="time"],
+input[type="date"] {
+  transform: none !important;
+}
+
+/* 🚫 Prevent parent transform during interaction */
+.list-item:has(input[type="time"]:focus),
+.card:has(input[type="time"]:focus),
+.modal-content:has(input[type="time"]:focus) {
+  transform: none !important;
+}
+
+@media (max-width: 640px) {
+  input[type="time"],
+  input[type="date"] {
+    font-size: 16px; /* 🔥 forces iOS/Chrome fullscreen picker */
+  }
 }

@@ -1159,8 +1159,6 @@ export function CustomerDetailModal({
     return true;
   }
 
-  const printRef = useRef(null);
-
   useEffect(() => {
     if (!open) return;
 
@@ -1205,14 +1203,14 @@ export function CustomerDetailModal({
 
     text += `Tarih: ${new Date().toLocaleDateString("tr-TR")}\n\n`;
 
-    /* 💰 PAYMENTS / DEBTS */
+    /*  PAYMENTS / DEBTS */
     if (customerPayments.length > 0) {
-      text += `💰 TAHSİLAT / BORÇ KAYITLARI\n`;
+      text += ` TAHSİLAT / BORÇ KAYITLARI\n`;
       text += `-------------------------\n`;
 
       customerPayments.forEach((p) => {
         const typeLabel = PAYMENT_TYPE_LABEL_TR[p.type] || "—";
-        const sign = p.type === "payment" ? "+" : "-"; // ✅ sign is logic, keep it
+        const sign = p.type === "payment" ? "+" : "-"; // sign is logic, keep it
 
         text += `${p.date} | ${typeLabel}\n`;
         text += `Tutar: ${sign}${money(p.amount, p.currency || currency)}\n`;
@@ -1223,9 +1221,9 @@ export function CustomerDetailModal({
       });
     }
 
-    /* 🧰 JOBS */
+    /*  JOBS */
     if (customerJobs.length > 0) {
-      text += `🧰 İŞLER\n`;
+      text += ` İŞLER\n`;
       text += `-------------------------\n`;
 
       customerJobs.forEach((j) => {
@@ -1389,8 +1387,8 @@ export function CustomerDetailModal({
       .filter(
         (j) =>
           j.customerId === customer.id &&
-          (!j.isCompleted || // 🟡 ACTIVE JOBS
-            (j.isCompleted && !j.isPaid)), // ⚙️ COMPLETED BUT UNPAID
+          (!j.isCompleted || // ACTIVE JOBS
+            (j.isCompleted && !j.isPaid)), // COMPLETED BUT UNPAID
       )
       .reduce((sum, j) => sum + jobTotalOf(j), 0);
   }, [jobs, customer]);
@@ -1401,77 +1399,25 @@ export function CustomerDetailModal({
   const balance = totalPayment - totalDebt; // remaining
 
   async function shareAsPDF() {
-    const html = printRef.current?.innerHTML;
-    if (!html) return;
+    if (!customer) return;
 
-    // Create a printable window
-    const w = window.open("", "_blank");
-    if (!w) {
-      alert("Popup blocked. Please allow popups to export PDF.");
-      return;
-    }
+    // Ensure snapshot exists (you already do this)
+    await publishCustomerSnapshot(customer.id, {
+      customer: {
+        id: customer.id,
+        name: customer.name,
+        surname: customer.surname,
+        phone: customer.phone,
+        email: customer.email,
+        address: customer.address,
+      },
+      jobs,
+      payments,
+      currency,
+    });
 
-    w.document.write(`
-    <!doctype html>
-    <html>
-    <head>
-      <meta charset="utf-8"/>
-      <title>Müşteri Döküm</title>
-      <meta name="viewport" content="width=device-width, initial-scale=1"/>
-      <style>
-        body{font-family:Segoe UI,system-ui,Arial; padding:24px;}
-        h1{font-size:18px;margin:0 0 8px 0;}
-        .muted{color:#555;}
-        table{width:100%;border-collapse:collapse;margin-top:16px;}
-        th,td{border:1px solid #ddd;padding:8px;font-size:12px;text-align:left;}
-        th{background:#f3f4f6;}
-        @media print {
-          button { display:none !important; }
-        }
-      </style>
-    </head>
-    <body>
-      <div style="display:flex; gap:10px; margin-bottom:14px;">
-        <button id="btnPrint" style="
-          padding:10px 14px;border:none;border-radius:10px;
-          background:#2563eb;color:white;font-weight:700;cursor:pointer;">
-          Yazdır / PDF Kaydet
-        </button>
-
-        <button id="btnDownload" style="
-          padding:10px 14px;border:none;border-radius:10px;
-          background:#16a34a;color:white;font-weight:700;cursor:pointer;">
-          İndir (HTML)
-        </button>
-      </div>
-
-      ${html}
-
-      <script>
-        // Print button
-        document.getElementById("btnPrint").onclick = () => window.print();
-
-        // Simple download as HTML fallback (works everywhere)
-        document.getElementById("btnDownload").onclick = () => {
-          const blob = new Blob([document.documentElement.outerHTML], { type: "text/html;charset=utf-8" });
-          const a = document.createElement("a");
-          a.href = URL.createObjectURL(blob);
-          a.download = "musteri-dokumu.html";
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-          setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-        };
-
-        // Auto-open print dialog (optional). Comment out if you only want buttons.
-         
-      </script>
-    </body>
-    </html>
-  `);
-
-    w.document.close();
-    w.focus();
+    // 🔥 open portal WITH print flag
+    window.open(`/customer/${customer.id}?print=1`, "_blank");
   }
 
   if (!open) return null;
@@ -1827,72 +1773,6 @@ export function CustomerDetailModal({
                 );
               })
             )}
-          </div>
-
-          {/* Hidden print template for PDF */}
-          <div className="hidden">
-            <div ref={printRef}>
-              <h1>Müşteri Dökümü</h1>
-              <div className="muted">
-                Tarih: {new Date().toLocaleDateString("tr-TR")}
-              </div>
-              <hr />
-              <div>
-                <b>Müşteri:</b> {customer.name} {customer.surname} <br />
-                <b>ID:</b> {customer.id} <br />
-                <b>Bakiye:</b> {money(balance, currency)}
-              </div>
-
-              <table>
-                <thead>
-                  <tr>
-                    <th>Tarih</th>
-                    <th>Başlangıç</th>
-                    <th>Bitiş</th>
-                    <th>Kasa</th>
-                    <th>Yöntem</th>
-                    <th>Tutar</th>
-                    <th>Durum</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {/* 💰 Payment / Borç */}
-                  {customerPayments.map((p) => (
-                    <tr key={p.id}>
-                      <td>{p.date}</td>
-                      <td colSpan="2">
-                        {PAYMENT_TYPE_LABEL_TR[p.type] || "—"}
-                      </td>
-                      <td>{vaultNameOf(p.vaultId)}</td>
-                      <td>{PAYMENT_METHOD_LABEL_TR[p.method] || "—"}</td>
-                      <td>
-                        {p.type === "payment"
-                          ? `+${money(p.amount, p.currency || currency)}`
-                          : `-${money(p.amount, p.currency || currency)}`}
-                      </td>
-                      <td>{p.note}</td>
-                    </tr>
-                  ))}
-
-                  {/* ⚙️ İşler */}
-                  {customerJobs.map((j) => {
-                    const total = jobTotalOf(j); // ✅ SINGLE SOURCE OF TRUTH
-
-                    return (
-                      <tr key={j.id}>
-                        <td>{j.date}</td>
-                        <td>{j.start || "--:--"}</td>
-                        <td>{j.end || "--:--"}</td>
-                        <td>—</td>
-                        <td>—</td>
-                        <td>{money(total, currency)}</td>
-                        <td>{j.isCompleted ? "Tamamlandı" : "Açık"}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
           </div>
         </>
       )}
@@ -2583,7 +2463,7 @@ export function CalendarPage({ jobs = [], customers = [] }) {
       <div className="calendar-container">
         <div className="calendar-header">
           <button className="btn" onClick={() => changePeriod(-1)}>
-            ‹
+            <i className="fa-solid fa-chevron-left"></i>
           </button>
 
           <strong>
@@ -2603,7 +2483,7 @@ export function CalendarPage({ jobs = [], customers = [] }) {
           </strong>
 
           <button className="btn" onClick={() => changePeriod(1)}>
-            ›
+            <i className="fa-solid fa-chevron-right"></i>
           </button>
         </div>
 

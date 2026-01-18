@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
 
-import HomePage from "./pages/HomePage";
-import SettingsPage from "./pages/SettingsPage";
-import CustomersPage from "./pages/CustomersPage";
-import PublicCustomerSharePage from "./pages/PublicCustomerSharePage";
+import {
+  HomePage,
+  CustomersPage,
+  SettingsPage,
+  PublicCustomerSharePage,
+} from "./pages/Pages";
 
 import {
   ensureUserData,
@@ -1177,18 +1179,18 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
             open={jobModalOpen}
             onClose={() => {
               setJobModalOpen(false);
-              setEditingJobId(null); // ✅ RESET EDIT MODE
-              setJobFixedCustomerId(null); // ✅ RESET FIXED CUSTOMER
+              setEditingJobId(null); //  RESET EDIT MODE
+              setJobFixedCustomerId(null); //  RESET FIXED CUSTOMER
             }}
             customers={state.customers}
             jobs={state.jobs}
             editingJobId={editingJobId}
             onSave={(job) => upsertJob(job)}
-            currency={currency} // ✅ ADD THIS
-            vaults={state.vaults || []} // ✅ ADD
-            activeVaultId={state.activeVaultId} // ✅ ADD
-            setConfirm={setConfirm} // ✅ ADD
-            fixedCustomerId={jobFixedCustomerId} // ✅ ADD
+            currency={currency}
+            vaults={state.vaults || []}
+            activeVaultId={state.activeVaultId}
+            setConfirm={setConfirm}
+            fixedCustomerId={jobFixedCustomerId}
             zIndex={3000}
           />
 
@@ -1209,21 +1211,21 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                   "Bu müşteriyi ve tüm işlerini silmek istediğinize emin misiniz?",
               });
             }}
-            zIndex={1500} // ✅ ADD THIS LINE
+            zIndex={1500}
           />
 
           {/* CUSTOMER DETAIL / STATEMENT MODAL */}
           <CustomerDetailModal
             open={custDetailOpen}
-            currency={currency} // ✅ ADD THIS
+            currency={currency}
             onClose={() => setCustDetailOpen(false)}
             customer={
               state.customers.find((c) => c.id === selectedCustomerId) || null
             }
             jobs={state.jobs}
             payments={state.payments}
-            vaults={state.vaults} // ✅ ADD
-            activeVaultId={state.activeVaultId} // ✅ ADD
+            vaults={state.vaults}
+            activeVaultId={state.activeVaultId}
             onOpenPayment={openPaymentModal}
             onEditCustomer={() => {
               setEditingCustId(selectedCustomerId);
@@ -1269,7 +1271,7 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
               if (!paymentCustomer) return;
 
               if (paymentMode === "payment") {
-                // ✅ Payment: vault seçilebilir
+                // Payment: vault seçilebilir
                 makePayment(
                   paymentCustomer.id,
                   amount,

@@ -1,5 +1,103 @@
 export const CHANGELOG = [
   {
+    version: "1.2.7",
+    title: {
+      en: "Time Input Fixes, Icon Cleanup & Job Flow Stability",
+      tr: "Zaman Girişi Düzeltmeleri, İkon Temizliği ve İş Akışı Kararlılığı",
+    },
+    sections: [
+      {
+        label: {
+          en: "Time & Job Logic Fixes",
+          tr: "Zaman ve İş Mantığı Düzeltmeleri",
+        },
+        items: {
+          en: [
+            "Fixed native system time picker tilting automatically when selecting time",
+            "Manual job time entry now supports Lunch Break duration",
+            "Lunch Break can be set (e.g. 30 minutes) and correctly deducted from total work time",
+            "Clock In / Clock Out now correctly affects Total Debt calculations",
+            "After completing a Clock In / Clock Out job, job details now update correctly",
+            "Fixed issue where Clock In / Clock Out jobs were not appearing in the system",
+            "Fixed manual Clock In / Clock Out editing not saving changes",
+            "Fixed issue where new job creation reused old job values",
+            "Closing Edit Job modal no longer causes Create Job to reopen Edit mode",
+            "Manual, Clock-based, and Fixed-price jobs are now consistently reflected in the system",
+          ],
+          tr: [
+            "Zaman seçimi sırasında sistemin otomatik kayma (tilting) sorunu giderildi",
+            "Manuel iş girişine Öğle Molası süresi ekleme desteği eklendi",
+            "Öğle Molası (örn. 30 dakika) tanımlanabilir ve toplam çalışma süresinden düşülür",
+            "Saat Giriş / Saat Çıkış artık Toplam Borç hesaplamasını doğru etkiler",
+            "Saat Giriş / Saat Çıkış ile tamamlanan işlerde iş detayları artık doğru güncellenir",
+            "Saat Giriş / Saat Çıkış ile oluşturulan işlerin sistemde görünmemesi sorunu giderildi",
+            "Manuel Saat Giriş / Saat Çıkış düzenleme işlemlerinin kaydedilmemesi sorunu düzeltildi",
+            "Yeni iş oluştururken eski iş verilerinin hatırlanması sorunu giderildi",
+            "İş Düzenleme modalı kapatıldıktan sonra yeni iş oluştururken tekrar açılması engellendi",
+            "Manuel, saatli ve sabit fiyatlı işler artık sistemde tutarlı şekilde görünür",
+          ],
+        },
+      },
+
+      {
+        label: { en: "UX & UI Cleanup", tr: "UX ve Arayüz Temizliği" },
+        items: {
+          en: [
+            "Removed all Font Awesome icons from application pages",
+            "Removed all UI icon dependencies related to Font Awesome",
+            "Replaced icon-based interactions with clean text-based UI where applicable",
+            "Split large App.js file into smaller, maintainable modules",
+            "Improved overall UI consistency after icon removal",
+          ],
+          tr: [
+            "Uygulama sayfalarındaki tüm Font Awesome ikonları kaldırıldı",
+            "Font Awesome’a bağlı tüm arayüz ikon kullanımları temizlendi",
+            "İkon bazlı etkileşimler uygun yerlerde metin tabanlı hale getirildi",
+            "Büyük App.js dosyası daha küçük ve yönetilebilir parçalara ayrıldı",
+            "İkon temizliği sonrası genel arayüz tutarlılığı iyileştirildi",
+          ],
+        },
+      },
+
+      {
+        label: { en: "Settings & Logs", tr: "Ayarlar ve Kayıtlar" },
+        items: {
+          en: [
+            "Logs are now displayed only on the Settings page",
+            "Removed logs from all other application pages",
+            "Added Features timeline section to Settings page",
+            "Added Development timeline section to Settings page",
+            "System now keeps a visible record of feature additions and development progress",
+          ],
+          tr: [
+            "Log kayıtları artık yalnızca Ayarlar sayfasında gösterilir",
+            "Diğer tüm sayfalardan log görüntüleri kaldırıldı",
+            "Ayarlar sayfasına Özellikler zaman çizelgesi eklendi",
+            "Ayarlar sayfasına Geliştirme zaman çizelgesi eklendi",
+            "Sistemin gelişimi ve eklenen özellikler artık kayıt altında tutulur",
+          ],
+        },
+      },
+
+      {
+        label: { en: "Payments & Due Tracking", tr: "Ödeme ve Vade Takibi" },
+        items: {
+          en: [
+            "30-day payment tracking now includes an Is Paid option",
+            "When marked as paid, the item is removed from 30-day due tracking list",
+            "Improved accuracy of due tracking visibility",
+          ],
+          tr: [
+            "30 günlük ödeme takibine Ödendi seçeneği eklendi",
+            "Ödendi olarak işaretlenen kayıtlar 30 günlük vade takibinden kaldırılır",
+            "Vade takibi görünürlüğü ve doğruluğu iyileştirildi",
+          ],
+        },
+      },
+    ],
+  },
+
+  {
     version: "1.2.6",
     title: {
       en: "Job Modals & Interaction Polish",
