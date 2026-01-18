@@ -2672,12 +2672,7 @@ export function CalendarPage({
             const customer = customers.find((c) => c.id === job.customerId);
 
             return (
-              <div
-                key={r.id}
-                className="card"
-                style={{ borderLeft: "6px solid #16a34a", cursor: "pointer" }}
-                onClick={() => setEditingReservation(r)} // ✅ THIS IS STEP 9
-              >
+              <div key={job.id} className="card">
                 <strong>
                   {customer
                     ? `${customer.name} ${customer.surname}`

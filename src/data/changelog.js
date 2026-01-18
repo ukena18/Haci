@@ -1,5 +1,105 @@
 export const CHANGELOG = [
   {
+    version: "1.2.8",
+    title: {
+      en: "Calendar UX, Portal Scoping & Print Detail Improvements",
+      tr: "Takvim UX, Portal Kapsamı ve Yazdırma Detay İyileştirmeleri",
+    },
+    sections: [
+      {
+        label: { en: "Calendar & Scheduling", tr: "Takvim ve Zamanlama" },
+        items: {
+          en: [
+            "Removed unused search bar from the Calendar view",
+            "Calendar no longer takes up the full screen height",
+            "Calendar layout adjusted to a compact view showing only a few upcoming appointments",
+            "Calendar appointment list now displays 2–3 upcoming items instead of full-page coverage",
+            "Discussed and clarified that the 'Add Appointment' button is actually Job Creation, not a separate appointment system",
+            "Improved clarity between Job scheduling and Calendar visualization",
+          ],
+          tr: [
+            "Takvim görünümündeki kullanılmayan arama çubuğu kaldırıldı",
+            "Takvimin tüm ekranı kaplaması engellendi",
+            "Takvim görünümü daha kompakt hale getirildi",
+            "Takvimde artık altta yalnızca 2–3 yaklaşan randevu gösterilir",
+            "Randevu Ekle butonunun aslında İş Ekleme olduğu netleştirildi",
+            "İş planlama ve takvim görselleştirmesi arasındaki ayrım daha anlaşılır hale getirildi",
+          ],
+        },
+      },
+
+      {
+        label: {
+          en: "Customer Data & Isolation Fixes",
+          tr: "Müşteri Verisi ve İzolasyon Düzeltmeleri",
+        },
+        items: {
+          en: [
+            "Fixed issue where red warning sections belonging to one customer incorrectly displayed other customers’ details",
+            "Ensured customer detail pages only display data related to the selected customer",
+            "Public Customer Portal now shows only the transactions belonging to the linked customer",
+            "Removed global transaction leakage from Customer Portal view",
+          ],
+          tr: [
+            "Tek bir müşteriye ait kırmızı uyarı alanında diğer müşterilerin bilgilerinin görünmesi sorunu giderildi",
+            "Müşteri detay sayfaları artık yalnızca seçilen müşteriye ait verileri gösterir",
+            "Herkese açık Müşteri Portalı yalnızca ilgili müşterinin işlemlerini gösterir",
+            "Müşteri Portalı’ndaki global işlem sızıntıları engellendi",
+          ],
+        },
+      },
+
+      {
+        label: {
+          en: "Customer Portal & Printing",
+          tr: "Müşteri Portalı ve Yazdırma",
+        },
+        items: {
+          en: [
+            "Improved Customer Print and Customer Portal consistency",
+            "Customer print output now matches Customer Portal data exactly",
+            "Added detailed job breakdown to printed customer statements",
+            "Parts used in jobs are now included in print output with full detail",
+            "Customer statements now provide a clearer and more professional breakdown",
+          ],
+          tr: [
+            "Müşteri Yazdırma ve Müşteri Portalı tutarlılığı iyileştirildi",
+            "Müşteri yazdırma çıktısı artık Müşteri Portalı verileriyle birebir uyumludur",
+            "Yazdırılan müşteri dökümlerine detaylı iş kırılımı eklendi",
+            "İşlerde kullanılan parçalar yazdırma çıktısına detaylı şekilde eklendi",
+            "Müşteri dökümleri daha profesyonel ve anlaşılır hale getirildi",
+          ],
+        },
+      },
+
+      {
+        label: {
+          en: "Profile, Vaults & Navigation",
+          tr: "Profil, Kasalar ve Navigasyon",
+        },
+        items: {
+          en: [
+            "Fixed and improved Profile editing behavior",
+            "Improved Profile data consistency across the system",
+            "Added Vaults under the 'Vault Management' (Kasa Yönetimi) section",
+            "Clicking Vault Management now correctly lists all Vaults",
+            "Improved discoverability of Vault-related actions",
+            "Removed blue header from Customer Portal and aligned it with the main theme",
+          ],
+          tr: [
+            "Profil düzenleme davranışı düzeltildi ve iyileştirildi",
+            "Profil bilgilerinin sistem genelindeki tutarlılığı artırıldı",
+            "Kasalar, 'Kasa Yönetimi' başlığı altına taşındı",
+            "Kasa Yönetimi’ne tıklandığında kasalar doğru şekilde listelenir",
+            "Kasa ile ilgili işlemlerin erişilebilirliği artırıldı",
+            "Müşteri Portalı’ndaki mavi header kaldırıldı ve tema ile uyumlu hale getirildi",
+          ],
+        },
+      },
+    ],
+  },
+
+  {
     version: "1.2.7",
     title: {
       en: "Time Input Fixes, Icon Cleanup & Job Flow Stability",
