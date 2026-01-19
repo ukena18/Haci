@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Monthly Invoice</title>
+    <style>
+      :root {
+        --primary: #1e88e5;
+        --primary-light: #e3f2fd;
+        --text: #1f2937;
+        --muted: #6b7280;
+        --border: #e5e7eb;
+        --bg: #f4f6f8;
+        --success: #2e7d32;
+        --danger: #c62828;
+      }
+
+      body {
+        font-family: "Inter", Arial, Helvetica, sans-serif;
+        background: var(--bg);
+        padding: 40px;
+        color: var(--text);
+      }
+
+      .invoice {
+        max-width: 900px;
+        margin: auto;
+        background: white;
+        padding: 48px;
+        border-radius: 14px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+      }
+
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding-bottom: 20px;
+        border-bottom: 2px solid var(--border);
+        margin-bottom: 30px;
+      }
+
+      .logo {
+        font-size: 26px;
+        font-weight: 700;
+        color: var(--primary);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .header-right {
+        text-align: right;
+        font-size: 14px;
+        color: var(--muted);
+      }
+
+      .customer {
+        background: var(--primary-light);
+        padding: 18px 20px;
+        border-radius: 10px;
+        margin-bottom: 35px;
+        font-size: 14px;
+      }
+
+      .customer strong {
+        color: var(--text);
+      }
+
+      .job {
+        background: #fff;
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 30px;
+        border: 1px solid var(--border);
+        position: relative;
+      }
+
+      .job::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 5px;
+        background: var(--primary);
+        border-radius: 12px 0 0 12px;
+      }
+
+      .job h4 {
+        margin: 0 0 16px 0;
+        font-size: 17px;
+        font-weight: 600;
+      }
+
+      .section-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--muted);
+        margin-top: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 8px;
+        font-size: 14px;
+      }
+
+      th {
+        text-align: left;
+        color: var(--muted);
+        font-weight: 600;
+        padding: 10px 8px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      td {
+        padding: 10px 8px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      td:last-child,
+      th:last-child {
+        text-align: right;
+      }
+
+      .subtotal {
+        text-align: right;
+        font-weight: 600;
+        margin-top: 12px;
+        font-size: 15px;
+      }
+
+      .totals {
+        margin-left: auto;
+        max-width: 380px;
+        margin-top: 40px;
+        border-top: 2px solid var(--border);
+        padding-top: 20px;
+      }
+
+      .totals table {
+        font-size: 15px;
+      }
+
+      .totals td {
+        border: none;
+        padding: 6px 0;
+      }
+
+      .paid {
+        color: var(--success);
+        font-weight: 600;
+      }
+
+      .balance {
+        color: var(--danger);
+        font-weight: 700;
+        font-size: 18px;
+      }
+
+      .footer {
+        margin-top: 60px;
+        text-align: center;
+        font-size: 13px;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="invoice">
+      <!-- HEADER -->
+      <div class="header">
+        <div class="logo">⚡ Your Electric Co.</div>
+        <div>
+          January 2026 Invoice<br />
+          Invoice #: INV-2026-01
+        </div>
+      </div>
+
+      <!-- CUSTOMER -->
+      <div class="customer">
+        <strong>Customer:</strong> John Smith<br />
+        <strong>Address:</strong> 123 Main St<br />
+        <strong>Billing Period:</strong> Jan 1 – Jan 31, 2026
+      </div>
+
+      <!-- JOB VISIT 1 -->
+      <div class="job">
+        <h4>Job Visit #1 – Jan 3, 2026</h4>
+
+        <strong>Labor</strong>
+        <table>
+          <tr>
+            <th>Description</th>
+            <th>Hours</th>
+            <th>Rate</th>
+            <th>Total</th>
+          </tr>
+          <tr>
+            <td>Outlet replacement</td>
+            <td>2</td>
+            <td>$120</td>
+            <td>$240</td>
+          </tr>
+        </table>
+
+        <strong>Parts</strong>
+        <table>
+          <tr>
+            <th>Part</th>
+            <th>Qty</th>
+            <th>Price</th>
+            <th>Total</th>
+          </tr>
+          <tr>
+            <td>GFCI Outlet</td>
+            <td>2</td>
+            <td>$35</td>
+            <td>$70</td>
+          </tr>
+        </table>
+
+        <div class="subtotal">Visit #1 Subtotal: $310</div>
+      </div>
+
+      <!-- JOB VISIT 2 -->
+      <div class="job">
+        <h4>Job Visit #2 – Jan 10, 2026</h4>
+
+        <strong>Labor</strong>
+        <table>
+          <tr>
+            <th>Description</th>
+            <th>Hours</th>
+            <th>Rate</th>
+            <th>Total</th>
+          </tr>
+          <tr>
+            <td>Panel troubleshooting</td>
+            <td>3</td>
+            <td>$120</td>
+            <td>$360</td>
+          </tr>
+        </table>
+
+        <strong>Parts</strong>
+        <table>
+          <tr>
+            <th>Part</th>
+            <th>Qty</th>
+            <th>Price</th>
+            <th>Total</th>
+          </tr>
+          <tr>
+            <td>Circuit breaker</td>
+            <td>1</td>
+            <td>$95</td>
+            <td>$95</td>
+          </tr>
+          <tr>
+            <td>Wire</td>
+            <td>1</td>
+            <td>$50</td>
+            <td>$50</td>
+          </tr>
+        </table>
+
+        <div class="subtotal">Visit #2 Subtotal: $505</div>
+      </div>
+
+      <!-- JOB VISIT 3 -->
+      <div class="job">
+        <h4>Job Visit #3 – Jan 21, 2026</h4>
+
+        <strong>Labor</strong>
+        <table>
+          <tr>
+            <th>Description</th>
+            <th>Hours</th>
+            <th>Rate</th>
+            <th>Total</th>
+          </tr>
+          <tr>
+            <td>Lighting install</td>
+            <td>2.5</td>
+            <td>$120</td>
+            <td>$300</td>
+          </tr>
+        </table>
+
+        <strong>Parts</strong>
+        <table>
+          <tr>
+            <th>Part</th>
+            <th>Qty</th>
+            <th>Price</th>
+            <th>Total</th>
+          </tr>
+          <tr>
+            <td>LED fixture</td>
+            <td>2</td>
+            <td>$85</td>
+            <td>$170</td>
+          </tr>
+        </table>
+
+        <div class="subtotal">Visit #3 Subtotal: $470</div>
+      </div>
+
+      <!-- TOTALS -->
+      <div class="totals">
+        <table>
+          <tr>
+            <td><strong>Monthly Total</strong></td>
+            <td><strong>$1,285</strong></td>
+          </tr>
+          <tr>
+            <td>Total Paid</td>
+            <td class="paid">$600</td>
+          </tr>
+          <tr>
+            <td>Balance Due</td>
+            <td class="balance">$685</td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="footer">
+        Thank you for your business ⚡<br />
+        Please reference invoice number when paying.
+      </div>
+    </div>
+  </body>
+</html>

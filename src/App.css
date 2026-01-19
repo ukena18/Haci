@@ -2431,3 +2431,162 @@ body {
   opacity: 0;
   cursor: pointer;
 }
+
+/* =========================
+   MODERN INVOICE (PRINT + SCREEN)
+========================= */
+
+.print-invoice {
+  max-width: 900px;
+  margin: auto;
+  background: white;
+  padding: 48px;
+  border-radius: 14px;
+  color: #1f2937;
+  font-family: "Inter", Arial, sans-serif;
+}
+
+.invoice-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #e5e7eb;
+  margin-bottom: 30px;
+}
+
+.logo {
+  font-size: 26px;
+  font-weight: 700;
+  color: #2563eb;
+}
+
+.header-right {
+  text-align: right;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.customer {
+  background: #e3f2fd;
+  padding: 18px 20px;
+  border-radius: 10px;
+  margin-bottom: 35px;
+  font-size: 14px;
+}
+
+.job {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 30px;
+  position: relative;
+}
+
+.job::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background: #2563eb;
+  border-radius: 12px 0 0 12px;
+}
+
+.job h4 {
+  margin: 0 0 16px;
+  font-size: 17px;
+}
+
+.section-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #6b7280;
+  margin-top: 14px;
+  text-transform: uppercase;
+}
+
+.print-invoice table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+  font-size: 14px;
+}
+
+.print-invoice th,
+.print-invoice td {
+  padding: 10px 8px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.print-invoice th:last-child,
+.print-invoice td:last-child {
+  text-align: right;
+}
+
+.subtotal {
+  text-align: right;
+  font-weight: 700;
+  margin-top: 12px;
+}
+
+.totals {
+  margin-left: auto;
+  max-width: 380px;
+  margin-top: 40px;
+  border-top: 2px solid #e5e7eb;
+  padding-top: 20px;
+}
+
+.paid {
+  color: #2e7d32;
+  font-weight: 700;
+}
+
+.balance {
+  color: #c62828;
+  font-weight: 800;
+  font-size: 18px;
+}
+
+.footer {
+  margin-top: 60px;
+  text-align: center;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+@media print {
+  .print-invoice {
+    box-shadow: none;
+    border-radius: 0;
+  }
+}
+
+/* =========================
+   PRINT OVERRIDE — HARD ISOLATION
+   (THIS FIXES YOUR ISSUE)
+========================= */
+@media print {
+  /* HIDE EVERYTHING */
+  body * {
+    visibility: hidden !important;
+  }
+
+  /* SHOW ONLY INVOICE */
+  .print-invoice,
+  .print-invoice * {
+    visibility: visible !important;
+  }
+
+  /* POSITION INVOICE AT TOP */
+  .print-invoice {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 24px;
+  }
+}

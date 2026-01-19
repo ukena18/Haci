@@ -843,6 +843,19 @@ export function PublicCustomerSharePage() {
     .filter((p) => p.type === "payment")
     .reduce((sum, p) => sum + toNum(p.amount), 0);
 
+  function jobLaborTotal(job) {
+    if (job.timeMode === "fixed") return toNum(job.fixedPrice);
+
+    const hours =
+      job.timeMode === "clock"
+        ? clockHoursOf(job)
+        : job.timeMode === "manual"
+          ? calcHours(job.start, job.end)
+          : 0;
+
+    return hours * toNum(job.rate);
+  }
+
   const totalDebt =
     payments
       .filter((p) => p.type === "debt")
@@ -1072,7 +1085,7 @@ export function PublicCustomerSharePage() {
         </div>
       </div>
 
-      <div className="container">
+      <div className="container screen-only">
         <div ref={printRef}>
           <div style={{ marginTop: 12 }}>
             <h3 style={{ marginTop: 0 }}>📜 İşlem Geçmişi</h3>
@@ -1155,6 +1168,148 @@ export function PublicCustomerSharePage() {
               })
             )}
           </div>
+        </div>
+      </div>
+      {/* =========================
+   PROFESSIONAL PRINT INVOICE
+========================= */}
+      <div className="print-invoice">
+        {/* HEADER */}
+        <div className="invoice-header">
+          <div className="logo">⚡ Usta App</div>
+          <div className="header-right">
+            {new Date().toLocaleDateString("tr-TR")}
+            <br />
+            Hesap Dökümü
+          </div>
+        </div>
+
+        {/* CUSTOMER */}
+        <div className="customer">
+          <strong>Müşteri:</strong> {customer.name} {customer.surname}
+          <br />
+          {customer.phone && (
+            <>
+              <strong>Telefon:</strong> {customer.phone}
+              <br />
+            </>
+          )}
+          {customer.address && (
+            <>
+              <strong>Adres:</strong> {customer.address}
+              <br />
+            </>
+          )}
+        </div>
+
+        {/* JOBS */}
+        {jobs.map((job, idx) => {
+          const hours = job.timeMode === "fixed" ? null : clockHoursOf(job);
+
+          const labor =
+            job.timeMode === "fixed"
+              ? toNum(job.fixedPrice)
+              : hours * toNum(job.rate);
+
+          const parts = job.parts || [];
+          const partsTotal = partsTotalOf(job);
+          const jobTotal = labor + partsTotal;
+
+          return (
+            <div className="job" key={job.id || idx}>
+              <h4>
+                İş #{idx + 1} – {job.date || "-"}
+              </h4>
+
+              {/* LABOR */}
+              <div className="section-label">İşçilik</div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Açıklama</th>
+                    <th>Saat</th>
+                    <th>Birim</th>
+                    <th>Toplam</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>{job.note || "İşçilik"}</td>
+                    <td>{job.timeMode === "fixed" ? "-" : hours}</td>
+                    <td>
+                      {job.timeMode === "fixed"
+                        ? money(job.fixedPrice, currency)
+                        : money(job.rate, currency)}
+                    </td>
+                    <td>{money(labor, currency)}</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              {/* PARTS */}
+              {parts.length > 0 && (
+                <>
+                  <div className="section-label">Parçalar</div>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Parça</th>
+                        <th>Adet</th>
+                        <th>Birim</th>
+                        <th>Toplam</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {parts.map((p, i) => (
+                        <tr key={i}>
+                          <td>{p.name}</td>
+                          <td>{p.qty}</td>
+                          <td>{money(p.price, currency)}</td>
+                          <td>
+                            {money(toNum(p.qty) * toNum(p.price), currency)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </>
+              )}
+
+              <div className="subtotal">
+                İş Toplamı: {money(jobTotal, currency)}
+              </div>
+            </div>
+          );
+        })}
+
+        {/* TOTALS */}
+        <div className="totals">
+          <table>
+            <tbody>
+              <tr>
+                <td>
+                  <strong>Toplam Borç</strong>
+                </td>
+                <td>
+                  <strong>{money(totalDebt, currency)}</strong>
+                </td>
+              </tr>
+              <tr>
+                <td>Toplam Tahsilat</td>
+                <td className="paid">{money(totalPayment, currency)}</td>
+              </tr>
+              <tr>
+                <td>Bakiye</td>
+                <td className="balance">{money(balance, currency)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div className="footer">
+          Teşekkür ederiz.
+          <br />
+          Bu belge bilgilendirme amaçlıdır.
         </div>
       </div>
     </>
