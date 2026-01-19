@@ -27,9 +27,19 @@
   --radius-md: 12px;
 }
 
+:root {
+  --app-height: 100%;
+}
+
+html,
+body {
+  height: 100%;
+  overscroll-behavior: none;
+}
+
 /* ===== App layout wrapper (web fix) ===== */
 .app-shell {
-  min-height: 100vh;
+  height: 100dvh; /* 🔥 dynamic viewport */
   background: #f4f6fb;
   display: flex;
   justify-content: center;
@@ -37,7 +47,7 @@
 
 .app-frame {
   width: 100%;
-  min-height: 100vh;
+  height: 100%;
   background: #f4f6fb;
   position: relative;
   max-width: 100%;
@@ -89,17 +99,14 @@ body {
 }
 
 .header {
-  background-color: #2563eb; /* ✅ fallback */
-  background-image: var(--grad-header);
-
-  color: white;
-  padding: 18px 16px;
-  position: sticky;
+  position: fixed;
   top: 0;
-  z-index: 100;
-
-  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.35);
+  left: 0;
+  right: 0;
+  height: 64px;
+  z-index: 1000;
 }
+
 .header::after {
   content: "";
   position: absolute;
@@ -119,10 +126,10 @@ body {
 } */
 
 .container {
-  padding: 15px;
-  flex: 1; /* ✅ takes remaining height */
-  overflow-y: auto; /* ✅ scrolls content */
-  padding-bottom: 90px; /* ✅ space so content doesn't hide under nav */
+  flex: 1;
+  overflow-x: hidden;
+  padding-top: 0px; /* header height */
+  padding-bottom: 84px; /* nav height */
 }
 
 .card {
@@ -385,35 +392,6 @@ textarea {
   gap: 5px;
   margin-bottom: 5px;
 }
-/* 🔍 search grows, but doesn't force wrap */
-.search-bar {
-  width: 100%;
-  height: 44px;
-  padding: 10px;
-  padding-right: 34px; /* space for X button */
-  border-radius: 20px;
-  border: 1px solid #ddd;
-  flex: 1;
-}
-
-.search-wrap select:hover {
-  background: #f9fafb;
-}
-
-/* =========================
-   Sticky Search Bar
-========================= */
-
-.search-sticky {
-  position: sticky;
-  top: 1px; /* 👈 below header */
-  z-index: 95;
-
-  background: var(--bg);
-  padding: 8px 0 10px;
-
-  border-bottom: 1px solid #e5e7eb;
-}
 
 .hidden {
   display: none;
@@ -446,29 +424,6 @@ textarea {
   color: #333;
   padding: 0 4px;
 }
-
-/* .header-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-} */
-
-/* .header-left {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-} */
-
-/* .header-title {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-} */
-
-/* .header-sub {
-  font-size: 12px;
-  opacity: 0.9;
-} */
 
 .logout-btn {
   background: rgba(255, 255, 255, 0.18);
@@ -512,38 +467,6 @@ textarea {
   justify-content: center;
 }
 
-.search-wrap {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.search-wrap .search-bar {
-  padding-right: 44px; /* room for the X button */
-  margin-bottom: 0; /* since wrapper now has margin */
-}
-
-.search-clear {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 30px;
-  height: 30px;
-  border: none;
-  border-radius: 999px;
-  background: #eee;
-  color: #333;
-  cursor: pointer;
-  font-size: 16px;
-  display: grid;
-  place-items: center;
-}
-
-.search-clear:hover {
-  background: #ddd;
-}
-
 .bar-bg {
   height: 14px;
   background: #eef2ff;
@@ -565,10 +488,6 @@ textarea {
   background: linear-gradient(90deg, #4ade80, #16a34a);
 }
 
-.search-wrap select {
-  background: white;
-  border: 1px solid #ddd;
-}
 /* 🔀 sort stays compact */
 .sort-select {
   width: auto !important; /* 🔥 THIS IS THE FIX */
@@ -932,36 +851,6 @@ textarea {
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
 }
 
-/* Search input wrapper */
-.search-input-wrapper {
-  position: relative;
-  flex: 1;
-}
-
-/* Clear (X) button */
-.search-clear-btn {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  border: none;
-  background: transparent;
-  font-size: 16px;
-  cursor: pointer;
-  color: #9ca3af;
-  padding: 4px;
-}
-
-.search-clear-btn:hover {
-  color: #374151;
-}
-
-.search-wrap {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
 /* =========================
    Customer Stats (Detail)
 ========================= */
@@ -1229,24 +1118,29 @@ textarea {
 }
 
 .bottom-nav {
-  position: sticky; /* ✅ belongs to app-frame */
-  bottom: 0; /* ✅ sticks to bottom of app */
-  width: 100%;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+
   height: 68px;
+  z-index: 1000;
 
-  display: flex;
+  display: flex; /* 🔥 REQUIRED */
+  align-items: center; /* 🔥 */
   justify-content: space-around;
-  align-items: center;
 
-  padding: 8px 6px 12px;
-  background: #fff;
-
+  background: white;
   border-top: 1px solid #e5e7eb;
-  z-index: 100;
 }
 
 @media (min-width: 640px) {
   .bottom-nav {
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 840px; /* same as app-frame */
+    width: 100%;
+
     border-bottom-left-radius: 18px;
     border-bottom-right-radius: 18px;
   }
@@ -1266,11 +1160,15 @@ textarea {
   cursor: pointer;
   color: #64748b;
   transition: all 0.2s ease;
+  min-width: 0; /* 🔥 prevents flex overflow weirdness */
+  height: 52px;
+  justify-content: center;
 }
 
 .nav-item.active {
   background: var(--primary-soft);
   color: var(--primary);
+  font-weight: 700;
 }
 
 /* Icon */
@@ -2414,4 +2312,122 @@ input[type="date"] {
 
 .settings-toggle.active .pill::after {
   left: 21px;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  touch-action: pan-y;
+}
+
+/* =========================
+   SEARCH BAR (CANONICAL)
+========================= */
+
+/* Sticky container under header */
+.search-sticky {
+  position: sticky;
+  top: 0px; /* header height */
+  z-index: 95;
+
+  background: var(--bg);
+  padding: 8px 12px;
+
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* Horizontal row */
+.search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px; /* 🔒 single source of height */
+}
+
+/* Input wrapper (for clear button positioning) */
+.search-input-wrapper {
+  position: relative;
+  flex: 1;
+  height: 44px;
+}
+
+/* Text input */
+.search-bar {
+  width: 100%;
+  height: 100%;
+
+  padding: 0 40px 0 14px; /* space for X button */
+  border-radius: 999px;
+  border: 1px solid #ddd;
+
+  font-size: 14px;
+  background: white;
+}
+
+/* Clear (X) button */
+.search-clear-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+
+  background: #f1f5f9;
+  border: none;
+  cursor: pointer;
+
+  display: grid;
+  place-items: center;
+
+  color: #64748b;
+  font-size: 14px;
+}
+
+.search-clear-btn:hover {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+/* =========================
+   SORT BUTTON (ICON)
+========================= */
+
+.sort-wrapper {
+  position: relative;
+  width: 42px;
+  height: 44px;
+  flex-shrink: 0;
+}
+
+.sort-icon-btn {
+  width: 42px;
+  height: 44px;
+
+  border-radius: 999px;
+  border: 1px solid #ddd;
+
+  background: white;
+  cursor: pointer;
+  font-size: 16px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sort-icon-btn:hover {
+  background: #f8fafc;
+}
+
+/* Hidden select (still clickable) */
+.sort-hidden-select {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
 }
