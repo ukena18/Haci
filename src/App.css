@@ -2225,3 +2225,193 @@ input[type="date"] {
     font-size: 11px;
   }
 }
+
+.settings-section {
+  margin-bottom: 16px;
+}
+
+/* =========================
+   SETTINGS SECTIONS
+========================= */
+
+.settings-section {
+  margin-bottom: 20px;
+}
+
+.settings-section h4 {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6b7280;
+  margin: 12px 6px 8px;
+}
+
+/* =========================
+   SETTINGS CARDS
+========================= */
+
+.settings-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  width: 100%;
+  padding: 14px 14px;
+  margin-bottom: 10px;
+
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.settings-card:hover {
+  background: #f9fafb;
+  border-color: #dbeafe;
+  transform: translateY(-1px);
+}
+
+.settings-card:active {
+  transform: translateY(0);
+}
+
+/* =========================
+   ICONS
+========================= */
+
+.settings-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 18px;
+  color: white;
+}
+
+.settings-icon.gray {
+  background: #6b7280;
+}
+
+.settings-icon.blue {
+  background: #2563eb;
+}
+
+/* =========================
+   TEXT CONTENT
+========================= */
+
+.settings-content {
+  flex: 1;
+  text-align: left;
+}
+
+.settings-content h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+  color: #111827;
+}
+
+.settings-content p {
+  font-size: 12px;
+  margin: 2px 0 0;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+/* =========================
+   ARROW
+========================= */
+
+.settings-card .arrow {
+  font-size: 14px;
+  color: #9ca3af;
+}
+
+/* =========================
+   TOGGLE ROW
+========================= */
+
+.settings-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+  background: #f8fafc;
+
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.settings-toggle:hover {
+  background: #f1f5f9;
+}
+
+.settings-toggle.active {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+}
+
+/* Toggle left content */
+.settings-toggle .left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-toggle .left-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e40af;
+}
+
+.settings-toggle .left-sub {
+  font-size: 12px;
+  color: #6b7280;
+  margin-left: 26px;
+}
+
+/* =========================
+   SWITCH PILL
+========================= */
+
+.settings-toggle .pill {
+  width: 42px;
+  height: 24px;
+  border-radius: 999px;
+  background: #c7d2fe;
+  position: relative;
+}
+
+.settings-toggle .pill::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: white;
+  transition: all 0.2s ease;
+}
+
+.settings-toggle.active .pill {
+  background: #2563eb;
+}
+
+.settings-toggle.active .pill::after {
+  left: 21px;
+}

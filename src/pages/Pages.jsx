@@ -601,7 +601,7 @@ export function SettingsPage({
 
   // components
   Changelog,
-  setOtherSettingsOpen,
+  setAdvancedSettingsOpen,
 }) {
   return (
     <div className="settings-dashboard">
@@ -695,17 +695,17 @@ export function SettingsPage({
           <i className="fa-solid fa-chevron-right arrow"></i>
         </button>
 
-        {/* OTHER */}
+        {/* Advanced settings */}
         <button
           className="settings-card"
-          onClick={() => setOtherSettingsOpen(true)}
+          onClick={() => setAdvancedSettingsOpen(true)}
         >
           <div className="settings-icon gray">
             <i className="fa-solid fa-sliders"></i>
           </div>
 
           <div className="settings-content">
-            <h3>Diğer Ayarlar</h3>
+            <h3>Gelişmiş Ayarlar</h3>
             <p>Uygulama tercihleri ve gelişmiş seçenekler</p>
           </div>
 

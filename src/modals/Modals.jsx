@@ -2090,131 +2090,43 @@ export function ProfileModal({ open, onClose, user, profile, setState }) {
   const [name, setName] = useState(user?.displayName || "");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
-  const [email, setEmail] = useState(user?.email || "");
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const [showCalendar, setShowCalendar] = useState(
-    profile?.settings?.showCalendar !== false,
-  );
-
-  useEffect(() => {
-    if (!open) return;
-
-    setShowCalendar(profile?.settings?.showCalendar !== false);
-  }, [open, profile]);
 
   useEffect(() => {
     if (!open) return;
 
     setName(user?.displayName || "");
-    setEmail(user?.email || "");
 
     // ✅ LOAD FROM FIRESTORE
     setPhone(profile?.phone || "");
     setAddress(profile?.address || "");
-
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
-    setError("");
   }, [open, user, profile]);
-
-  async function reauthRequired() {
-    if (!currentPassword) {
-      throw new Error("Mevcut şifre zorunludur.");
-    }
-
-    const cred = EmailAuthProvider.credential(user.email, currentPassword);
-    await reauthenticateWithCredential(user, cred);
-  }
 
   async function save() {
     try {
-      setLoading(true);
-      setError("");
+      await updateProfile(user, { displayName: name });
 
-      const emailChanged = email !== user.email;
-      const wantsPasswordChange = newPassword || confirmPassword;
-
-      // ✅ If changing email OR password → MUST reauth
-      if (emailChanged || wantsPasswordChange) {
-        await reauthRequired();
-      }
-
-      // ✅ Validate password change (if user typed anything)
-      if (wantsPasswordChange) {
-        if (!newPassword || !confirmPassword) {
-          throw new Error("Yeni şifreyi iki kez girin.");
-        }
-
-        if (newPassword.length < 6) {
-          throw new Error("Yeni şifre en az 6 karakter olmalıdır.");
-        }
-
-        if (newPassword !== confirmPassword) {
-          throw new Error("Yeni şifreler eşleşmiyor.");
-        }
-      }
-
-      // ✅ Update display name
-      if (name !== user.displayName) {
-        await updateProfile(user, { displayName: name });
-      }
-
-      // ✅ Update email
-      if (emailChanged) {
-        await updateEmail(user, email);
-      }
-
-      // ✅ Update password
-      if (wantsPasswordChange) {
-        await updatePassword(user, newPassword);
-      }
-
-      // ✅ SAVE extra profile fields to Firestore
       await saveUserData(user.uid, {
         profile: {
           ...(profile || {}),
           phone,
           address,
-          settings: {
-            ...(profile?.settings || {}),
-            showCalendar,
-          },
         },
       });
 
-      // ✅ UPDATE LOCAL STATE IMMEDIATELY
       setState((s) => ({
         ...s,
         profile: {
           ...(s.profile || {}),
           phone,
           address,
-          settings: {
-            ...(s.profile?.settings || {}),
-            showCalendar,
-          },
         },
       }));
 
       alert("Profil güncellendi ✅");
       onClose();
     } catch (err) {
-      // friendlier firebase messages
-      if (err?.code === "auth/wrong-password") {
-        setError("Mevcut şifre yanlış.");
-      } else if (err?.code === "auth/requires-recent-login") {
-        setError("Güvenlik için tekrar giriş yapmanız gerekiyor.");
-      } else {
-        setError(err?.message || "Bir hata oluştu.");
-      }
-    } finally {
-      setLoading(false);
+      alert("Profil güncellenemedi");
+      console.error(err);
     }
   }
 
@@ -2237,14 +2149,6 @@ export function ProfileModal({ open, onClose, user, profile, setState }) {
       </div>
 
       <div className="form-group">
-        <label>E-posta</label>
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-      </div>
-      <div className="form-group">
         <label>Telefon</label>
         <input
           type="tel"
@@ -2264,77 +2168,15 @@ export function ProfileModal({ open, onClose, user, profile, setState }) {
         />
       </div>
 
-      <div className="card settings-card">
-        <strong>Uygulama Ayarları</strong>
-
-        <button
-          type="button"
-          className={`settings-toggle ${showCalendar ? "active" : ""}`}
-          onClick={() => setShowCalendar((v) => !v)}
-        >
-          <span className="left">
-            <i
-              className={`fa-solid ${
-                showCalendar ? "fa-calendar-days" : "fa-calendar-xmark"
-              }`}
-            />
-            Takvim
-          </span>
-
-          <span className="pill" />
-        </button>
-
-        <div className="settings-hint">
-          {showCalendar
-            ? "Takvim menüde ve ana ekranda görünür."
-            : "Takvim tamamen gizlenir."}
-        </div>
-      </div>
-
       <hr />
-
-      <div className="form-group">
-        <label>Mevcut Şifre (E-posta / Şifre değişimi için zorunlu)</label>
-        <input
-          type="password"
-          value={currentPassword}
-          onChange={(e) => setCurrentPassword(e.target.value)}
-          placeholder="••••••••"
-        />
-      </div>
-
-      <div className="form-group">
-        <label>Yeni Şifre</label>
-        <input
-          type="password"
-          value={newPassword}
-          onChange={(e) => setNewPassword(e.target.value)}
-          placeholder="Yeni şifre"
-        />
-        <div className="form-group">
-          <label>Yeni Şifre (Tekrar)</label>
-          <input
-            type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            placeholder="Yeni şifreyi tekrar girin"
-          />
-        </div>
-
-        {error && (
-          <div style={{ color: "#dc2626", fontSize: 12, marginTop: 6 }}>
-            {error}
-          </div>
-        )}
-      </div>
 
       <div className="btn-row">
         <button className="btn btn-cancel" onClick={onClose}>
           İptal
         </button>
 
-        <button className="btn btn-save" onClick={save} disabled={loading}>
-          {loading ? "Kaydediliyor..." : "Kaydet"}
+        <button className="btn btn-save" onClick={save}>
+          Kaydet
         </button>
       </div>
     </ModalBase>
@@ -3076,7 +2918,13 @@ export function CalendarPage({
   );
 }
 
-export function OtherSettingsModal({ open, onClose, state, setState, auth }) {
+export function AdvancedSettingsModal({
+  open,
+  onClose,
+  state,
+  setState,
+  auth,
+}) {
   if (!open) return null;
 
   const showCalendar = state.profile?.settings?.showCalendar !== false;
@@ -3117,56 +2965,97 @@ export function OtherSettingsModal({ open, onClose, state, setState, auth }) {
     auth.currentUser
       .updatePassword(newPass)
       .then(() => alert("Şifre güncellendi"))
-      .catch((err) => {
-        alert("Şifre değiştirilemedi. Tekrar giriş yapmanız gerekebilir.");
-        console.error(err);
-      });
+      .catch(() =>
+        alert("Güvenlik nedeniyle tekrar giriş yapmanız gerekebilir."),
+      );
+  }
+
+  function changeEmail() {
+    const newEmail = prompt("Yeni e-posta adresini girin:");
+    if (!newEmail) return;
+
+    auth.currentUser
+      .updateEmail(newEmail)
+      .then(() => alert("E-posta güncellendi"))
+      .catch(() =>
+        alert("Güvenlik nedeniyle tekrar giriş yapmanız gerekebilir."),
+      );
   }
 
   return (
     <ModalBase
       open={open}
-      title="Diğer Ayarlar"
+      title="Gelişmiş Ayarlar"
       onClose={onClose}
       zIndex={2000}
     >
-      <div className="settings-grid">
-        {/* CALENDAR TOGGLE */}
+      <div className="settings-section">
+        <h4>Uygulama</h4>
+
         <button
           className={`settings-toggle ${showCalendar ? "active" : ""}`}
           onClick={toggleCalendar}
+          type="button"
         >
           <div className="left">
-            <i className="fa-solid fa-calendar-days"></i>
-            Takvimi Göster
+            <div className="left-top">
+              <i className="fa-solid fa-calendar-days"></i>
+              <span>Takvimi Göster</span>
+            </div>
+            <div className="left-sub">
+              Takvim menüde ve ana ekranda görünür.
+            </div>
           </div>
 
           <div className="pill" />
         </button>
+      </div>
 
-        {/* CHANGE PASSWORD */}
-        <button className="settings-card" onClick={changePassword}>
+      <div className="settings-section">
+        <h4>Güvenlik</h4>
+
+        <button
+          className="settings-card"
+          onClick={changePassword}
+          type="button"
+        >
           <div className="settings-icon gray">
             <i className="fa-solid fa-key"></i>
           </div>
 
           <div className="settings-content">
             <h3>Şifre Değiştir</h3>
-            <p>Hesap güvenliği</p>
+            <p>Hesabınızın şifresini güncelleyin.</p>
           </div>
 
           <i className="fa-solid fa-chevron-right arrow"></i>
         </button>
 
-        {/* EXPORT */}
-        <button className="settings-card" onClick={exportData}>
+        <button className="settings-card" onClick={changeEmail} type="button">
+          <div className="settings-icon gray">
+            <i className="fa-solid fa-envelope"></i>
+          </div>
+
+          <div className="settings-content">
+            <h3>E-posta Değiştir</h3>
+            <p>Giriş yaptığınız e-posta adresini değiştirin.</p>
+          </div>
+
+          <i className="fa-solid fa-chevron-right arrow"></i>
+        </button>
+      </div>
+
+      <div className="settings-section">
+        <h4>Veri</h4>
+
+        <button className="settings-card" onClick={exportData} type="button">
           <div className="settings-icon blue">
             <i className="fa-solid fa-file-export"></i>
           </div>
 
           <div className="settings-content">
             <h3>Verileri Dışa Aktar</h3>
-            <p>JSON olarak indir</p>
+            <p>Tüm uygulama verilerini JSON olarak indir.</p>
           </div>
 
           <i className="fa-solid fa-chevron-right arrow"></i>

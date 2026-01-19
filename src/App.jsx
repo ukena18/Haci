@@ -49,7 +49,7 @@ import {
   PaymentActionModal,
   ProfileModal,
   CalendarPage,
-  OtherSettingsModal,
+  AdvancedSettingsModal,
 } from "./modals/Modals.jsx";
 
 import Changelog from "./components/Changelog";
@@ -285,7 +285,7 @@ function MainApp({ state, setState, user }) {
   const [custModalOpen, setCustModalOpen] = useState(false);
   const [custDetailOpen, setCustDetailOpen] = useState(false);
 
-  const [otherSettingsOpen, setOtherSettingsOpen] = useState(false);
+  const [advancedSettingsOpen, setAdvancedSettingsOpen] = useState(false);
 
   useAndroidBackHandler({
     page,
@@ -1177,7 +1177,7 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                 money={money}
                 getVaultTotals={getVaultTotals}
                 Changelog={Changelog}
-                setOtherSettingsOpen={setOtherSettingsOpen}
+                setAdvancedSettingsOpen={setAdvancedSettingsOpen}
               />
             )}
           </div>
@@ -1509,9 +1509,9 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
             }}
           />
 
-          <OtherSettingsModal
-            open={otherSettingsOpen}
-            onClose={() => setOtherSettingsOpen(false)}
+          <AdvancedSettingsModal
+            open={advancedSettingsOpen}
+            onClose={() => setAdvancedSettingsOpen(false)}
             state={state}
             setState={setState}
             auth={auth}
