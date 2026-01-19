@@ -387,11 +387,18 @@ export function JobModal({
     if (!open) return;
 
     if (editing) {
-      // when editing, keep job's customerId
       setDraft({
         ...editing,
         parts: editing.parts || [],
         sessions: editing.sessions || [],
+
+        // ✅ CRITICAL FIX
+        trackPayment: editing.trackPayment !== false,
+
+        // optional safety
+        dueDays: editing.dueDays ?? 30,
+
+        dueDismissed: editing.dueDismissed === true,
       });
     } else {
       const fresh = makeEmptyJob(customers);
@@ -492,6 +499,16 @@ export function JobModal({
     // Save with cleaned numeric fields
     onSave({
       ...draft,
+
+      dueDismissed: draft.dueDismissed === true,
+
+      trackPayment: draft.trackPayment !== false,
+      dueDays:
+        draft.trackPayment === false
+          ? null
+          : draft.dueDays == null || draft.dueDays < 1
+            ? 30
+            : draft.dueDays,
 
       // ✅ IMPORTANT: if clock mode, workedMs must come from sessions
       workedMs:
@@ -723,6 +740,67 @@ export function JobModal({
             </>
           )}
         </div>
+      </div>
+
+      <div className="form-group">
+        <label>Ödeme Vadesi (gün)</label>
+
+        <div
+          style={{
+            display: "flex",
+            gap: 10,
+            alignItems: "center",
+          }}
+        >
+          {/* DAYS INPUT */}
+          <input
+            type="number"
+            min={1}
+            max={365}
+            style={{ flex: 1 }}
+            value={draft.dueDays === null ? "" : draft.dueDays}
+            onChange={(e) => {
+              const v = e.target.value;
+              setDraft((d) => ({
+                ...d,
+                dueDays: v === "" ? null : Number(v),
+              }));
+            }}
+            disabled={!draft.trackPayment}
+          />
+        </div>
+
+        <small style={{ color: "#6b7280" }}>
+          {draft.trackPayment
+            ? "İş tamamlandıktan sonra ödeme takibine alınır."
+            : "Bu iş ödeme takibine dahil edilmez."}
+        </small>
+        {/* ✅ BRING BACK TO PAYMENT WATCHLIST */}
+        {editing && draft.dueDismissed && (
+          <div style={{ marginTop: 10 }}>
+            <button
+              type="button"
+              className="btn"
+              style={{
+                background: "#ecfeff",
+                color: "#0369a1",
+                fontWeight: 600,
+              }}
+              onClick={() =>
+                setDraft((d) => ({
+                  ...d,
+                  dueDismissed: false,
+                }))
+              }
+            >
+              🔔 Ödeme Takibini Geri Ekle
+            </button>
+
+            <div style={{ fontSize: 12, color: "#0369a1", marginTop: 4 }}>
+              Takip kaldığı yerden devam eder (günler sıfırlanmaz).
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ============================= */}
@@ -1147,6 +1225,8 @@ export function CustomerDetailModal({
   const [editDate, setEditDate] = useState("");
   const [editMethod, setEditMethod] = useState("cash");
   const [editVaultId, setEditVaultId] = useState("");
+  const [editDueDays, setEditDueDays] = useState(30);
+  const [editDueDismissed, setEditDueDismissed] = useState(false);
 
   // "payment" | "debt"
   function isInRange(dateStr) {
@@ -1644,6 +1724,10 @@ export function CustomerDetailModal({
                         );
                         setEditMethod(p.method || "cash");
                         setEditVaultId(p.vaultId || activeVaultId || "");
+
+                        // ✅ NEW (for debt watchlist)
+                        setEditDueDays(p.dueDays ?? 30);
+                        setEditDueDismissed(p.dueDismissed === true);
                       }}
                     >
                       <div>
@@ -1886,6 +1970,45 @@ export function CustomerDetailModal({
               />
             </div>
 
+            {/* ✅ DUE DAYS + WATCHLIST (ONLY FOR DEBT) */}
+            {editTx.type === "debt" && (
+              <div className="form-group">
+                <label>Ödeme Vadesi (gün)</label>
+
+                <input
+                  type="number"
+                  min={1}
+                  max={365}
+                  value={editDueDays}
+                  onChange={(e) => setEditDueDays(Number(e.target.value) || 30)}
+                />
+
+                {/* 🔔 add back button only if dismissed */}
+                {editDueDismissed && (
+                  <div style={{ marginTop: 10 }}>
+                    <button
+                      type="button"
+                      className="btn"
+                      style={{
+                        background: "#ecfeff",
+                        color: "#0369a1",
+                        fontWeight: 600,
+                      }}
+                      onClick={() => setEditDueDismissed(false)}
+                    >
+                      🔔 Ödeme Takibini Geri Ekle
+                    </button>
+
+                    <div
+                      style={{ fontSize: 12, color: "#0369a1", marginTop: 4 }}
+                    >
+                      Takip kaldığı yerden devam eder (günler sıfırlanmaz).
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* ACTIONS */}
             <div className="modal-actions">
               <button
@@ -1910,10 +2033,20 @@ export function CustomerDetailModal({
                     amount: toNum(editAmount),
                     note: editNote,
                     date: editDate,
+
                     method: editTx.type === "payment" ? editMethod : null,
                     vaultId:
                       editTx.type === "payment" ? editVaultId : editTx.vaultId,
+
+                    // ✅ NEW: only debt uses these
+                    dueDays:
+                      editTx.type === "debt" ? editDueDays : editTx.dueDays,
+                    dueDismissed:
+                      editTx.type === "debt"
+                        ? editDueDismissed
+                        : editTx.dueDismissed,
                   });
+
                   setEditTx(null);
                 }}
               >

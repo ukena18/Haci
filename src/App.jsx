@@ -166,28 +166,48 @@ function AppRoutes({ user }) {
   const [hydrated, setHydrated] = useState(false);
 
   // Load user-specific data from Firestore
+  // Load user-specific data from Firestore
   useEffect(() => {
     async function init() {
       await ensureUserData(user.uid);
       const data = await loadUserData(user.uid);
-      // ✅ MIGRATION: support old users that still have vaultName/vaultBalance
+
+      // 🔧 START with raw data
       const fixed = { ...data };
 
-      // ✅ RESERVATIONS INIT (REQUIRED)
-      if (!fixed.reservations || !Array.isArray(fixed.reservations)) {
+      // ==============================
+      // ✅ JOB MIGRATION (CRITICAL)
+      // ==============================
+      fixed.jobs = (fixed.jobs || []).map((j) => ({
+        ...j,
+        trackPayment: j.trackPayment !== false, // default TRUE
+        dueDays: j.dueDays ?? 30, // default 30 days
+      }));
+
+      // ==============================
+      // ✅ RESERVATIONS INIT
+      // ==============================
+      if (!Array.isArray(fixed.reservations)) {
         fixed.reservations = [];
       }
+
+      // ==============================
+      // ✅ CURRENCY DEFAULT
+      // ==============================
       if (!fixed.currency) {
-        fixed.currency = "TRY"; // default
+        fixed.currency = "TRY";
       }
 
-      if (!fixed.vaults || !Array.isArray(fixed.vaults)) {
+      // ==============================
+      // ✅ VAULT MIGRATION
+      // ==============================
+      if (!Array.isArray(fixed.vaults)) {
         fixed.vaults = fixed.Vaults || [
           {
             id: "main_vault",
             name: "Main Vault",
             balance: 0,
-            currency: fixed.currency || "TRY",
+            currency: fixed.currency,
             createdAt: Date.now(),
           },
         ];
@@ -195,12 +215,10 @@ function AppRoutes({ user }) {
         fixed.activeVaultId = fixed.activeVaultId || "main_vault";
       }
 
-      // optional: remove old fields if you want (not required)
-      // delete fixed.vaultName;
-      // delete fixed.vaultBalance;
-
+      // ==============================
+      // 🚀 DONE
+      // ==============================
       setState(fixed);
-
       setLoading(false);
       setHydrated(true);
     }
@@ -443,27 +461,58 @@ function MainApp({ state, setState, user }) {
     (j) => j.isCompleted && !j.isPaid,
   );
 
-  const paymentWatchList = filteredJobs
-    .filter(
-      (j) => j.isCompleted && !j.isPaid && !j.dueDismissed, // ✅ PERSISTENT UI FLAG
-    )
-    .map((job) => {
-      const startDate = getJobStartDate(job);
-      if (!startDate) return null;
+  const paymentWatchList = [
+    // =====================
+    // JOBS
+    // =====================
+    ...filteredJobs
+      .filter(
+        (j) =>
+          j.isCompleted &&
+          j.trackPayment !== false &&
+          !j.dueDismissed &&
+          j.isPaid !== true,
+      )
+      .map((job) => {
+        const startDate = getJobStartDate(job);
+        if (!startDate) return null;
 
-      // ✅ Due date = 30 days later, adjusted to weekday
-      const dueDate = addDaysSkippingWeekend(startDate, 30);
+        const dueInDays = job.dueDays ?? 30;
+        const dueDate = addDaysSkippingWeekend(startDate, dueInDays);
+        const daysLeft = daysBetween(new Date(), dueDate);
 
-      const daysLeft = daysBetween(new Date(), dueDate);
+        return {
+          kind: "job", // ✅ NEW
+          ref: job, // ✅ NEW
+          daysLeft,
+          dueDate,
+        };
+      })
+      .filter(Boolean),
 
-      return {
-        job,
-        daysLeft,
-        dueDate, // optional but useful
-      };
-    })
-    .filter(Boolean)
-    .sort((a, b) => a.daysLeft - b.daysLeft);
+    // =====================
+    // DEBTS
+    // =====================
+    ...(state.payments || [])
+      .filter((p) => p.type === "debt" && !p.dueDismissed && p.dueDays != null)
+      .map((debt) => {
+        const startDate = debt.createdAt || new Date(debt.date || 0).getTime();
+        if (!startDate) return null;
+
+        const dueInDays = debt.dueDays ?? 30;
+        const dueDate = addDaysSkippingWeekend(new Date(startDate), dueInDays);
+
+        const daysLeft = daysBetween(new Date(), dueDate);
+
+        return {
+          kind: "debt", // ✅ NEW
+          ref: debt, // ✅ NEW
+          daysLeft,
+          dueDate,
+        };
+      })
+      .filter(Boolean),
+  ].sort((a, b) => a.daysLeft - b.daysLeft);
 
   function getLatestCustomerTransaction(customerId, jobs, payments) {
     let latest = 0;
@@ -786,6 +835,10 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
         note: note || "Borç",
         date,
         createdAt: Date.now(),
+
+        // ✅ ADD THESE
+        dueDays: 30, // default
+        dueDismissed: false,
 
         currency:
           (s.vaults || []).find((k) => k.id === (vaultId || s.activeVaultId))

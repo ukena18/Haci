@@ -189,93 +189,161 @@ export function HomePage({
               Takip edilecek aktif iş yok.
             </div>
           ) : (
-            paymentWatchList.map(({ job, daysLeft, dueDate }) => {
-              const c = customersById.get(job.customerId);
+            paymentWatchList.map((item) => {
+              const { kind, ref, daysLeft, dueDate } = item;
 
-              return (
-                <div
-                  key={job.id}
-                  className="card list-item"
-                  style={{
-                    background:
-                      daysLeft <= 0
-                        ? "#fee2e2"
-                        : daysLeft <= 5
-                          ? "#fef3c7"
-                          : "white",
-                    borderLeft:
-                      daysLeft <= 0
-                        ? "6px solid #dc2626"
-                        : daysLeft <= 5
-                          ? "6px solid #f59e0b"
-                          : "6px solid #16a34a",
-                  }}
-                >
-                  <div>
-                    <strong>
-                      {c ? `${c.name} ${c.surname}` : "Bilinmeyen"}
-                    </strong>
-                    <br />
-                    <small>
-                      {daysLeft <= 0 ? (
-                        <>
-                          <i className="fa-solid fa-circle-xmark"></i>{" "}
-                          {Math.abs(daysLeft)} gün gecikmiş
-                        </>
-                      ) : (
-                        <>
-                          <i className="fa-solid fa-hourglass-half"></i>{" "}
-                          {daysLeft} gün kaldı
-                        </>
-                      )}
+              // =====================
+              // JOB WATCH ITEM
+              // =====================
+              if (kind === "job") {
+                const job = ref;
+                const c = customersById.get(job.customerId);
+
+                if (!c) return null;
+
+                return (
+                  <div
+                    key={`job-${job.id}`}
+                    className="card list-item"
+                    style={{
+                      background:
+                        daysLeft <= 0
+                          ? "#fee2e2"
+                          : daysLeft <= 5
+                            ? "#fef3c7"
+                            : "white",
+                      borderLeft:
+                        daysLeft <= 0
+                          ? "6px solid #dc2626"
+                          : daysLeft <= 5
+                            ? "6px solid #f59e0b"
+                            : "6px solid #16a34a",
+                    }}
+                  >
+                    <div>
+                      <strong>
+                        {c.name} {c.surname}
+                      </strong>
                       <br />
-                      Son Ödeme: <b>{dueDate.toLocaleDateString("tr-TR")}</b>
-                    </small>
-                  </div>
+                      <small>
+                        {daysLeft <= 0 ? (
+                          <>
+                            <i className="fa-solid fa-circle-xmark"></i>{" "}
+                            {Math.abs(daysLeft)} gün gecikmiş
+                          </>
+                        ) : (
+                          <>
+                            <i className="fa-solid fa-hourglass-half"></i>{" "}
+                            {daysLeft} gün kaldı
+                          </>
+                        )}
+                        <br />
+                        Son Ödeme: <b>{dueDate.toLocaleDateString("tr-TR")}</b>
+                      </small>
+                    </div>
 
-                  <div style={{ fontWeight: 700 }}>
-                    <button
-                      className="due-dismiss-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
+                    <div style={{ fontWeight: 700 }}>
+                      <button
+                        className="due-dismiss-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
 
-                        setState((s) => {
-                          const nextJobs = s.jobs.map((j) =>
-                            j.id === job.id
-                              ? { ...j, dueDismissed: true } //   SAVE FLAG
-                              : j,
-                          );
-
-                          const nextState = {
+                          setState((s) => ({
                             ...s,
-                            jobs: nextJobs,
-                          };
+                            jobs: s.jobs.map((j) =>
+                              j.id === job.id
+                                ? { ...j, dueDismissed: true }
+                                : j,
+                            ),
+                          }));
+                        }}
+                      >
+                        <i className="fa-solid fa-check"></i> Takipten Kaldır
+                      </button>
 
-                          // 🔒 persist immediately
-                          saveUserData(auth.currentUser.uid, nextState);
-
-                          return nextState;
-                        });
-                      }}
-                    >
-                      <i className="fa-solid fa-check "></i> Takipten Kaldır
-                    </button>
-
-                    {(() => {
-                      const totalMs = job.workedMs || 0;
-                      const hours =
-                        job.timeMode === "clock"
-                          ? totalMs / 36e5
-                          : calcHours(job.start, job.end);
-
-                      return money(
-                        hours * toNum(job.rate) + partsTotalOf(job),
-                        currency,
-                      );
-                    })()}
+                      {money(jobTotalOf(job), currency)}
+                    </div>
                   </div>
-                </div>
-              );
+                );
+              }
+
+              // =====================
+              // DEBT WATCH ITEM
+              // =====================
+              if (kind === "debt") {
+                const debt = ref;
+                const c = customersById.get(debt.customerId);
+
+                if (!c) return null;
+
+                return (
+                  <div
+                    key={`debt-${debt.id}`}
+                    className="card list-item"
+                    style={{
+                      background:
+                        daysLeft <= 0
+                          ? "#fee2e2"
+                          : daysLeft <= 5
+                            ? "#fef3c7"
+                            : "white",
+                      borderLeft:
+                        daysLeft <= 0
+                          ? "6px solid #dc2626"
+                          : daysLeft <= 5
+                            ? "6px solid #f59e0b"
+                            : "6px solid #16a34a",
+                    }}
+                  >
+                    <div>
+                      <strong>
+                        {c.name} {c.surname}
+                      </strong>
+                      <br />
+                      <small>
+                        {daysLeft <= 0 ? (
+                          <>
+                            <i className="fa-solid fa-circle-xmark"></i>{" "}
+                            {Math.abs(daysLeft)} gün gecikmiş
+                          </>
+                        ) : (
+                          <>
+                            <i className="fa-solid fa-hourglass-half"></i>{" "}
+                            {daysLeft} gün kaldı
+                          </>
+                        )}
+                        <br />
+                        Borç • Son Ödeme:{" "}
+                        <b>{dueDate.toLocaleDateString("tr-TR")}</b>
+                      </small>
+                    </div>
+
+                    <div style={{ fontWeight: 700 }}>
+                      <button
+                        className="due-dismiss-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+
+                          setState((s) => ({
+                            ...s,
+                            payments: s.payments.map((p) =>
+                              p.id === debt.id
+                                ? { ...p, dueDismissed: true }
+                                : p,
+                            ),
+                          }));
+                        }}
+                      >
+                        <i className="fa-solid fa-check"></i> Takipten Kaldır
+                      </button>
+
+                      {money(debt.amount, debt.currency || currency)}
+                    </div>
+                  </div>
+                );
+              }
+
+              return null;
             })
           ))}
 

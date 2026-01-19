@@ -33,11 +33,24 @@ export function daysBetween(a, b) {
 }
 
 export function getJobStartDate(job) {
-  // If user manually selected a date, use it (YYYY-MM-DD)
-  if (job?.date) return new Date(job.date + "T00:00:00");
+  if (!job) return null;
 
-  // Fallback to createdAt (old behavior)
-  if (job?.createdAt) return new Date(job.createdAt);
+  // 1️⃣ Explicit date (manual / fixed jobs)
+  if (job.date) {
+    const d = new Date(job.date);
+    if (!isNaN(d)) return d;
+  }
+
+  // 2️⃣ Clock jobs: first session
+  if (job.sessions && job.sessions.length > 0) {
+    const first = job.sessions[0]?.inAt;
+    if (first) return new Date(first);
+  }
+
+  // 3️⃣ Fallback: createdAt
+  if (job.createdAt) {
+    return new Date(job.createdAt);
+  }
 
   return null;
 }
@@ -185,6 +198,10 @@ export function makeEmptyJob(customers = []) {
     customerId: "",
     vaultId: "", // ✅ ADD THIS
     date: new Date().toISOString().slice(0, 10),
+
+    // 👇 NEW
+    dueDays: 30,
+
     start: "",
     end: "",
     rate: "",
