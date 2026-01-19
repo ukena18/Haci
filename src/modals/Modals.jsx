@@ -339,33 +339,34 @@ export function JobModal({
   const [draft, setDraft] = useState(() => makeEmptyJob(customers));
   const [customerSearch, setCustomerSearch] = useState("");
   const [customerDropdownOpen, setCustomerDropdownOpen] = useState(false);
+  // ✅ ACTIVE VAULT (TOP LEVEL)
+  const activeVault = useMemo(() => {
+    return (vaults || []).find((v) => v.id === draft.vaultId);
+  }, [vaults, draft.vaultId]);
+
+  // ✅ JOB CURRENCY (TOP LEVEL)
+  const jobCurrency = activeVault?.currency || currency;
 
   const customerOptions = useMemo(() => {
     const q = customerSearch.trim().toLowerCase();
 
-    return (
-      customers
-        .map((c) => {
-          // find last job activity
-          const lastJob = jobs
-            .filter((j) => j.customerId === c.id)
-            .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))[0];
+    return customers
+      .map((c) => {
+        const lastJob = jobs
+          .filter((j) => j.customerId === c.id)
+          .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))[0];
 
-          return {
-            ...c,
-            lastActivity: lastJob?.createdAt || 0,
-          };
-        })
-        // 🔥 newest activity first
-        .sort((a, b) => b.lastActivity - a.lastActivity)
-        // 🔍 search filter
-        .filter((c) => {
-          if (!q) return true;
-          return `${c.name} ${c.surname}`.toLowerCase().includes(q);
-        })
-        // ⛔ limit to 10
-        .slice(0, 10)
-    );
+        return {
+          ...c,
+          lastActivity: lastJob?.createdAt || 0,
+        };
+      })
+      .sort((a, b) => b.lastActivity - a.lastActivity)
+      .filter((c) => {
+        if (!q) return true;
+        return `${c.name} ${c.surname}`.toLowerCase().includes(q);
+      })
+      .slice(0, 10);
   }, [customers, jobs, customerSearch]);
 
   useEffect(() => {
@@ -501,6 +502,7 @@ export function JobModal({
       // ✅ persist fixed job duration
       fixedDays: draft.timeMode === "fixed" ? workingDays : null,
 
+      currency: jobCurrency,
       rate: toNum(draft.rate),
       parts: (draft.parts || []).map((p) => ({
         ...p,
@@ -674,7 +676,7 @@ export function JobModal({
                 }))
               }
             />
-            <span>Saat Giriş/Çıkış</span>
+            <span>Başlat / Bitir </span>
           </label>
 
           <label className="time-mode-option">
@@ -918,7 +920,7 @@ export function JobModal({
           )}
 
           <div className="form-group">
-            <label>Saatlik Ücret ({currency})</label>
+            <label>Saatlik Ücret ({jobCurrency})</label>
             <input
               type="number"
               value={draft.rate}
@@ -934,7 +936,8 @@ export function JobModal({
       {/* ============================= */}
       {draft.timeMode === "fixed" && (
         <div className="form-group">
-          <label>Sabit Ücret ({currency})</label>
+          <label>Sabit Ücret ({jobCurrency})</label>
+
           <input
             type="number"
             value={draft.fixedPrice}
@@ -1034,7 +1037,7 @@ export function JobModal({
 
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span>İşçilik:</span>
-              <strong>{money(laborTotal, currency)}</strong>
+              <strong>{money(laborTotal, jobCurrency)}</strong>
             </div>
           </>
         )}
@@ -1057,7 +1060,7 @@ export function JobModal({
         {/* COMMON */}
         <div style={{ display: "flex", justifyContent: "space-between" }}>
           <span>Parçalar:</span>
-          <strong>{money(partsTotal, currency)}</strong>
+          <strong>{money(partsTotal, jobCurrency)}</strong>
         </div>
 
         <hr
@@ -1072,7 +1075,7 @@ export function JobModal({
           <span>
             <strong>Toplam Tutar:</strong>
           </span>
-          <strong>{money(grandTotal, currency)}</strong>
+          <strong>{money(grandTotal, jobCurrency)}</strong>
         </div>
       </div>
 
@@ -1182,7 +1185,7 @@ export function CustomerDetailModal({
     }
 
     if (j.timeMode === "clock") {
-      return `${j.date} • Saat Giriş/Çıkış • ${hours.toFixed(2)} saat`;
+      return `${j.date} • Başlat / Bitir • ${hours.toFixed(2)} saat`;
     }
 
     // manual
@@ -1458,8 +1461,21 @@ export function CustomerDetailModal({
 
                   {customer.address && (
                     <div className="customer-meta-line">
-                      <i className="fa-solid fa-location-dot"></i>{" "}
-                      {customer.address}
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                          customer.address,
+                        )}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          color: "inherit",
+                          textDecoration: "none",
+                          fontWeight: 600,
+                        }}
+                      >
+                        <i className="fa-solid fa-location-dot"></i>{" "}
+                        {customer.address}
+                      </a>
                     </div>
                   )}
                 </div>
@@ -2357,6 +2373,12 @@ export function CalendarPage({
      HELPERS
   ============================= */
 
+  function atMidnight(date) {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+
   function formatDate(date) {
     const d = new Date(date);
     const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -2396,7 +2418,7 @@ export function CalendarPage({
       const d = new Date(r.date);
 
       if (view === "weekly") {
-        const start = new Date(referenceDate);
+        const start = atMidnight(referenceDate);
         start.setDate(start.getDate() - ((start.getDay() || 7) - 1));
 
         const days = Array.from({ length: 7 }, (_, i) => {
@@ -2437,12 +2459,20 @@ export function CalendarPage({
     return "Zamanlama bekleniyor";
   }
 
+  const jobsOfSelectedDay = useMemo(() => {
+    return jobs.filter((j) => j.date === selectedDate);
+  }, [jobs, selectedDate]);
+
+  const reservationsOfSelectedDay = useMemo(() => {
+    return reservations.filter((r) => r.date === selectedDate);
+  }, [reservations, selectedDate]);
+
   /* =============================
      NAVIGATION (← →)
   ============================= */
 
   function changePeriod(step) {
-    const d = new Date(referenceDate);
+    const d = atMidnight(referenceDate);
 
     if (view === "daily") d.setDate(d.getDate() + step);
     if (view === "weekly") d.setDate(d.getDate() + step * 7);
@@ -2600,10 +2630,12 @@ export function CalendarPage({
                     >
                       <div>{d}</div>
                       <div className="day-indicators">
-                        {hasJob && <span className="day-badge job">İş</span>}
-                        {hasReservation && (
-                          <span className="day-badge reservation">Rez</span>
-                        )}
+                        <div className="day-indicators">
+                          {hasJob && <span className="day-dot job-dot" />}
+                          {hasReservation && (
+                            <span className="day-dot reservation-dot" />
+                          )}
+                        </div>
                       </div>
                     </div>,
                   );
@@ -2626,7 +2658,7 @@ export function CalendarPage({
 
             <div className="calendar-grid grid-weekly">
               {Array.from({ length: 7 }, (_, i) => {
-                const start = new Date(referenceDate);
+                const start = atMidnight(referenceDate);
                 start.setDate(start.getDate() - ((start.getDay() || 7) - 1));
                 const d = new Date(start);
                 d.setDate(start.getDate() + i);
@@ -2646,10 +2678,12 @@ export function CalendarPage({
                     onClick={() => setSelectedDate(dStr)}
                   >
                     <div>{d.getDate()}</div>
-                    {hasJob && <small className="dot job-dot">•</small>}
-                    {hasReservation && (
-                      <small className="dot reservation-dot">•</small>
-                    )}
+                    <div className="day-indicators">
+                      {hasJob && <span className="day-dot job-dot" />}
+                      {hasReservation && (
+                        <span className="day-dot reservation-dot" />
+                      )}
+                    </div>
                   </div>
                 );
               })}
@@ -2672,7 +2706,11 @@ export function CalendarPage({
             const customer = customers.find((c) => c.id === job.customerId);
 
             return (
-              <div key={job.id} className="card">
+              <div
+                key={job.id}
+                className="card"
+                style={{ borderLeft: "6px solid #ef4444" }}
+              >
                 <strong>
                   {customer
                     ? `${customer.name} ${customer.surname}`
@@ -2744,7 +2782,11 @@ export function CalendarPage({
                     );
 
                     return (
-                      <div key={job.id} className="card">
+                      <div
+                        key={job.id}
+                        className="card"
+                        style={{ borderLeft: "6px solid #ef4444" }}
+                      >
                         <strong>
                           {customer
                             ? `${customer.name} ${customer.surname}`
@@ -3031,5 +3073,105 @@ export function CalendarPage({
         </ModalBase>
       )}
     </div>
+  );
+}
+
+export function OtherSettingsModal({ open, onClose, state, setState, auth }) {
+  if (!open) return null;
+
+  const showCalendar = state.profile?.settings?.showCalendar !== false;
+
+  function toggleCalendar() {
+    setState((s) => ({
+      ...s,
+      profile: {
+        ...s.profile,
+        settings: {
+          ...s.profile?.settings,
+          showCalendar: !showCalendar,
+        },
+      },
+    }));
+  }
+
+  function exportData() {
+    const data = JSON.stringify(state, null, 2);
+    const blob = new Blob([data], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "usta-app-export.json";
+    a.click();
+
+    URL.revokeObjectURL(url);
+  }
+
+  function changePassword() {
+    const newPass = prompt("Yeni şifre girin (en az 6 karakter):");
+    if (!newPass || newPass.length < 6) {
+      alert("Şifre en az 6 karakter olmalı");
+      return;
+    }
+
+    auth.currentUser
+      .updatePassword(newPass)
+      .then(() => alert("Şifre güncellendi"))
+      .catch((err) => {
+        alert("Şifre değiştirilemedi. Tekrar giriş yapmanız gerekebilir.");
+        console.error(err);
+      });
+  }
+
+  return (
+    <ModalBase
+      open={open}
+      title="Diğer Ayarlar"
+      onClose={onClose}
+      zIndex={2000}
+    >
+      <div className="settings-grid">
+        {/* CALENDAR TOGGLE */}
+        <button
+          className={`settings-toggle ${showCalendar ? "active" : ""}`}
+          onClick={toggleCalendar}
+        >
+          <div className="left">
+            <i className="fa-solid fa-calendar-days"></i>
+            Takvimi Göster
+          </div>
+
+          <div className="pill" />
+        </button>
+
+        {/* CHANGE PASSWORD */}
+        <button className="settings-card" onClick={changePassword}>
+          <div className="settings-icon gray">
+            <i className="fa-solid fa-key"></i>
+          </div>
+
+          <div className="settings-content">
+            <h3>Şifre Değiştir</h3>
+            <p>Hesap güvenliği</p>
+          </div>
+
+          <i className="fa-solid fa-chevron-right arrow"></i>
+        </button>
+
+        {/* EXPORT */}
+        <button className="settings-card" onClick={exportData}>
+          <div className="settings-icon blue">
+            <i className="fa-solid fa-file-export"></i>
+          </div>
+
+          <div className="settings-content">
+            <h3>Verileri Dışa Aktar</h3>
+            <p>JSON olarak indir</p>
+          </div>
+
+          <i className="fa-solid fa-chevron-right arrow"></i>
+        </button>
+      </div>
+    </ModalBase>
   );
 }

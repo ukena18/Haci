@@ -40,9 +40,10 @@
   min-height: 100vh;
   background: #f4f6fb;
   position: relative;
-
-  /* mobile default */
   max-width: 100%;
+
+  display: flex; /* ✅ ADD */
+  flex-direction: column; /* ✅ ADD */
 }
 
 @media (min-width: 600px) {
@@ -80,11 +81,11 @@ body {
     -apple-system,
     BlinkMacSystemFont,
     sans-serif;
-  font-size: 13px; /* 🔥 key change */
+  font-size: 13px;
   line-height: 1.45;
   margin: 0;
   background: var(--bg);
-  padding-bottom: 70px;
+  padding-bottom: 0; /* ✅ change from 70px to 0 */
 }
 
 .header {
@@ -119,6 +120,9 @@ body {
 
 .container {
   padding: 15px;
+  flex: 1; /* ✅ takes remaining height */
+  overflow-y: auto; /* ✅ scrolls content */
+  padding-bottom: 90px; /* ✅ space so content doesn't hide under nav */
 }
 
 .card {
@@ -1225,14 +1229,10 @@ textarea {
 }
 
 .bottom-nav {
-  position: fixed;
-  bottom: 0;
-
+  position: sticky; /* ✅ belongs to app-frame */
+  bottom: 0; /* ✅ sticks to bottom of app */
   width: 100%;
-  max-width: 480px;
-
-  left: 50%;
-  transform: translateX(-50%);
+  height: 68px;
 
   display: flex;
   justify-content: space-around;
@@ -1243,6 +1243,13 @@ textarea {
 
   border-top: 1px solid #e5e7eb;
   z-index: 100;
+}
+
+@media (min-width: 640px) {
+  .bottom-nav {
+    border-bottom-left-radius: 18px;
+    border-bottom-right-radius: 18px;
+  }
 }
 
 .nav-item {
@@ -2110,4 +2117,111 @@ input[type="date"] {
 .day-badge.reservation {
   background: #dcfce7;
   color: #166534;
+}
+
+.admin-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  max-width: 55%;
+}
+
+/* phone & address rows */
+.admin-meta {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+
+  max-width: 100%;
+  font-size: 13px;
+  color: #374151;
+
+  /* 🔑 FIX */
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* limit address height */
+.admin-meta.address {
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* ⬅️ max 2 lines */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.meta-text,
+.admin-meta,
+.customer-meta-line {
+  max-width: 100%;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* calendar dots (monthly) */
+.day-indicators {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.day-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+/* 🔴 Job */
+.day-dot.job-dot {
+  background: #ef4444;
+}
+
+/* 🟢 Reservation */
+.day-dot.reservation-dot {
+  background: #22c55e;
+}
+
+/* =========================
+   CALENDAR COMPACT FIX
+========================= */
+
+.calendar-grid {
+  gap: 4px; /* tighter grid */
+}
+
+.calendar-day {
+  min-height: 30px; /* ⬅️ key */
+  padding: 4px 2px; /* ⬅️ key */
+  font-size: 12px; /* smaller numbers */
+  border-radius: 5px;
+}
+
+/* number inside the cell */
+.calendar-day > div:first-child {
+  line-height: 1;
+}
+
+/* dots tighter */
+.day-indicators {
+  margin-top: 2px;
+  gap: 3px;
+}
+
+.day-dot {
+  width: 5px;
+  height: 5px;
+}
+
+@media (max-width: 420px) {
+  .calendar-day {
+    min-height: 36px;
+    font-size: 11px;
+    padding: 3px 2px;
+  }
+
+  .weekday-row {
+    font-size: 11px;
+  }
 }

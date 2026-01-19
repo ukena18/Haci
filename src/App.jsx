@@ -49,6 +49,7 @@ import {
   PaymentActionModal,
   ProfileModal,
   CalendarPage,
+  OtherSettingsModal,
 } from "./modals/Modals.jsx";
 
 import Changelog from "./components/Changelog";
@@ -283,6 +284,8 @@ function MainApp({ state, setState, user }) {
 
   const [custModalOpen, setCustModalOpen] = useState(false);
   const [custDetailOpen, setCustDetailOpen] = useState(false);
+
+  const [otherSettingsOpen, setOtherSettingsOpen] = useState(false);
 
   useAndroidBackHandler({
     page,
@@ -911,28 +914,28 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
    * - Time is accumulated into workedMs
    * - Session history is preserved for audit
    */
-
   function clockIn(jobId) {
     setState((s) => {
       const now = Date.now();
 
       const nextJobs = s.jobs.map((j) => {
-        // auto-stop any other running job
-        if (j.isRunning && j.clockInAt && j.id !== jobId) {
-          const deltaMs = Math.max(0, now - j.clockInAt);
+        // ❌ already running → ignore
+        if (j.id === jobId && j.isRunning) {
+          return j;
+        }
 
-          const autoSession = { id: uid(), inAt: j.clockInAt, outAt: now };
+        // auto-stop others
+        if (j.isRunning && j.clockInAt && j.id !== jobId) {
+          const deltaMs = now - j.clockInAt;
 
           return {
             ...j,
             isRunning: false,
             clockInAt: null,
-            sessions: [...(j.sessions || []), autoSession],
-            workedMs: (j.workedMs || 0) + deltaMs, // ✅ IMPORTANT
+            workedMs: (j.workedMs || 0) + deltaMs,
           };
         }
 
-        // start selected job
         if (j.id === jobId) {
           return { ...j, isRunning: true, clockInAt: now };
         }
@@ -1174,6 +1177,7 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                 money={money}
                 getVaultTotals={getVaultTotals}
                 Changelog={Changelog}
+                setOtherSettingsOpen={setOtherSettingsOpen}
               />
             )}
           </div>
@@ -1368,6 +1372,7 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
             activeVaultId={state.activeVaultId} // ✅ ADD
             setVaultDeleteConfirm={setVaultDeleteConfirm} // ✅ ADD
             setState={setState}
+            zIndex={2000} // ✅ ADD THIS
           />
 
           {/* VAULT LIST MODAL */}
@@ -1386,10 +1391,10 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                     <div
                       key={vault.id}
                       className="vault-list-item"
-                      onClick={() => {
-                        setVaultListOpen(false);
-                        setSelectedVaultId(vault.id);
-                        setVaultDetailOpen(true);
+                      onClick={(e) => {
+                        e.stopPropagation(); // ✅ ADD
+                        setSelectedVaultId(vault.id); // ✅ KEEP
+                        setVaultDetailOpen(true); // ✅ KEEP
                       }}
                     >
                       <div>
@@ -1502,6 +1507,14 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
               // close modal
               setConfirm({ open: false, type: null, id: null, message: "" });
             }}
+          />
+
+          <OtherSettingsModal
+            open={otherSettingsOpen}
+            onClose={() => setOtherSettingsOpen(false)}
+            state={state}
+            setState={setState}
+            auth={auth}
           />
 
           {/* vault DELETE CONFIRM MODAL */}
@@ -1698,19 +1711,33 @@ function JobCard({
             minWidth: 180,
           }}
         >
-          {/* 1) Saat Girişi */}
+          {/* 1) Clock in  Clock out  */}
           {job.timeMode === "clock" && !job.isCompleted && (
-            <button
-              className="due-dismiss-btn"
-              style={{ padding: "6px 10px" }}
-              onClick={(e) => {
-                e.stopPropagation();
-                clockIn(job.id);
-              }}
-            >
-              <i className="fa-solid fa-clock"></i>
-              Saat Girişi
-            </button>
+            <>
+              {!job.isRunning ? (
+                <button
+                  className="due-dismiss-btn start"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    clockIn(job.id);
+                  }}
+                >
+                  <i className="fa-solid fa-play"></i>
+                  <span>Başlat</span>
+                </button>
+              ) : (
+                <button
+                  className="due-dismiss-btn stop"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    clockOut(job.id);
+                  }}
+                >
+                  <i className="fa-solid fa-stop"></i>
+                  <span>Bitir</span>
+                </button>
+              )}
+            </>
           )}
 
           {/* 2) ⋮ menu */}
@@ -1872,6 +1899,7 @@ function VaultDetailModal({
   activeVaultId,
   setVaultDeleteConfirm,
   setState, // ✅ ADD
+  zIndex = 2000, // ✅ DEFAULT
 }) {
   const [editingName, setEditingName] = useState(false);
   const [vaultName, setVaultName] = useState("");
@@ -1953,7 +1981,12 @@ function VaultDetailModal({
   }
 
   return (
-    <ModalBase open={open} title="Kasa Detayı" onClose={onClose}>
+    <ModalBase
+      open={open}
+      title="Kasa Detayı"
+      onClose={onClose}
+      zIndex={zIndex} // ✅ THIS IS THE KEY
+    >
       <div className="vault-detail-page">
         <div className="vault-detail-card">
           {/* HEADER */}

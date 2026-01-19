@@ -601,6 +601,7 @@ export function SettingsPage({
 
   // components
   Changelog,
+  setOtherSettingsOpen,
 }) {
   return (
     <div className="settings-dashboard">
@@ -633,8 +634,8 @@ export function SettingsPage({
           )}
 
           {state.profile?.address && (
-            <div className="admin-meta">
-              <i className="fa-solid fa-location-dot"></i>{" "}
+            <div className="admin-meta address">
+              <i className="fa-solid fa-location-dot"></i>
               {state.profile.address}
             </div>
           )}
@@ -695,7 +696,10 @@ export function SettingsPage({
         </button>
 
         {/* OTHER */}
-        <button className="settings-card" onClick={() => alert("Yakında 👀")}>
+        <button
+          className="settings-card"
+          onClick={() => setOtherSettingsOpen(true)}
+        >
           <div className="settings-icon gray">
             <i className="fa-solid fa-sliders"></i>
           </div>

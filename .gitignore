@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+
+serviceAccountKey.json
+usta-takip-50c7d-firebase-adminsdk-fbsvc-1bbecd8bbc.json
