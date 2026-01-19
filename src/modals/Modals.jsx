@@ -2929,6 +2929,8 @@ export function AdvancedSettingsModal({
 
   const showCalendar = state.profile?.settings?.showCalendar !== false;
 
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
+
   function toggleCalendar() {
     setState((s) => ({
       ...s,
@@ -2953,21 +2955,6 @@ export function AdvancedSettingsModal({
     a.click();
 
     URL.revokeObjectURL(url);
-  }
-
-  function changePassword() {
-    const newPass = prompt("Yeni şifre girin (en az 6 karakter):");
-    if (!newPass || newPass.length < 6) {
-      alert("Şifre en az 6 karakter olmalı");
-      return;
-    }
-
-    auth.currentUser
-      .updatePassword(newPass)
-      .then(() => alert("Şifre güncellendi"))
-      .catch(() =>
-        alert("Güvenlik nedeniyle tekrar giriş yapmanız gerekebilir."),
-      );
   }
 
   function changeEmail() {
@@ -3016,7 +3003,7 @@ export function AdvancedSettingsModal({
 
         <button
           className="settings-card"
-          onClick={changePassword}
+          onClick={() => setChangePasswordOpen(true)}
           type="button"
         >
           <div className="settings-icon gray">
@@ -3059,6 +3046,130 @@ export function AdvancedSettingsModal({
           </div>
 
           <i className="fa-solid fa-chevron-right arrow"></i>
+        </button>
+      </div>
+      <ChangePasswordModal
+        open={changePasswordOpen}
+        onClose={() => setChangePasswordOpen(false)}
+        auth={auth}
+      />
+    </ModalBase>
+  );
+}
+
+export function ChangePasswordModal({ open, onClose, auth }) {
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [newPasswordRepeat, setNewPasswordRepeat] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!open) {
+      setCurrentPassword("");
+      setNewPassword("");
+      setNewPasswordRepeat("");
+      setError("");
+      setLoading(false);
+    }
+  }, [open]);
+
+  async function submit() {
+    try {
+      setError("");
+      setLoading(true);
+
+      if (!currentPassword || !newPassword || !newPasswordRepeat) {
+        throw new Error("Tüm alanları doldurun.");
+      }
+
+      if (newPassword.length < 6) {
+        throw new Error("Yeni şifre en az 6 karakter olmalı.");
+      }
+
+      if (newPassword !== newPasswordRepeat) {
+        throw new Error("Yeni şifreler eşleşmiyor.");
+      }
+
+      const user = auth.currentUser;
+      if (!user || !user.email) {
+        throw new Error("Oturum bulunamadı.");
+      }
+
+      const credential = EmailAuthProvider.credential(
+        user.email,
+        currentPassword,
+      );
+
+      await reauthenticateWithCredential(user, credential);
+      await updatePassword(user, newPassword);
+
+      alert("Şifre başarıyla güncellendi ✅");
+      onClose();
+    } catch (err) {
+      if (err.code === "auth/wrong-password") {
+        setError("Mevcut şifre yanlış.");
+      } else if (err.code === "auth/too-many-requests") {
+        setError("Çok fazla deneme yapıldı. Lütfen bekleyin.");
+      } else if (err.code === "auth/requires-recent-login") {
+        setError("Güvenlik için tekrar giriş yapmanız gerekiyor.");
+      } else {
+        setError(err.message || "Şifre değiştirilemedi.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (!open) return null;
+
+  return (
+    <ModalBase
+      open={open}
+      title="Şifre Değiştir"
+      onClose={onClose}
+      zIndex={3000}
+    >
+      <div className="form-group">
+        <label>Mevcut Şifre</label>
+        <input
+          type="password"
+          value={currentPassword}
+          onChange={(e) => setCurrentPassword(e.target.value)}
+        />
+      </div>
+
+      <div className="form-group">
+        <label>Yeni Şifre</label>
+        <input
+          type="password"
+          value={newPassword}
+          onChange={(e) => setNewPassword(e.target.value)}
+        />
+      </div>
+
+      <div className="form-group">
+        <label>Yeni Şifre (Tekrar)</label>
+        <input
+          type="password"
+          value={newPasswordRepeat}
+          onChange={(e) => setNewPasswordRepeat(e.target.value)}
+        />
+      </div>
+
+      {error && (
+        <div style={{ color: "#b91c1c", fontSize: 12, marginTop: 6 }}>
+          {error}
+        </div>
+      )}
+
+      <div className="btn-row" style={{ marginTop: 14 }}>
+        <button className="btn btn-cancel" onClick={onClose}>
+          İptal
+        </button>
+
+        <button className="btn btn-save" disabled={loading} onClick={submit}>
+          {loading ? "Kaydediliyor..." : "Şifreyi Güncelle"}
         </button>
       </div>
     </ModalBase>
