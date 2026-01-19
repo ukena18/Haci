@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
+import { useLang } from "../i18n/LanguageContext";
 
 // helpers (same ones you already use in App.jsx)
 import {
@@ -59,9 +60,11 @@ export function HomePage({
   // ===== components =====
   JobCard,
 }) {
+  const { t } = useLang();
+
   return (
     <div id="page-home">
-      {/* FINANSAL ÖZET */}
+      {/* FINANCIAL SUMMARY */}
       <div className="card" style={{ marginBottom: 16 }}>
         {/* NUMBERS */}
         <div
@@ -81,7 +84,7 @@ export function HomePage({
               textAlign: "center",
             }}
           >
-            {/* Total debt  */}
+            {/* Total debt */}
             <div
               style={{
                 color: "#7f1d1d",
@@ -89,7 +92,7 @@ export function HomePage({
                 marginBottom: 4,
               }}
             >
-              Toplam Borç
+              {t("total_debt")}
             </div>
             <div
               style={{
@@ -102,7 +105,7 @@ export function HomePage({
             </div>
           </div>
 
-          {/* Total payment  */}
+          {/* Total payment */}
           <div
             style={{
               padding: 14,
@@ -118,7 +121,7 @@ export function HomePage({
                 marginBottom: 4,
               }}
             >
-              Toplam Tahsilat
+              {t("total_payment")}
             </div>
             <div
               style={{
@@ -149,7 +152,7 @@ export function HomePage({
               color: financialSummary.net < 0 ? "#7f1d1d" : "#166534",
             }}
           >
-            Net Durum
+            {t("net_status")}
           </div>
 
           <div
@@ -165,14 +168,14 @@ export function HomePage({
       </div>
 
       <div id="job-list">
-        {/*  30 GÜNLÜK ÖDEME TAKİBİ */}
+        {/* 30-DAY PAYMENT TRACKING */}
         <div className="card">
           <div
             className="list-item section-header due-header"
             onClick={() => setPaymentOpen((o) => !o)}
           >
             <strong>
-              <i className="fa-solid fa-bell"></i> 30 Günlük Ödeme Takibi (
+              <i className="fa-solid fa-bell"></i> {t("payment_tracking_30")} (
               {paymentWatchList.length})
             </strong>
             <i
@@ -186,7 +189,7 @@ export function HomePage({
         {paymentOpen &&
           (paymentWatchList.length === 0 ? (
             <div className="card" style={{ fontSize: 12, color: "#666" }}>
-              Takip edilecek aktif iş yok.
+              {t("no_tracked_jobs")}
             </div>
           ) : (
             paymentWatchList.map((item) => {
@@ -229,16 +232,17 @@ export function HomePage({
                         {daysLeft <= 0 ? (
                           <>
                             <i className="fa-solid fa-circle-xmark"></i>{" "}
-                            {Math.abs(daysLeft)} gün gecikmiş
+                            {Math.abs(daysLeft)} {t("days_overdue")}
                           </>
                         ) : (
                           <>
                             <i className="fa-solid fa-hourglass-half"></i>{" "}
-                            {daysLeft} gün kaldı
+                            {daysLeft} {t("days_left")}
                           </>
                         )}
                         <br />
-                        Son Ödeme: <b>{dueDate.toLocaleDateString("tr-TR")}</b>
+                        {t("last_payment")}:{" "}
+                        <b>{dueDate.toLocaleDateString("tr-TR")}</b>
                       </small>
                     </div>
 
@@ -258,7 +262,8 @@ export function HomePage({
                           }));
                         }}
                       >
-                        <i className="fa-solid fa-check"></i> Takipten Kaldır
+                        <i className="fa-solid fa-check"></i>{" "}
+                        {t("remove_from_tracking")}
                       </button>
 
                       {money(jobTotalOf(job), currency)}
@@ -304,16 +309,16 @@ export function HomePage({
                         {daysLeft <= 0 ? (
                           <>
                             <i className="fa-solid fa-circle-xmark"></i>{" "}
-                            {Math.abs(daysLeft)} gün gecikmiş
+                            {Math.abs(daysLeft)} {t("days_overdue")}
                           </>
                         ) : (
                           <>
                             <i className="fa-solid fa-hourglass-half"></i>{" "}
-                            {daysLeft} gün kaldı
+                            {daysLeft} {t("days_left")}
                           </>
                         )}
                         <br />
-                        Borç • Son Ödeme:{" "}
+                        {t("debt")} • {t("last_payment")}:{" "}
                         <b>{dueDate.toLocaleDateString("tr-TR")}</b>
                       </small>
                     </div>
@@ -334,7 +339,8 @@ export function HomePage({
                           }));
                         }}
                       >
-                        <i className="fa-solid fa-check"></i> Takipten Kaldır
+                        <i className="fa-solid fa-check"></i>{" "}
+                        {t("remove_from_tracking")}
                       </button>
 
                       {money(debt.amount, debt.currency || currency)}
@@ -356,7 +362,6 @@ export function HomePage({
               const next = !activeOpen;
               setActiveOpen(next);
 
-              // collapse active jobs ONLY when opening
               if (next) {
                 setState((s) => ({
                   ...s,
@@ -368,7 +373,7 @@ export function HomePage({
             }}
           >
             <strong>
-              <i className="fa-solid fa-circle-play"></i> Aktif İşler (
+              <i className="fa-solid fa-circle-play"></i> {t("active_jobs")} (
               {activeJobs.length})
             </strong>
             <span>
@@ -383,12 +388,11 @@ export function HomePage({
 
         {activeOpen &&
           (activeJobsByCustomer.size === 0 ? (
-            <div className="card">Aktif iş yok.</div>
+            <div className="card">{t("no_active_jobs")}</div>
           ) : (
             Array.from(activeJobsByCustomer.entries()).map(
               ([customerId, jobs]) => {
                 const customer = customersById.get(customerId);
-
                 const isOpen = openCustomerFolders[customerId] ?? false;
 
                 const totalAmount = jobs.reduce(
@@ -398,24 +402,20 @@ export function HomePage({
 
                 return (
                   <div key={customerId}>
-                    {/* CUSTOMER FOLDER HEADER */}
                     <div
                       className="card list-item"
-                      style={{
-                        cursor: "pointer",
-                        background: "#f8fafc",
-                      }}
+                      style={{ cursor: "pointer", background: "#f8fafc" }}
                       onClick={() => toggleCustomerFolder(customerId)}
                     >
                       <div>
                         <strong>
                           {customer
                             ? `${customer.name} ${customer.surname}`
-                            : "Bilinmeyen"}
+                            : t("unknown")}
                         </strong>
 
                         <div style={{ fontSize: 12, color: "#666" }}>
-                          {jobs.length} aktif iş
+                          {jobs.length} {t("active_job_count")}
                         </div>
                       </div>
 
@@ -438,7 +438,6 @@ export function HomePage({
                       </div>
                     </div>
 
-                    {/* JOBS */}
                     <div className={`job-folder ${isOpen ? "open" : ""}`}>
                       {jobs.map((job) => (
                         <div key={job.id} className="job-folder-item">
@@ -473,7 +472,6 @@ export function HomePage({
               const next = !completedOpen;
               setCompletedOpen(next);
 
-              // collapse completed jobs ONLY when opening
               if (next) {
                 setState((s) => ({
                   ...s,
@@ -485,8 +483,8 @@ export function HomePage({
             }}
           >
             <strong>
-              <i className="fa-solid fa-circle-check"></i> Tamamlanan İşler (
-              {completedJobs.length})
+              <i className="fa-solid fa-circle-check"></i> {t("completed_jobs")}{" "}
+              ({completedJobs.length})
             </strong>
             <span>
               <i
@@ -500,14 +498,14 @@ export function HomePage({
 
         {completedOpen &&
           (completedJobs.length === 0 ? (
-            <div className="card">Tamamlanan iş yok.</div>
+            <div className="card">{t("no_completed_jobs")}</div>
           ) : (
             completedJobs
               .slice()
               .sort((a, b) => {
                 const at = a.createdAt || new Date(a.date || 0).getTime() || 0;
                 const bt = b.createdAt || new Date(b.date || 0).getTime() || 0;
-                return bt - at; // newest first
+                return bt - at;
               })
               .slice(0, 10)
               .map((job) => (
@@ -554,11 +552,13 @@ export function CustomersPage({
   // helpers
   computeCustomerBalance,
 }) {
+  const { t } = useLang();
+
   return (
     <div id="page-customers">
       <div id="customer-list">
         {filteredCustomers.length === 0 ? (
-          <div className="card">Henüz müşteri yok.</div>
+          <div className="card">{t("no_customers_yet")}</div>
         ) : (
           visibleCustomerList.map((c) => {
             const balance = computeCustomerBalance(
@@ -591,7 +591,7 @@ export function CustomersPage({
                       {c.name} {c.surname}
                     </strong>
                     <br />
-                    <small>{c.phone || "Telefon yok"}</small>
+                    <small>{c.phone || t("phone_missing")}</small>
 
                     <div
                       style={{
@@ -605,7 +605,7 @@ export function CustomersPage({
                     </div>
                   </div>
 
-                  {/* RIGHT — BAKİYE */}
+                  {/* RIGHT — BALANCE */}
                   <div
                     style={{
                       fontWeight: 700,
@@ -631,7 +631,7 @@ export function CustomersPage({
           className="load-more-btn"
           onClick={() => setVisibleCustomers((n) => n + 10)}
         >
-          Daha fazla yükle
+          {t("load_more")}
         </button>
       )}
     </div>
@@ -671,9 +671,12 @@ export function SettingsPage({
   Changelog,
   setAdvancedSettingsOpen,
 }) {
+  const { lang, changeLanguage, t } = useLang();
+
   return (
     <div className="settings-dashboard">
-      <h2 className="settings-title">Ayarlar</h2>
+      <h2 className="settings-title">{t("settings.title")}</h2>
+
       {/* ADMIN HEADER */}
       <div className="settings-admin-card">
         <div className="admin-left">
@@ -683,7 +686,7 @@ export function SettingsPage({
 
           <div className="admin-info">
             <strong className="admin-name">
-              {user?.displayName || "Yönetici"}
+              {user?.displayName || t("settings.adminFallback")}
             </strong>
 
             <div className="admin-email">
@@ -709,38 +712,82 @@ export function SettingsPage({
           )}
 
           <button className="logout-btn" onClick={() => signOut(auth)}>
-            <i className="fa-solid fa-right-from-bracket"></i> Çıkış Yap
+            <i className="fa-solid fa-right-from-bracket"></i>{" "}
+            {t("settings.logout")}
           </button>
         </div>
       </div>
 
       <div className="settings-grid">
+        {/* LANGUAGE */}
+        <div className="settings-card">
+          <div className="settings-icon purple">
+            <i className="fa-solid fa-language"></i>
+          </div>
+
+          <div className="settings-content">
+            <h3>{t("settings.language.title")}</h3>
+            <p>{t("settings.language.desc")}</p>
+
+            <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+              <button
+                className={`btn ${lang === "tr" ? "btn-save" : ""}`}
+                onClick={() => changeLanguage("tr")}
+                type="button"
+              >
+                🇹🇷 TR
+              </button>
+
+              <button
+                className={`btn ${lang === "en" ? "btn-save" : ""}`}
+                onClick={() => changeLanguage("en")}
+                type="button"
+              >
+                🇬🇧 EN
+              </button>
+
+              <button
+                className={`btn ${lang === "de" ? "btn-save" : ""}`}
+                onClick={() => changeLanguage("de")}
+                type="button"
+              >
+                🇩🇪 DE
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* VAULTS */}
         <button
           className="settings-card"
           onClick={() => setVaultListOpen(true)}
+          type="button"
         >
           <div className="settings-icon blue">
             <i className="fa-solid fa-vault"></i>
           </div>
 
           <div className="settings-content">
-            <h3>Kasa Yönetimi</h3>
-            <p>Kasaları görüntüle, düzenle ve aktif kasa seç</p>
+            <h3>{t("settings.vaults.title")}</h3>
+            <p>{t("settings.vaults.desc")}</p>
           </div>
 
           <i className="fa-solid fa-chevron-right arrow"></i>
         </button>
 
         {/* PROFILE */}
-        <button className="settings-card" onClick={() => setProfileOpen(true)}>
+        <button
+          className="settings-card"
+          onClick={() => setProfileOpen(true)}
+          type="button"
+        >
           <div className="settings-icon green">
             <i className="fa-solid fa-user-gear"></i>
           </div>
 
           <div className="settings-content">
-            <h3>Profil & Yönetici</h3>
-            <p>Hesap bilgileri, şifre ve kişisel ayarlar</p>
+            <h3>{t("settings.profile.title")}</h3>
+            <p>{t("settings.profile.desc")}</p>
           </div>
 
           <i className="fa-solid fa-chevron-right arrow"></i>
@@ -750,14 +797,15 @@ export function SettingsPage({
         <button
           className="settings-card"
           onClick={() => setShowChangelog(true)}
+          type="button"
         >
           <div className="settings-icon orange">
             <i className="fa-solid fa-box-open"></i>
           </div>
 
           <div className="settings-content">
-            <h3>Güncellemeler</h3>
-            <p>Sürüm geçmişi ve yeni özellikler</p>
+            <h3>{t("settings.updates.title")}</h3>
+            <p>{t("settings.updates.desc")}</p>
           </div>
 
           <i className="fa-solid fa-chevron-right arrow"></i>
@@ -767,14 +815,15 @@ export function SettingsPage({
         <button
           className="settings-card"
           onClick={() => setAdvancedSettingsOpen(true)}
+          type="button"
         >
           <div className="settings-icon gray">
             <i className="fa-solid fa-sliders"></i>
           </div>
 
           <div className="settings-content">
-            <h3>Gelişmiş Ayarlar</h3>
-            <p>Uygulama tercihleri ve gelişmiş seçenekler</p>
+            <h3>{t("settings.advanced.title")}</h3>
+            <p>{t("settings.advanced.desc")}</p>
           </div>
 
           <i className="fa-solid fa-chevron-right arrow"></i>
@@ -785,6 +834,8 @@ export function SettingsPage({
 }
 
 export function PublicCustomerSharePage() {
+  const { t } = useLang();
+
   const { id } = useParams();
   const [snap, setSnap] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -798,11 +849,11 @@ export function PublicCustomerSharePage() {
     if (!snap) return;
 
     // give browser time to render
-    const t = setTimeout(() => {
+    const tmr = setTimeout(() => {
       window.print();
     }, 500);
 
-    return () => clearTimeout(t);
+    return () => clearTimeout(tmr);
   }, [autoPrint, snap]);
 
   useEffect(() => {
@@ -829,8 +880,8 @@ export function PublicCustomerSharePage() {
     load();
   }, [id]);
 
-  if (loading) return <div style={{ padding: 20 }}>Yükleniyor...</div>;
-  if (!snap) return <div style={{ padding: 20 }}>Müşteri bulunamadı.</div>;
+  if (loading) return <div style={{ padding: 20 }}>{t("public.loading")}</div>;
+  if (!snap) return <div style={{ padding: 20 }}>{t("public.notFound")}</div>;
 
   const customer = snap.customer;
   const jobs = snap.jobs || [];
@@ -907,7 +958,7 @@ export function PublicCustomerSharePage() {
       <!-- LEFT -->
       <div>
         <strong>
-          <i class="fa-solid fa-screwdriver-wrench"></i> İş
+          <i class="fa-solid fa-screwdriver-wrench"></i> ${t("public.job")}
         </strong>
         <div style="font-size:12px;color:#555;">
           ${job.date || "-"}
@@ -956,7 +1007,7 @@ export function PublicCustomerSharePage() {
                 color: "#555",
               }}
             >
-              Bakiye:{" "}
+              {t("public.balance")}:{" "}
               <strong style={{ color: balance >= 0 ? "#16a34a" : "#dc2626" }}>
                 {money(balance, currency)}
               </strong>
@@ -1014,7 +1065,7 @@ export function PublicCustomerSharePage() {
             }}
           >
             <i className="fa-solid fa-print"></i>
-            Yazdır / PDF
+            {t("public.print")}
           </button>
         </div>
       </div>
@@ -1036,7 +1087,9 @@ export function PublicCustomerSharePage() {
             padding: 14,
           }}
         >
-          <div style={{ fontSize: 12, color: "#166534" }}>Toplam Tahsilat</div>
+          <div style={{ fontSize: 12, color: "#166534" }}>
+            {t("public.totalPayment")}
+          </div>
           <strong style={{ color: "#16a34a", fontSize: 16 }}>
             +{money(totalPayment, currency)}
           </strong>
@@ -1051,7 +1104,9 @@ export function PublicCustomerSharePage() {
             padding: 14,
           }}
         >
-          <div style={{ fontSize: 12, color: "#7f1d1d" }}>Toplam Borç</div>
+          <div style={{ fontSize: 12, color: "#7f1d1d" }}>
+            {t("public.totalDebt")}
+          </div>
           <strong style={{ color: "#dc2626", fontSize: 16 }}>
             -{money(totalDebt, currency)}
           </strong>
@@ -1072,7 +1127,7 @@ export function PublicCustomerSharePage() {
               color: balance >= 0 ? "#1e40af" : "#7f1d1d",
             }}
           >
-            Bakiye
+            {t("public.balance")}
           </div>
           <strong
             style={{
@@ -1088,10 +1143,10 @@ export function PublicCustomerSharePage() {
       <div className="container screen-only">
         <div ref={printRef}>
           <div style={{ marginTop: 12 }}>
-            <h3 style={{ marginTop: 0 }}>📜 İşlem Geçmişi</h3>
+            <h3 style={{ marginTop: 0 }}>{t("public.historyTitle")}</h3>
 
             {unifiedHistory.length === 0 ? (
-              <div className="card">Kayıt yok.</div>
+              <div className="card">{t("public.noRecords")}</div>
             ) : (
               unifiedHistory.map((item) => {
                 // =====================
@@ -1121,11 +1176,12 @@ export function PublicCustomerSharePage() {
                           {isPayment ? (
                             <>
                               <i className="fa-solid fa-money-bill-wave"></i>{" "}
-                              Tahsilat
+                              {t("public.payment")}
                             </>
                           ) : (
                             <>
-                              <i className="fa-solid fa-file-invoice"></i> Borç
+                              <i className="fa-solid fa-file-invoice"></i>{" "}
+                              {t("public.debt")}
                             </>
                           )}
                         </strong>
@@ -1180,23 +1236,24 @@ export function PublicCustomerSharePage() {
           <div className="header-right">
             {new Date().toLocaleDateString("tr-TR")}
             <br />
-            Hesap Dökümü
+            {t("public.statement")}
           </div>
         </div>
 
         {/* CUSTOMER */}
         <div className="customer">
-          <strong>Müşteri:</strong> {customer.name} {customer.surname}
+          <strong>{t("public.customer")}:</strong> {customer.name}{" "}
+          {customer.surname}
           <br />
           {customer.phone && (
             <>
-              <strong>Telefon:</strong> {customer.phone}
+              <strong>{t("public.phone")}:</strong> {customer.phone}
               <br />
             </>
           )}
           {customer.address && (
             <>
-              <strong>Adres:</strong> {customer.address}
+              <strong>{t("public.address")}:</strong> {customer.address}
               <br />
             </>
           )}
@@ -1218,23 +1275,23 @@ export function PublicCustomerSharePage() {
           return (
             <div className="job" key={job.id || idx}>
               <h4>
-                İş #{idx + 1} – {job.date || "-"}
+                {t("public.job")} #{idx + 1} – {job.date || "-"}
               </h4>
 
               {/* LABOR */}
-              <div className="section-label">İşçilik</div>
+              <div className="section-label">{t("public.labor")}</div>
               <table>
                 <thead>
                   <tr>
-                    <th>Açıklama</th>
-                    <th>Saat</th>
-                    <th>Birim</th>
-                    <th>Toplam</th>
+                    <th>{t("public.desc")}</th>
+                    <th>{t("public.hours")}</th>
+                    <th>{t("public.unit")}</th>
+                    <th>{t("public.total")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
-                    <td>{job.note || "İşçilik"}</td>
+                    <td>{job.note || t("public.laborFallback")}</td>
                     <td>{job.timeMode === "fixed" ? "-" : hours}</td>
                     <td>
                       {job.timeMode === "fixed"
@@ -1249,14 +1306,14 @@ export function PublicCustomerSharePage() {
               {/* PARTS */}
               {parts.length > 0 && (
                 <>
-                  <div className="section-label">Parçalar</div>
+                  <div className="section-label">{t("public.parts")}</div>
                   <table>
                     <thead>
                       <tr>
-                        <th>Parça</th>
-                        <th>Adet</th>
-                        <th>Birim</th>
-                        <th>Toplam</th>
+                        <th>{t("public.part")}</th>
+                        <th>{t("public.qty")}</th>
+                        <th>{t("public.unit")}</th>
+                        <th>{t("public.total")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1276,7 +1333,7 @@ export function PublicCustomerSharePage() {
               )}
 
               <div className="subtotal">
-                İş Toplamı: {money(jobTotal, currency)}
+                {t("public.jobTotal")}: {money(jobTotal, currency)}
               </div>
             </div>
           );
@@ -1288,18 +1345,18 @@ export function PublicCustomerSharePage() {
             <tbody>
               <tr>
                 <td>
-                  <strong>Toplam Borç</strong>
+                  <strong>{t("public.totalDebt")}</strong>
                 </td>
                 <td>
                   <strong>{money(totalDebt, currency)}</strong>
                 </td>
               </tr>
               <tr>
-                <td>Toplam Tahsilat</td>
+                <td>{t("public.totalPayment")}</td>
                 <td className="paid">{money(totalPayment, currency)}</td>
               </tr>
               <tr>
-                <td>Bakiye</td>
+                <td>{t("public.balance")}</td>
                 <td className="balance">{money(balance, currency)}</td>
               </tr>
             </tbody>
@@ -1307,9 +1364,9 @@ export function PublicCustomerSharePage() {
         </div>
 
         <div className="footer">
-          Teşekkür ederiz.
+          {t("public.thanks")}
           <br />
-          Bu belge bilgilendirme amaçlıdır.
+          {t("public.infoOnly")}
         </div>
       </div>
     </>

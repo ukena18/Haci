@@ -1,5 +1,166 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import "./App.css";
+
+import { useLang } from "./i18n/LanguageContext";
+
+/* ============================================================
+   CSS STRUCTURE MAP — READ ME
+   (Source of Truth for this project)
+============================================================ */
+
+/* ============================================================
+   theme.css
+   ------------------------------------------------------------
+   PURPOSE:
+   Global design system + reusable utilities.
+   Nothing in this file should depend on a specific page,
+   route, modal, or feature.
+============================================================ */
+
+/*
+  🔹 Design Tokens
+     - :root color variables
+     - gradients
+     - shadows
+     - border radius
+     - surface & background colors
+
+  🔹 Global Resets & Behavior
+     - html, body sizing
+     - overscroll-behavior
+     - touch-action
+     - tap highlight removal
+
+  🔹 Global Print Rules (NON-feature)
+     - hide buttons globally in print
+     - reset app-frame/app-shell in print
+     - remove shadows/borders for PDFs
+
+  🔹 Reusable UI Utilities
+     - .card base styles
+     - .badge
+     - .list-item (generic)
+     - progress bars (.bar-bg, .bar-fill)
+     - vault active badge
+
+  🔹 Indicators & Status Dots
+     - .job-dot
+     - .reservation-dot
+     - .day-dot (job / reservation)
+     - .day-badge (job / reservation)
+
+  🔹 Text Safety Utilities
+     - word wrapping helpers
+     - .meta-text
+     - .customer-meta-line
+     - generic overflow fixes
+*/
+
+/* ============================================================
+   app.css
+   ------------------------------------------------------------
+   PURPOSE:
+   Feature-specific UI, layouts, pages, and behavior.
+   Everything here belongs to a screen, flow, or component.
+============================================================ */
+
+/*
+  🔹 App Shell & Layout
+     - .app-shell
+     - .app-frame
+     - responsive app sizing
+     - container padding logic
+     - fixed header / bottom nav
+
+  🔹 Navigation
+     - .bottom-nav
+     - .nav-item
+     - .nav-icon
+     - FAB positioning
+
+  🔹 Modals
+     - base modal + overlay
+     - stacked payment modal
+     - edit payment / debt modal
+     - confirm modal (scoped)
+     - customer edit modal
+
+  🔹 Forms & Inputs
+     - form groups
+     - inputs, selects, textareas
+     - vault select fix
+     - native picker safety fixes
+
+  🔹 Customer Detail
+     - header card
+     - balance badge
+     - primary / secondary actions
+     - history cards
+     - expandable job folders
+
+  🔹 Job System
+     - job cards
+     - job statuses (active / unpaid / paid)
+     - job status badges
+     - job debt highlighting
+     - job options button
+
+  🔹 Vaults
+     - vault detail page
+     - vault cards & list
+     - active vault badge usage
+     - add vault button
+
+  🔹 Calendar
+     - monthly / weekly / daily grids
+     - day cells
+     - today / selected states
+     - compact calendar overrides
+     - event dots & indicators
+
+  🔹 Time Mode Selector
+     - time-mode row
+     - pill options
+     - informational warning box
+
+  🔹 Settings
+     - settings dashboard
+     - settings cards
+     - toggle rows + pill switches
+     - admin profile card
+     - logout button
+
+  🔹 Search & Sorting
+     - sticky search bar
+     - clear button
+     - icon-only sort button
+     - hidden select behavior
+
+  🔹 Load More / Lists
+     - load more button
+     - list hover & active states
+
+  🔹 Invoice (Feature-Specific)
+     - modern invoice layout
+     - job grouping inside invoice
+     - totals / balance / paid states
+     - HARD print isolation (invoice-only printing)
+*/
+
+/* ============================================================
+   RULES OF THE SYSTEM
+============================================================ */
+
+/*
+  ✅ If it affects multiple pages → theme.css
+  ✅ If it belongs to one feature or screen → app.css
+  ❌ Do NOT add page-specific styles to theme.css
+  ❌ Do NOT add design tokens to app.css
+
+  This separation is intentional and stable.
+*/
+
+import "./css/theme.css";
+import "./css/app.css";
 
 import {
   HomePage,
@@ -165,6 +326,7 @@ function AppRoutes({ user }) {
   const [loading, setLoading] = useState(true);
   const [hydrated, setHydrated] = useState(false);
 
+  const { t } = useLang(); // ✅ ADD THIS
   // Load user-specific data from Firestore
   // Load user-specific data from Firestore
   useEffect(() => {
@@ -241,7 +403,7 @@ function AppRoutes({ user }) {
   }, []);
 
   if (loading || !state) {
-    return <div style={{ padding: 20 }}>Kullanıcı verisi yükleniyor...</div>;
+    return <div style={{ padding: 20 }}>{t("user_data_loading")}</div>;
   }
 
   return (
@@ -257,11 +419,12 @@ function AppRoutes({ user }) {
 /* ============================================================
    5) MAIN APP UI (Home / Customers / Settings)
 ============================================================ */
-
 function MainApp({ state, setState, user }) {
   const [page, setPage] = useState("home"); // home | customers | settings
   const [search, setSearch] = useState("");
   const [customerSort, setCustomerSort] = useState("latest");
+
+  const { t, lang } = useLang();
 
   const [profileOpen, setProfileOpen] = useState(false);
   const [showChangelog, setShowChangelog] = useState(false);
@@ -532,6 +695,7 @@ function MainApp({ state, setState, user }) {
 
     return latest;
   }
+
   function getVaultTotals(vaultId) {
     let totalPayment = 0;
     let totalDebt = 0;
@@ -577,7 +741,6 @@ function MainApp({ state, setState, user }) {
       return text.includes(q);
     });
 
-    // 2) SORT
     // 2) SORT
     switch (customerSort) {
       case "latest":
@@ -633,10 +796,10 @@ function MainApp({ state, setState, user }) {
     return filteredCustomers.slice(0, visibleCustomers);
   }, [filteredCustomers, visibleCustomers]);
 
-  /* ============================================================
-     ACTIONS (mutating state safely)
-  ============================================================ */
+  /* ============================================================ */
 
+  /*   ACTIONS (mutating state safely)/* 
+  /* ============================================================ */
   function findDuplicateCustomer(newCustomer, customers) {
     const nameKey = `${newCustomer.name || ""} ${newCustomer.surname || ""}`
       .trim()
@@ -670,13 +833,13 @@ function MainApp({ state, setState, user }) {
         open: true,
         type: "duplicate_customer",
         message: `
-Benzer bir müşteri bulundu:
+${t("duplicate_customer_found")}
 
 ${duplicate.name} ${duplicate.surname}
 ${duplicate.email ? "📧 " + duplicate.email : ""}
 ${duplicate.phone ? "📞 " + duplicate.phone : ""}
 
-Yine de bu müşteriyi eklemek istiyor musunuz?
+${t("duplicate_customer_confirm")}
       `,
         payload: customer, // 👈 store temporarily
       });
@@ -709,7 +872,7 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
     });
   }
 
-  /** Delete customer + their jobs  + payments */
+  /** Delete customer + their jobs + payments */
   function deleteCustomer(customerId) {
     setState((s) => ({
       ...s,
@@ -719,7 +882,7 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
     }));
   }
 
-  // temp pelase delete it later
+  // temp please delete it later
   function cleanupJobPaymentsOnce() {
     setState((s) => {
       const before = s.payments?.length || 0;
@@ -730,7 +893,9 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
 
       const after = cleanedPayments.length;
 
-      console.log(`🧹 Job-payments cleanup: removed ${before - after} records`);
+      console.log(
+        `🧹 ${t("job_payment_cleanup_log", { count: before - after })}`,
+      );
 
       const nextState = {
         ...s,
@@ -799,7 +964,7 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
         type: "payment",
         amount: amt,
         method,
-        note: note || "Tahsilat",
+        note: note || t("payment_default_note"),
         date,
         createdAt: Date.now(),
         currency:
@@ -811,7 +976,6 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
       const nextState = {
         ...s,
         payments: [...(s.payments || []), payment],
-        // ✅ jobs are NOT touched anymore
       };
 
       saveUserData(auth.currentUser.uid, nextState);
@@ -831,15 +995,12 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
         vaultId: vaultId || s.activeVaultId,
         type: "debt",
         amount: amt,
-        method, // ✅ SAVE METHOD
-        note: note || "Borç",
+        method,
+        note: note || t("debt_default_note"),
         date,
         createdAt: Date.now(),
-
-        // ✅ ADD THESE
-        dueDays: 30, // default
+        dueDays: 30,
         dueDismissed: false,
-
         currency:
           (s.vaults || []).find((k) => k.id === (vaultId || s.activeVaultId))
             ?.currency ||
@@ -876,7 +1037,6 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
       const nextJobs = s.jobs.map((j) => {
         if (j.id !== jobId) return j;
 
-        // ✅ if still running, close the session and add workedMs
         if (j.isRunning && j.clockInAt) {
           const deltaMs = Math.max(0, now - j.clockInAt);
 
@@ -904,18 +1064,13 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
     const lastBack = useRef(0);
 
     useEffect(() => {
-      // ✅ Push guard ONLY once
       if (!window.history.state?.pwa) {
         window.history.pushState({ pwa: true }, "");
       }
 
       const onBack = () => {
-        // 🔴 FIX #1: Allow React Router to handle non-root routes
-        if (window.location.pathname !== "/") {
-          return;
-        }
+        if (window.location.pathname !== "/") return;
 
-        // 1️⃣ Close modals first
         if (closeAllModals()) {
           if (!window.history.state?.pwa) {
             window.history.pushState({ pwa: true }, "");
@@ -923,25 +1078,22 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
           return;
         }
 
-        // 2️⃣ Navigate to home instead of exiting
         if (page !== "home") {
           setPage("home");
-
           if (!window.history.state?.pwa) {
             window.history.pushState({ pwa: true }, "");
           }
           return;
         }
 
-        // 3️⃣ Double back to exit
         const now = Date.now();
         if (now - lastBack.current < 1500) {
-          window.history.back(); // allow exit
+          window.history.back();
           return;
         }
 
         lastBack.current = now;
-        alert("Çıkmak için tekrar geri basın");
+        alert(t("press_back_again_to_exit"));
 
         if (!window.history.state?.pwa) {
           window.history.pushState({ pwa: true }, "");
@@ -953,31 +1105,13 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
     }, [page, setPage, closeAllModals]);
   }
 
-  /**
-   * Clock In:
-   * - Start job timer (only one running job at a time for safety)
-   * If another job is running, we stop it automatically.
-   */
-
-  /**
-   * CLOCK-IN / CLOCK-OUT RULES
-   *
-   * - Only ONE job can be running at a time
-   * - Starting a new job auto-stops the previous one
-   * - Time is accumulated into workedMs
-   * - Session history is preserved for audit
-   */
   function clockIn(jobId) {
     setState((s) => {
       const now = Date.now();
 
       const nextJobs = s.jobs.map((j) => {
-        // ❌ already running → ignore
-        if (j.id === jobId && j.isRunning) {
-          return j;
-        }
+        if (j.id === jobId && j.isRunning) return j;
 
-        // auto-stop others
         if (j.isRunning && j.clockInAt && j.id !== jobId) {
           const deltaMs = now - j.clockInAt;
 
@@ -1000,22 +1134,6 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
     });
   }
 
-  /**
-   * Clock Out:
-   * - Stop running timer
-   * - Auto-fill start/end manual times as a starting point
-   *   (user can still adjust later manually)
-   */
-
-  /**
-   * CLOCK-IN / CLOCK-OUT RULES
-   *
-   * - Only ONE job can be running at a time
-   * - Starting a new job auto-stops the previous one
-   * - Time is accumulated into workedMs
-   * - Session history is preserved for audit
-   */
-
   function clockOut(jobId) {
     setState((s) => {
       const now = Date.now();
@@ -1036,7 +1154,7 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
           isRunning: false,
           clockInAt: null,
           sessions: [...(j.sessions || []), session],
-          workedMs: (j.workedMs || 0) + deltaMs, // ✅ IMPORTANT
+          workedMs: (j.workedMs || 0) + deltaMs,
         };
       });
 
@@ -1055,22 +1173,24 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
   }
 
   /* ============================================================
-     UI: FAB behavior
-     - Home: Add Job
-     - Customers: Add Customer
-  ============================================================ */
+   UI: FAB behavior
+   - Home: Add Job
+   - Customers: Add Customer
+============================================================ */
   function onFabClick() {
     if (page === "home") {
-      setEditingJobId(null); // ✅ FORCE NEW JOB
+      setEditingJobId(null);
       setJobFixedCustomerId(null);
       setJobModalOpen(true);
     } else if (page === "customers") {
       setCustModalOpen(true);
     }
   }
+
   /* ============================================================
      RENDER
   ============================================================ */
+
   return (
     <>
       <div className="app-shell">
@@ -1084,7 +1204,7 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                     <input
                       type="text"
                       className="search-bar"
-                      placeholder="Ara..."
+                      placeholder={t("search_placeholder")}
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                     />
@@ -1094,7 +1214,7 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                         type="button"
                         className="search-clear-btn"
                         onClick={() => setSearch("")}
-                        title="Temizle"
+                        title={t("clear")}
                       >
                         <i className="fa-solid fa-xmark"></i>
                       </button>
@@ -1106,7 +1226,7 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                       <button
                         type="button"
                         className="sort-icon-btn"
-                        title="Sırala"
+                        title={t("sort_button_title")}
                         onClick={() =>
                           document.getElementById("customer-sort").click()
                         }
@@ -1120,11 +1240,11 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                         onChange={(e) => setCustomerSort(e.target.value)}
                         className="sort-hidden-select"
                       >
-                        <option value="debt_desc">💸 Borcu En Yüksek</option>
-                        <option value="debt_asc">💰 Borcu En Düşük</option>
-                        <option value="name_asc">🔤 İsim A → Z</option>
-                        <option value="name_desc">🔤 İsim Z → A</option>
-                        <option value="latest">🕒 Son İşlem (En Yeni)</option>
+                        <option value="debt_desc">{t("sort_debt_desc")}</option>
+                        <option value="debt_asc">{t("sort_debt_asc")}</option>
+                        <option value="name_asc">{t("sort_name_asc")}</option>
+                        <option value="name_desc">{t("sort_name_desc")}</option>
+                        <option value="latest">{t("sort_latest")}</option>
                       </select>
                     </div>
                   )}
@@ -1188,7 +1308,7 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
             {page === "calendar" && showCalendar && (
               <CalendarPage
                 jobs={state.jobs}
-                reservations={state.reservations || []} // ✅ ADD
+                reservations={state.reservations || []}
                 customers={state.customers}
                 onAddReservation={(reservation) => {
                   setState((s) => {
@@ -1197,14 +1317,12 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                       reservations: [...(s.reservations || []), reservation],
                     };
 
-                    //   persist immediately (important for calendar)
                     saveUserData(auth.currentUser.uid, next);
-
                     return next;
                   });
                 }}
-                onUpdateReservation={updateReservation} // ✅ ADD
-                onDeleteReservation={deleteReservation} // ✅ ADD
+                onUpdateReservation={updateReservation}
+                onDeleteReservation={deleteReservation}
               />
             )}
 
@@ -1219,7 +1337,7 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                 setProfileOpen={setProfileOpen}
                 setSelectedVaultId={setSelectedVaultId}
                 setVaultDetailOpen={setVaultDetailOpen}
-                setVaultListOpen={setVaultListOpen} // ✅ ADD THIS
+                setVaultListOpen={setVaultListOpen}
                 editingVaultId={editingVaultId}
                 setEditingVaultId={setEditingVaultId}
                 editingVaultName={editingVaultName}
@@ -1236,7 +1354,6 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
           </div>
 
           {/* Floating Action Button */}
-          {/* Floating Action Button */}
           {page !== "settings" && page !== "calendar" && (
             <button className="fab" id="fab-btn" onClick={onFabClick}>
               <i className="fa-solid fa-plus"></i>
@@ -1252,7 +1369,7 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
               <span className="nav-icon">
                 <i className="fa-solid fa-house"></i>
               </span>
-              <span className="nav-label">Anasayfa</span>
+              <span className="nav-label">{t("nav_home")}</span>
             </button>
 
             <button
@@ -1262,8 +1379,7 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
               <span className="nav-icon">
                 <i className="fa-solid fa-users"></i>
               </span>
-
-              <span className="nav-label">Müşteriler</span>
+              <span className="nav-label">{t("nav_customers")}</span>
             </button>
 
             {showCalendar && (
@@ -1274,7 +1390,7 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                 <span className="nav-icon">
                   <i className="fa-solid fa-calendar-days"></i>
                 </span>
-                <span className="nav-label">Takvim</span>
+                <span className="nav-label">{t("nav_calendar")}</span>
               </button>
             )}
 
@@ -1285,11 +1401,9 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
               <span className="nav-icon">
                 <i className="fa-solid fa-gear"></i>
               </span>
-
-              <span className="nav-label">Ayarlar</span>
+              <span className="nav-label">{t("nav_settings")}</span>
             </button>
           </nav>
-
           {/* JOB MODAL */}
           <JobModal
             open={jobModalOpen}
@@ -1323,8 +1437,7 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                 open: true,
                 type: "customer",
                 id: editingCustId,
-                message:
-                  "Bu müşteriyi ve tüm işlerini silmek istediğinize emin misiniz?",
+                message: t("confirm_delete_customer_full"),
               });
             }}
             zIndex={1500}
@@ -1352,7 +1465,7 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                 open: true,
                 type: "customer",
                 id: selectedCustomerId,
-                message: "Are you sure you want to delete this?",
+                message: t("confirm_delete_generic"),
               })
             }
             onEditJob={(jobId) => {
@@ -1369,7 +1482,7 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                 open: true,
                 type: "job",
                 id: jobId,
-                message: "Bu işi silmek istediğinize emin misiniz?",
+                message: t("confirm_delete_job"),
               })
             }
             onUpdatePayment={updatePaymentTransaction}
@@ -1387,7 +1500,6 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
               if (!paymentCustomer) return;
 
               if (paymentMode === "payment") {
-                // Payment: vault seçilebilir
                 makePayment(
                   paymentCustomer.id,
                   amount,
@@ -1397,7 +1509,6 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                   method,
                 );
               } else {
-                // ✅ Borç: vault yok → active vault kullanılır
                 addDebt(paymentCustomer.id, amount, note, date, null, null);
               }
             }}
@@ -1407,11 +1518,11 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
           {showChangelog && (
             <ModalBase
               open={true}
-              title="Güncellemeler & Sürüm Geçmişi"
+              title={t("changelog_title")}
               onClose={() => setShowChangelog(false)}
               zIndex={2000}
             >
-              <Changelog language="tr" />
+              <Changelog language={lang} />
             </ModalBase>
           )}
 
@@ -1421,18 +1532,18 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
             vault={state.vaults.find((k) => k.id === selectedVaultId)}
             onRenameVault={renameVault}
             payments={state.payments}
-            jobs={state.jobs} // ✅ ADD THIS
-            activeVaultId={state.activeVaultId} // ✅ ADD
-            setVaultDeleteConfirm={setVaultDeleteConfirm} // ✅ ADD
+            jobs={state.jobs}
+            activeVaultId={state.activeVaultId}
+            setVaultDeleteConfirm={setVaultDeleteConfirm}
             setState={setState}
-            zIndex={2000} // ✅ ADD THIS
+            zIndex={2000}
           />
 
           {/* VAULT LIST MODAL */}
           {vaultListOpen && (
             <ModalBase
               open={true}
-              title="Kasalar"
+              title={t("vaults")}
               onClose={() => setVaultListOpen(false)}
               zIndex={1800}
             >
@@ -1445,9 +1556,9 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                       key={vault.id}
                       className="vault-list-item"
                       onClick={(e) => {
-                        e.stopPropagation(); // ✅ ADD
-                        setSelectedVaultId(vault.id); // ✅ KEEP
-                        setVaultDetailOpen(true); // ✅ KEEP
+                        e.stopPropagation();
+                        setSelectedVaultId(vault.id);
+                        setVaultDetailOpen(true);
                       }}
                     >
                       <div>
@@ -1459,7 +1570,9 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                       </div>
 
                       {isActive && (
-                        <span className="vault-active-badge">AKTİF</span>
+                        <span className="vault-active-badge">
+                          {t("vault_active")}
+                        </span>
                       )}
                     </div>
                   );
@@ -1477,7 +1590,9 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                         ...(s.vaults || []),
                         {
                           id,
-                          name: `Yeni Kasa ${s.vaults.length + 1}`,
+                          name: `${t("new_vault_name_prefix")} ${
+                            s.vaults.length + 1
+                          }`,
                           balance: 0,
                           currency: s.currency || "TRY",
                           createdAt: Date.now(),
@@ -1486,38 +1601,37 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                     }));
                   }}
                 >
-                  + Yeni Kasa Ekle
+                  {t("add_new_vault")}
                 </button>
               </div>
             </ModalBase>
           )}
+
           <ProfileModal
             open={profileOpen}
             onClose={() => setProfileOpen(false)}
             user={user}
-            profile={state.profile} // ✅ ADD THIS
-            setState={setState} // ✅ ADD THIS
+            profile={state.profile}
+            setState={setState}
           />
+
           {/* CONFIRMATION MODAL (Delete) */}
           <ConfirmModal
             open={confirm.open}
             message={confirm.message}
-            requireText={confirm.type === "customer"} // ✅ IMPORTANT
+            requireText={confirm.type === "customer"}
             onNo={() =>
               setConfirm({ open: false, type: null, id: null, message: "" })
             }
             onYes={() => {
-              // ✅ delete job
               if (confirm.type === "job") {
                 deleteJob(confirm.id);
               }
 
-              // ✅ delete customer
               if (confirm.type === "customer") {
                 deleteCustomer(confirm.id);
               }
 
-              // ✅ delete payment
               if (confirm.type === "payment") {
                 setState((s) => {
                   const nextPayments = (s.payments || []).filter(
@@ -1534,7 +1648,6 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                 });
               }
 
-              // ⭐⭐ THIS IS STEP 3 ⭐⭐
               if (confirm.type === "duplicate_customer") {
                 const customer = confirm.payload;
 
@@ -1557,7 +1670,6 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                 });
               }
 
-              // close modal
               setConfirm({ open: false, type: null, id: null, message: "" });
             }}
           />
@@ -1570,22 +1682,20 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
             auth={auth}
           />
 
-          {/* vault DELETE CONFIRM MODAL */}
+          {/* VAULT DELETE CONFIRM MODAL */}
           {vaultDeleteConfirm.open && (
             <ModalBase
               open={true}
-              title="Kasa Silme Onayı"
+              title={t("vault_delete_title")}
               onClose={() =>
                 setVaultDeleteConfirm({ open: false, vaultId: null, text: "" })
               }
             >
               <p style={{ color: "#b91c1c", fontWeight: 600 }}>
-                ⚠️ Bu kasa kalıcı olarak silinecek.
+                ⚠️ {t("vault_delete_warning")}
               </p>
 
-              <p>
-                Devam etmek için <b>SIL</b> yazın:
-              </p>
+              <p>{t("vault_delete_type_sil")}</p>
 
               <input
                 value={vaultDeleteConfirm.text}
@@ -1595,7 +1705,7 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                     text: e.target.value,
                   }))
                 }
-                placeholder="SIL"
+                placeholder={t("vault_delete_placeholder")}
               />
 
               <div className="btn-row">
@@ -1609,7 +1719,7 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                     })
                   }
                 >
-                  Vazgeç
+                  {t("cancel")}
                 </button>
 
                 <button
@@ -1619,17 +1729,14 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                     const vaultId = vaultDeleteConfirm.vaultId;
 
                     setState((s) => {
-                      // 1️⃣ Remove vault
                       const nextVaults = (s.vaults || []).filter(
                         (k) => k.id !== vaultId,
                       );
 
-                      // 2️⃣ Remove all payments tied to this vault
                       const nextPayments = (s.payments || []).filter(
                         (p) => p.vaultId !== vaultId,
                       );
 
-                      // 3️⃣ If deleted vault was active, switch to first remaining
                       const nextActiveVaultId =
                         s.activeVaultId === vaultId
                           ? nextVaults[0]?.id || null
@@ -1642,13 +1749,10 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                         activeVaultId: nextActiveVaultId,
                       };
 
-                      // 🔒 Persist immediately
                       saveUserData(auth.currentUser.uid, nextState);
-
                       return nextState;
                     });
 
-                    // 4️⃣ Close confirm modal
                     setVaultDeleteConfirm({
                       open: false,
                       vaultId: null,
@@ -1656,7 +1760,7 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
                     });
                   }}
                 >
-                  Kalıcı Olarak Sil
+                  {t("delete_permanently")}
                 </button>
               </div>
             </ModalBase>
@@ -1666,7 +1770,7 @@ Yine de bu müşteriyi eklemek istiyor musunuz?
     </>
   );
 }
-// job card
+
 function JobCard({
   job,
   customersById,
@@ -1682,6 +1786,8 @@ function JobCard({
   onOpenActions, // ✅ ADD
   hideActions = false, // ✅ ADD THIS LINE
 }) {
+  const { t } = useLang();
+
   const c = customersById.get(job.customerId);
 
   const liveMs =
@@ -1711,7 +1817,7 @@ function JobCard({
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <button
               className="iconLike"
-              title="Klasörü aç/kapat"
+              title={t("folder_toggle_title")}
               onClick={(e) => {
                 e.stopPropagation();
                 toggleJobOpen(job.id);
@@ -1724,30 +1830,35 @@ function JobCard({
               />
             </button>
 
-            <strong>{c ? `${c.name} ${c.surname}` : "Bilinmeyen"}</strong>
+            <strong>{c ? `${c.name} ${c.surname}` : t("unknown")}</strong>
 
-            <span className="job-status-badge debt">Borç</span>
+            <span className="job-status-badge debt">
+              {t("job_status_debt")}
+            </span>
 
-            {job.isRunning && <span className="badge">Çalışıyor</span>}
+            {job.isRunning && <span className="badge">{t("working")}</span>}
           </div>
 
           <div style={{ marginTop: 6, fontSize: 12, color: "#555" }}>
             {job.isRunning ? (
               <>
-                <i className="fa-solid fa-clock"></i> Süre:{" "}
+                <i className="fa-solid fa-clock"></i> {t("duration")}:{" "}
                 <strong style={{ color: "#111" }}>{formatTimer(liveMs)}</strong>
               </>
             ) : (
               <>
-                <span>{job.date || "Tarih yok"}</span> |{" "}
+                <span>{job.date || t("no_date")}</span> |{" "}
                 {job.timeMode === "fixed" ? (
-                  <span>💲 Sabit Ücret</span>
+                  <span>💲 {t("fixed_price")}</span>
                 ) : (
                   <>
                     <span>
                       {job.start || "--:--"} - {job.end || "--:--"}
                     </span>{" "}
-                    | <span>{hours.toFixed(2)} saat</span>
+                    |{" "}
+                    <span>
+                      {hours.toFixed(2)} {t("duration_hours")}
+                    </span>
                   </>
                 )}
               </>
@@ -1776,7 +1887,7 @@ function JobCard({
                   }}
                 >
                   <i className="fa-solid fa-play"></i>
-                  <span>Başlat</span>
+                  <span>{t("start")}</span>
                 </button>
               ) : (
                 <button
@@ -1787,7 +1898,7 @@ function JobCard({
                   }}
                 >
                   <i className="fa-solid fa-stop"></i>
-                  <span>Bitir</span>
+                  <span>{t("stop")}</span>
                 </button>
               )}
             </>
@@ -1818,57 +1929,59 @@ function JobCard({
           <div style={{ display: "grid", gap: 8 }}>
             {job.timeMode === "fixed" ? (
               <div className="miniRow">
-                <span>Sabit Ücret:</span>
+                <span>{t("fixed_price")}:</span>
                 <strong>{money(job.fixedPrice, currency)}</strong>
               </div>
             ) : (
               <>
                 <div className="miniRow">
-                  <span>Saatlik Ücret:</span>
+                  <span>{t("hourly_rate")}:</span>
                   <strong>{money(job.rate, currency)}</strong>
                 </div>
 
                 <div className="miniRow">
-                  <span>İşçilik:</span>
+                  <span>{t("labor")}:</span>
                   <strong>{money(hours * toNum(job.rate), currency)}</strong>
                 </div>
               </>
             )}
 
             <div className="miniRow">
-              <span>Parçalar:</span>
+              <span>{t("parts")}:</span>
               <strong>{money(partsTotal, currency)}</strong>
             </div>
 
             {job.parts?.length ? (
               <div style={{ marginTop: 8 }}>
                 <div style={{ fontWeight: 700, marginBottom: 6 }}>
-                  Kullanılan Parçalar
+                  {t("used_parts")}
                 </div>
 
                 {job.parts.map((p) => (
                   <div key={p.id} className="partLine">
                     <span>
-                      {p.name || "Parça"} {p.qty != null ? `× ${p.qty}` : ""}
+                      {p.name || t("part_generic")}{" "}
+                      {p.qty != null ? `× ${p.qty}` : ""}
                     </span>
                     <span>{money(partLineTotal(p), currency)}</span>
                   </div>
                 ))}
               </div>
             ) : (
-              <div style={{ color: "#666", fontSize: 12 }}>Parça yok.</div>
+              <div style={{ color: "#666", fontSize: 12 }}>{t("no_parts")}</div>
             )}
 
             {job.notes && (
               <div style={{ marginTop: 8, color: "#333" }}>
-                <strong>Not:</strong> {job.notes}
+                <strong>{t("note_label")}:</strong> {job.notes}
               </div>
             )}
+
             {/* ⏱️ CLOCK IN / OUT HISTORY */}
             {job.timeMode === "clock" && (job.sessions || []).length > 0 && (
               <div style={{ marginTop: 12 }}>
                 <div style={{ fontWeight: 700, marginBottom: 6 }}>
-                  <i className="fa-solid fa-clock"></i> Çalışma Geçmişi
+                  <i className="fa-solid fa-clock"></i> {t("work_history")}
                 </div>
 
                 {(job.sessions || []).map((s, i) => {
@@ -1895,7 +2008,9 @@ function JobCard({
                         })}
                       </span>
 
-                      <strong>{h} saat</strong>
+                      <strong>
+                        {h} {t("duration_hours")}
+                      </strong>
                     </div>
                   );
                 })}
@@ -1917,7 +2032,7 @@ function JobCard({
                     markJobComplete(job.id);
                   }}
                 >
-                  İş Tamamla (Borç Ekle)
+                  {t("complete_job_add_debt")}
                 </button>
               )}
             </div>
@@ -1954,6 +2069,8 @@ function VaultDetailModal({
   setState, // ✅ ADD
   zIndex = 2000, // ✅ DEFAULT
 }) {
+  const { t } = useLang();
+
   const [editingName, setEditingName] = useState(false);
   const [vaultName, setVaultName] = useState("");
   const printRef = useRef(null);
@@ -1989,7 +2106,7 @@ function VaultDetailModal({
 
     const w = window.open("", "_blank");
     if (!w) {
-      alert("Popup engellendi");
+      alert(t("popup_blocked"));
       return;
     }
 
@@ -1998,7 +2115,7 @@ function VaultDetailModal({
     <html>
     <head>
       <meta charset="utf-8"/>
-      <title>Kasa Dökümü</title>
+      <title>${t("vault_report_title")}</title>
       <style>
         body{font-family:Segoe UI,system-ui;padding:24px}
         h1{margin:0 0 6px}
@@ -2021,7 +2138,7 @@ function VaultDetailModal({
         border-radius:8px;
         font-weight:700;
         cursor:pointer;">
-        Yazdır / PDF Kaydet
+        ${t("vault_print_button")}
       </button>
 
       ${html}
@@ -2036,7 +2153,7 @@ function VaultDetailModal({
   return (
     <ModalBase
       open={open}
-      title="Kasa Detayı"
+      title={t("vault_detail_title")}
       onClose={onClose}
       zIndex={zIndex} // ✅ THIS IS THE KEY
     >
@@ -2052,7 +2169,7 @@ function VaultDetailModal({
                   style={{ padding: "4px 10px", fontSize: 12 }}
                   onClick={() => setEditingName(true)}
                 >
-                  <i className="fa-solid fa-pen"></i> Düzenle
+                  <i className="fa-solid fa-pen"></i> {t("edit")}
                 </button>
               </div>
             ) : (
@@ -2069,7 +2186,7 @@ function VaultDetailModal({
                     setEditingName(false);
                   }}
                 >
-                  Kaydet
+                  {t("save")}
                 </button>
                 <button
                   className="btn btn-cancel"
@@ -2078,14 +2195,14 @@ function VaultDetailModal({
                     setEditingName(false);
                   }}
                 >
-                  İptal
+                  {t("cancel")}
                 </button>
               </div>
             )}
 
             <div style={{ marginTop: 8 }}>
               <div style={{ fontSize: 12, color: "#666", marginBottom: 4 }}>
-                Para Birimi
+                {t("currency_label")}
               </div>
 
               <select
@@ -2108,9 +2225,10 @@ function VaultDetailModal({
               </select>
             </div>
           </div>
+
           <div className="btn-row" style={{ marginBottom: 12 }}>
             <button className="btn btn-save" onClick={printVault}>
-              <i className="fa-solid fa-print"></i> Kasa Dökümü Yazdır
+              <i className="fa-solid fa-print"></i> {t("vault_print")}
             </button>
           </div>
 
@@ -2127,7 +2245,7 @@ function VaultDetailModal({
               className="card"
               style={{ background: "#f0fdf4", color: "#166534" }}
             >
-              <div style={{ fontSize: 12 }}>Toplam Tahsilat</div>
+              <div style={{ fontSize: 12 }}>{t("total_payment")}</div>
               <strong>
                 +{totalPayment.toFixed(2)} {vault.currency}
               </strong>
@@ -2137,7 +2255,7 @@ function VaultDetailModal({
               className="card"
               style={{ background: "#fef2f2", color: "#7f1d1d" }}
             >
-              <div style={{ fontSize: 12 }}>Toplam Borç</div>
+              <div style={{ fontSize: 12 }}>{t("total_debt")}</div>
               <strong>
                 -{totalDebt.toFixed(2)} {vault.currency}
               </strong>
@@ -2154,7 +2272,7 @@ function VaultDetailModal({
               background: net >= 0 ? "#eff6ff" : "#fef2f2",
             }}
           >
-            Net Durum: {net.toFixed(2)} {vault.currency}
+            {t("net_status")}: {net.toFixed(2)} {vault.currency}
           </div>
 
           {/* COUNT */}
@@ -2162,18 +2280,19 @@ function VaultDetailModal({
             className="card"
             style={{ marginTop: 12, fontSize: 12, color: "#555" }}
           >
-            Toplam İşlem Sayısı:{" "}
+            {t("total_transaction_count")}:{" "}
             <strong>{vaultPayments.length + vaultJobs.length}</strong>
           </div>
+
           <div className="hidden">
             <div ref={printRef}>
-              <h1>Kasa Dökümü</h1>
+              <h1>{t("vault_report_title")}</h1>
               <div style={{ color: "#555", marginBottom: 8 }}>
-                Kasa: <b>{vault.name}</b>
+                {t("vault_label")}: <b>{vault.name}</b>
                 <br />
-                Para Birimi: <b>{vault.currency}</b>
+                {t("currency_label")}: <b>{vault.currency}</b>
                 <br />
-                Tarih: {new Date().toLocaleDateString("tr-TR")}
+                {t("date_label")}: {new Date().toLocaleDateString("tr-TR")}
               </div>
 
               <hr />
@@ -2181,18 +2300,18 @@ function VaultDetailModal({
               <table>
                 <thead>
                   <tr>
-                    <th>Tarih</th>
-                    <th>Tür</th>
-                    <th>Açıklama</th>
-                    <th>Yöntem</th>
-                    <th className="right">Tutar</th>
+                    <th>{t("date_label")}</th>
+                    <th>{t("type_label")}</th>
+                    <th>{t("description_label")}</th>
+                    <th>{t("method_label")}</th>
+                    <th className="right">{t("amount_label")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {vaultPayments.map((p) => (
                     <tr key={p.id}>
                       <td>{p.date}</td>
-                      <td>{p.type === "payment" ? "Tahsilat" : "Borç"}</td>
+                      <td>{p.type === "payment" ? t("payment") : t("debt")}</td>
                       <td>{p.note || "-"}</td>
                       <td>{p.method || "-"}</td>
                       <td className="right">
@@ -2207,29 +2326,30 @@ function VaultDetailModal({
               <hr />
 
               <div style={{ marginTop: 12 }}>
-                <b>Toplam Tahsilat:</b> +{totalPayment.toFixed(2)}{" "}
+                <b>{t("total_payment")}:</b> +{totalPayment.toFixed(2)}{" "}
                 {vault.currency}
                 <br />
-                <b>Toplam Borç:</b> -{totalDebt.toFixed(2)} {vault.currency}
+                <b>{t("total_debt")}:</b> -{totalDebt.toFixed(2)}{" "}
+                {vault.currency}
                 <br />
-                <b>Net Durum:</b> {net.toFixed(2)} {vault.currency}
+                <b>{t("net_status")}:</b> {net.toFixed(2)} {vault.currency}
               </div>
             </div>
           </div>
         </div>
       </div>
+
       <div style={{ marginTop: 20 }}>
         <button
           className="btn btn-delete"
           style={{ width: "100%" }}
           onClick={() => {
-            // ❌ Prevent deleting active vault
             if (vault.id === activeVaultId) {
-              alert("Aktif kasa silinemez");
+              alert(t("active_vault_cannot_delete"));
               return;
             }
 
-            onClose(); // close detail modal first
+            onClose();
 
             setVaultDeleteConfirm({
               open: true,
@@ -2238,7 +2358,7 @@ function VaultDetailModal({
             });
           }}
         >
-          <i className="fa-solid fa-trash"></i> Kasayı Sil
+          <i className="fa-solid fa-trash"></i> {t("delete_vault")}
         </button>
 
         {vault.id !== activeVaultId && (
@@ -2254,7 +2374,7 @@ function VaultDetailModal({
                 onClose();
               }}
             >
-              Bu Kasayı Aktif Yap
+              {t("make_vault_active")}
             </button>
           </div>
         )}

@@ -1,0 +1,2233 @@
+/* ============================================================
+   APP CSS
+   (Layout + app-specific components)
+============================================================ */
+
+/* ===== App layout wrapper (web fix) ===== */
+.app-shell {
+  height: 100dvh; /* 🔥 dynamic viewport */
+  background: #f4f6fb;
+  display: flex;
+  justify-content: center;
+}
+
+.app-frame {
+  width: 100%;
+  height: 100%;
+  background: #f4f6fb;
+  position: relative;
+  max-width: 100%;
+
+  display: flex; /* ✅ ADD */
+  flex-direction: column; /* ✅ ADD */
+}
+
+@media (min-width: 600px) {
+  .app-frame {
+    margin: 20px 0;
+    border-radius: 16px;
+
+    box-shadow:
+      0 0 0 1px rgba(0, 0, 0, 0.04),
+      0 20px 60px rgba(0, 0, 0, 0.15);
+  }
+}
+
+/* Tablet & desktop app sizing */
+@media (min-width: 640px) {
+  .app-frame {
+    margin: 24px 0;
+    border-radius: 18px;
+    box-shadow:
+      0 0 0 1px rgba(0, 0, 0, 0.04),
+      0 24px 70px rgba(0, 0, 0, 0.18);
+  }
+}
+
+@media (min-width: 1024px) {
+  .app-frame {
+    max-width: 840px; /* 👈 desktop app feel */
+  }
+}
+
+/* =========================
+   Header
+========================= */
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  z-index: 1000;
+}
+
+.header::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0.06));
+  pointer-events: none;
+}
+
+/* =========================
+   Main Container
+========================= */
+.container {
+  flex: 1;
+  overflow-x: hidden;
+  padding-top: 0px; /* header height */
+  padding-bottom: 84px; /* nav height */
+}
+
+/* =========================
+   Admin / Profile UI
+========================= */
+
+/* 👤 Admin Profile */
+.admin-profile {
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
+  border-radius: var(--radius-lg);
+}
+
+.admin-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.admin-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--grad-header);
+  color: white;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 20px;
+  font-weight: 700;
+  box-shadow: var(--shadow-sm);
+}
+
+.admin-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin-name {
+  font-size: 15px;
+}
+
+.admin-email {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.admin-role {
+  margin-top: 4px;
+  align-self: flex-start;
+
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+
+  background: #e0e7ff;
+  color: #1e40af;
+}
+
+/* ============================================================
+   APP CSS
+   (FAB + modals + feature-specific UI)
+============================================================ */
+
+/* Floating button */
+.fab {
+  position: fixed;
+  bottom: 100px;
+  right: 20px;
+
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+
+  background: var(--grad-header);
+  color: white;
+  font-size: 26px;
+  border: none;
+
+  box-shadow: 0 18px 40px rgba(37, 99, 235, 0.45);
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+/* Desktop FAB positioning (attach to app frame) */
+@media (min-width: 640px) {
+  .fab {
+    right: calc(52% - 360px); /* 👈 
+    lls FAB toward app edge */
+  }
+}
+
+@media (min-width: 1024px) {
+  .fab {
+    right: calc(52% - 420px); /* 👈 wider desktop frame */
+  }
+}
+
+.fab:active {
+  transform: scale(0.95);
+}
+
+/* =========================
+   Modal (Base)
+========================= */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 9999;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-content {
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+  background: white;
+  padding: 20px;
+  width: 90%;
+  max-width: 500px;
+  border-radius: 15px;
+  position: relative;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal select {
+  position: relative;
+  z-index: 1;
+}
+
+/* =========================
+   Stacked Payment Modal
+========================= */
+
+.payment-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.18); /* light dim */
+  z-index: 1350; /* above CustomerDetailModal (1100) */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.payment-modal {
+  width: 420px;
+  max-width: 92vw;
+  background: #fff;
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.3);
+  z-index: 1400; /* above backdrop */
+}
+
+.payment-modal-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+
+/* =========================
+   Parts / Rows / Actions
+========================= */
+
+.parca-item {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 5px;
+}
+
+.partLine {
+  display: flex;
+  justify-content: space-between;
+  background: #f9fafb;
+  padding: 8px 10px;
+  border-radius: 8px;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.miniRow {
+  display: flex;
+  justify-content: space-between;
+  background: #f9fafb;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+/* =========================
+   Logout Button (Header)
+========================= */
+
+.logout-btn {
+  background: rgba(255, 255, 255, 0.18);
+  color: rgb(66, 30, 214);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  padding: 6px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.15s ease;
+}
+
+.logout-btn:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+/* ============================================================
+   APP CSS
+   (Customer detail + folders + feature UI)
+============================================================ */
+
+/* ================================
+   Customer Detail Modern UI
+================================ */
+
+.cust-header-card {
+  background: linear-gradient(135deg, #6b8ff2, #5b7fe6);
+  color: white;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 10px 26px rgba(37, 99, 235, 0.25);
+}
+
+.cust-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.cust-name {
+  margin: 0;
+  font-size: 18px;
+  letter-spacing: 0.2px;
+}
+
+.cust-sub {
+  font-size: 12px;
+  opacity: 0.9;
+  margin-top: 4px;
+  line-height: 1.35;
+}
+
+.cust-meta {
+  margin-top: 8px;
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.cust-balance {
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.portal-btn {
+  margin-top: 12px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.92);
+  color: #1e40af;
+  border: none;
+  border-radius: 12px;
+  padding: 11px 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.portal-btn:hover {
+  background: white;
+}
+
+.primary-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.btn-primary {
+  border-radius: 14px;
+  padding: 12px;
+  font-weight: 800;
+  color: white;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+}
+
+.btn-primary.red {
+  background: linear-gradient(135deg, #f87171, #b91c1c);
+}
+
+.btn-primary.blue {
+  background: linear-gradient(135deg, #3b82f6, #1e40af);
+}
+
+.btn-primary.green {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+}
+
+.secondary-actions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.secondary-actions button {
+  background: #f1f5f9;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 10px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.history-card {
+  background: white;
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+}
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.history-header h4 {
+  margin: 0;
+}
+
+.card.list-item + .card {
+  margin-top: 6px;
+}
+
+/* ===========================
+   Folder expand / collapse
+=========================== */
+
+.job-folder {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-4px);
+
+  transition:
+    max-height 0.35s ease,
+    opacity 0.25s ease,
+    transform 0.25s ease;
+}
+
+.job-folder.open {
+  max-height: 2000px; /* big enough for many jobs */
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.job-folder-item {
+  margin-left: 12px;
+}
+
+.folder-arrow {
+  display: inline-block;
+  font-size: 16px;
+  transition: transform 0.25s ease;
+}
+
+.folder-arrow.open {
+  transform: rotate(90deg);
+}
+
+.parca-item input {
+  font-size: 13px;
+}
+
+.parca-item input::placeholder {
+  color: #9ca3af;
+}
+
+/* ===========================
+   Admin meta (layout-bound)
+=========================== */
+
+.admin-meta {
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-meta-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  font-size: 12px;
+  color: #6b7280;
+  text-align: right;
+  max-width: 45%;
+}
+
+/* ===========================
+   List interaction behavior
+=========================== */
+
+.list-item {
+  transition:
+    background 0.15s ease,
+    transform 0.05s ease;
+}
+
+.history-card .list-item {
+  border: 1px solid transparent;
+}
+
+.history-card .list-item:hover {
+  border-color: #e5e7eb;
+}
+
+.list-item:active:not(:has(input, select, textarea)) {
+  transform: scale(0.99);
+}
+
+.list-item:hover {
+  background: #f8fafc;
+}
+
+/* ===========================
+   Modal Overlay
+=========================== */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+/* ============================================================
+   APP CSS
+   (Modals + customer detail + jobs + navigation)
+============================================================ */
+
+/* =========================
+   Edit Payment / Debt Modal
+========================= */
+
+.edit-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  z-index: 99999;
+}
+
+.edit-modal {
+  background: white;
+  width: 92%;
+  max-width: 420px;
+  border-radius: 14px;
+  padding: 16px;
+
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+}
+
+/* =========================
+   Customer Stats (Detail)
+========================= */
+
+.cust-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 12px 0 14px;
+}
+
+.stat-label {
+  font-size: 11px;
+  color: #6b7280;
+  margin-bottom: 6px;
+  font-weight: 700;
+}
+
+.stat-value {
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+/* Calm financial colors */
+.stat-value.green {
+  color: #15803d; /* muted green */
+}
+
+.stat-value.red {
+  color: #dc2626; /* muted red */
+}
+
+/* Mobile: 3 boxes still fit but smaller */
+@media (max-width: 420px) {
+  .cust-stats {
+    gap: 8px;
+  }
+  .cust-stat {
+    padding: 9px;
+  }
+  .stat-value {
+    font-size: 12px;
+  }
+}
+
+/* ================================
+   CONFIRM MODAL (SCOPED — SAFE)
+================================ */
+
+/* only confirm modal overlay */
+.confirm-modal {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+/* confirm card */
+.confirm-modal .modal-content {
+  width: 100%;
+  max-width: 380px;
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+  animation: confirmPop 0.18s ease-out;
+}
+
+/* confirm title */
+.confirm-modal .modal-content h3 {
+  font-size: 17px;
+  font-weight: 800;
+  margin: 0;
+  color: #991b1b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ⚠️ only for confirm */
+.confirm-modal .modal-content h3::before {
+  content: "⚠️";
+}
+
+/* message */
+.confirm-modal .modal-content p {
+  margin-top: 12px;
+  font-size: 14px;
+  color: #444;
+}
+
+/* buttons */
+.confirm-modal .btn-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.confirm-modal .btn-cancel {
+  flex: 1;
+  background: #e5e7eb;
+  color: #374151;
+  border-radius: 10px;
+  padding: 10px;
+  font-weight: 700;
+}
+
+.confirm-modal .btn-delete {
+  flex: 1;
+  background: #dc2626;
+  color: white;
+  border-radius: 10px;
+  padding: 10px;
+  font-weight: 800;
+}
+
+.confirm-modal .btn-delete:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* animation */
+@keyframes confirmPop {
+  from {
+    transform: translateY(6px) scale(0.96);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+/* History amount text – calm */
+.history-card .list-item strong {
+  font-weight: 700;
+}
+
+.history-card .list-item .green {
+  color: #15803d;
+}
+
+.history-card .list-item .red {
+  color: #b91c1c;
+}
+
+.cust-stat {
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+}
+
+/* =========================
+   Customer Edit Modal – Pretty UI (Scoped)
+========================= */
+
+.customer-edit-modal {
+  max-width: 520px;
+  border-radius: 20px;
+  padding: 20px;
+  background: linear-gradient(180deg, #ffffff, #f9fafb);
+}
+
+/* Header spacing */
+.customer-edit-modal h2,
+.customer-edit-modal h3 {
+  margin-top: 0;
+  margin-bottom: 12px;
+}
+
+/* Form layout */
+.customer-edit-modal .form-group {
+  margin-bottom: 12px;
+}
+
+/* Inputs */
+.customer-edit-modal input,
+.customer-edit-modal textarea {
+  width: 100%;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 14px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+}
+
+.customer-edit-modal input:focus,
+.customer-edit-modal textarea:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+/* ID field subtle */
+.customer-edit-modal input[readonly] {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+/* Buttons row */
+.customer-edit-modal .btn-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+/* Divider before delete */
+.customer-edit-modal .modal-divider {
+  margin: 18px 0;
+  border-top: 1px dashed #e5e7eb;
+}
+
+/* =========================
+   Job Status Styles
+========================= */
+
+.job-card {
+  border-radius: 14px;
+  padding: 14px;
+  background: #ffffff;
+  transition: all 0.2s ease;
+}
+
+/* Space between stacked job cards */
+.job-card {
+  margin-bottom: 8px; /* 👈 adjust: 6–10px is ideal */
+}
+
+/* 🔴 Not completed (Borç) */
+.job-card.job-active {
+  background: #fef2f2;
+  border-left: 6px solid #dc2626;
+}
+
+/* 🟠 Completed, not paid */
+.job-card.job-unpaid {
+  background: #fff7ed;
+  border-left: 6px solid #f59e0b;
+}
+
+/* 🟢 Completed & paid (Tahsilat) */
+.job-card.job-paid {
+  background: #f0fdf4;
+  border-left: 6px solid #16a34a;
+}
+
+/* Small status badge */
+.job-status-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 600;
+  margin-left: 8px;
+}
+
+.job-active .job-status-badge {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.job-unpaid .job-status-badge {
+  background: #ffedd5;
+  color: #f59e0b;
+}
+
+.job-paid .job-status-badge {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+/* =========================
+   Bottom Navigation
+========================= */
+
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+
+  height: 68px;
+  z-index: 1000;
+
+  display: flex; /* 🔥 REQUIRED */
+  align-items: center; /* 🔥 */
+  justify-content: space-around;
+
+  background: white;
+  border-top: 1px solid #e5e7eb;
+}
+
+@media (min-width: 640px) {
+  .bottom-nav {
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 840px; /* same as app-frame */
+    width: 100%;
+
+    border-bottom-left-radius: 18px;
+    border-bottom-right-radius: 18px;
+  }
+}
+
+.nav-item {
+  flex: 1;
+  border: none;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 6px;
+  border-radius: 14px;
+  font-size: 12px;
+  cursor: pointer;
+  color: #64748b;
+  transition: all 0.2s ease;
+  min-width: 0; /* 🔥 prevents flex overflow weirdness */
+  height: 52px;
+  justify-content: center;
+}
+
+.nav-item.active {
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-weight: 700;
+}
+
+/* Icon */
+.nav-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.job-options-btn {
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  color: #6b7280;
+  padding: 4px 6px;
+  cursor: pointer;
+}
+
+.job-options-btn:hover {
+  color: #111827;
+}
+
+.job-options-btn:active {
+  transform: scale(0.9);
+}
+
+/* ============================================================
+   APP CSS
+   (Vault detail + time mode + calendar + view switching)
+============================================================ */
+
+/* =========================
+   vault Detail – Pretty Layout
+========================= */
+
+.vault-detail-page {
+  display: flex;
+  justify-content: center;
+  padding: 20px 14px 90px;
+}
+
+.vault-detail-card {
+  width: 100%;
+  max-width: 420px; /* 👈 NOT full screen */
+  background: white;
+  border-radius: 20px;
+  padding: 18px;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.08);
+}
+
+.nav-icon i,
+.job-options-btn i,
+.iconLike i {
+  line-height: 1;
+}
+
+/* =========================================
+   Desktop: Customer Detail is NOT a modal
+========================================= */
+@media (min-width: 640px) {
+  .customer-detail-page,
+  .customer-detail,
+  .cust-detail {
+    position: relative;
+    z-index: auto;
+  }
+}
+
+/* Desktop detail pages must sit above */
+.vault-detail-page,
+.job-detail-page {
+  position: relative;
+  z-index: 200;
+}
+
+.bottom-nav {
+  pointer-events: auto;
+}
+
+/* =========================
+   Time Mode Selector
+========================= */
+
+.time-mode-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px; /* 🔥 slightly tighter */
+  align-items: center;
+  margin-top: 6px;
+}
+
+.time-mode-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  margin: 0;
+  padding: 7px 10px;
+  border-radius: 999px;
+
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+
+  font-weight: 500; /* 🔥 less bold */
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
+
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.time-mode-option:has(input:checked) {
+  background: #eef2ff; /* soft primary tint */
+  border-color: #c7d2fe;
+  color: #1e40af;
+}
+
+.time-mode-option input {
+  width: auto;
+  margin: 0;
+}
+
+.time-mode-info {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fff7d6;
+  color: #7c4a12;
+  font-size: 12px;
+  line-height: 1.35;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+@media (max-width: 360px) {
+  .time-mode-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =========================
+   Load More (Subtle)
+========================= */
+
+.load-more-btn {
+  width: 100%;
+  margin: 14px 0 4px;
+
+  background: transparent;
+  border: 1px dashed #dbe3ff;
+  border-radius: 14px;
+
+  padding: 10px 12px;
+
+  font-size: 13px;
+  font-weight: 600;
+  color: #4f6bdc;
+
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.load-more-btn:hover {
+  background: #f4f7ff;
+}
+
+.load-more-btn:active {
+  transform: scale(0.98);
+}
+
+/* =========================
+   Customer / Job Meta
+========================= */
+
+.job-debt {
+  background: #fef2f2; /* light red */
+  border-left: 6px solid #dc2626;
+}
+
+.customer-meta {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.customer-meta-line {
+  display: block;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* =========================
+   View Switcher
+========================= */
+
+.view-switcher {
+  display: flex;
+  gap: 6px;
+  background: #e9eef5;
+  border-radius: 16px;
+  padding: 6px;
+  margin-bottom: 16px;
+}
+
+.view-btn {
+  flex: 1;
+  height: 42px;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  font-weight: 600;
+  font-size: 14px;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.view-btn.active {
+  background: #ffffff;
+  color: #2563eb;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+/* =========================
+   Calendar
+========================= */
+
+.calendar-container {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 16px;
+  margin: 12px 16px 20px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e7eb;
+}
+
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.calendar-header span {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.calendar-header button {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: none;
+  background: #f1f5f9;
+  cursor: pointer;
+}
+
+.calendar-grid {
+  display: grid;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.grid-monthly {
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.grid-weekly {
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.grid-daily {
+  grid-template-columns: 1fr;
+}
+
+.calendar-day {
+  min-height: 56px;
+  border-radius: 14px;
+  padding: 6px 4px;
+  text-align: center;
+  cursor: pointer;
+  background: #f8fafc;
+  color: #0f172a;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.calendar-day:hover {
+  background: #e5edff;
+}
+
+.calendar-day small {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  color: #64748b;
+}
+
+.calendar-day.selected {
+  background: #2563eb;
+  color: white;
+  font-weight: 700;
+}
+
+.calendar-day.selected small {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.calendar-day.today {
+  border: 2px solid #2563eb;
+  font-weight: 600;
+}
+
+.calendar-day.has-event::after {
+  content: "";
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6px;
+  height: 6px;
+  background: #ef4444;
+  border-radius: 50%;
+}
+
+/* =========================
+   Calendar (Compact Variant)
+========================= */
+
+.program-title {
+  margin: 16px 16px 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.weekday-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+
+.calendar-grid {
+  display: grid;
+  gap: 6px;
+}
+
+.calendar-day {
+  padding: 12px 6px;
+  border-radius: 12px;
+  background: #f8fafc;
+  cursor: pointer;
+  text-align: center;
+  transition: 0.15s ease;
+}
+
+.calendar-day:hover {
+  background: #e0e7ff;
+}
+
+.calendar-day.selected {
+  background: #2563eb;
+  color: white;
+}
+
+.calendar-day small {
+  display: block;
+  font-size: 10px;
+  opacity: 0.8;
+}
+
+/* ============================================================
+   APP CSS
+   (Settings + jobs + vaults + admin)
+============================================================ */
+
+/* ===============================
+   SETTINGS TOGGLE (PROFILE)
+=============================== */
+
+.settings-card {
+  margin-top: 12px;
+}
+
+.settings-toggle {
+  margin-top: 10px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: #f8fafc;
+  color: #374151;
+}
+
+.settings-toggle:hover {
+  background: #eef2ff;
+}
+
+.settings-toggle.active {
+  background: #eef2ff;
+  color: #1e40af;
+  border-color: #c7d2fe;
+}
+
+.settings-toggle .left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Toggle pill */
+.settings-toggle .pill {
+  width: 44px;
+  height: 24px;
+  border-radius: 999px;
+  background: #d1d5db;
+  position: relative;
+  transition: background 0.2s ease;
+}
+
+.settings-toggle.active .pill {
+  background: #2563eb;
+}
+
+.settings-toggle .pill::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: white;
+  transition: left 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.settings-toggle.active .pill::after {
+  left: 22px;
+}
+
+.settings-hint {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* =========================
+   Job Card (Detail)
+========================= */
+
+.job-card {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 16px;
+  border-left: 6px solid #2563eb;
+}
+
+.job-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.job-date {
+  font-size: 12px;
+  color: #666;
+}
+
+.job-total {
+  font-size: 18px;
+  font-weight: 700;
+  color: #2563eb;
+}
+
+.job-section {
+  margin-top: 10px;
+  font-size: 13px;
+}
+
+/* =========================
+   Due / Debt UI
+========================= */
+
+.due-dismiss-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 6px 12px;
+  margin-top: 8px;
+
+  border-radius: 999px; /* pill */
+  border: 1px solid #d1fae5;
+
+  background: #ecfdf5;
+  color: #047857;
+
+  font-size: 12px;
+  font-weight: 600;
+
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.due-dismiss-btn:hover {
+  background: #d1fae5;
+  border-color: #6ee7b7;
+}
+
+.due-dismiss-btn:active {
+  transform: scale(0.97);
+}
+
+.due-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 12px 14px;
+  border-radius: 12px;
+
+  transition: background 0.15s ease;
+}
+
+.due-header:hover {
+  background: #f8fafc;
+}
+
+.due-arrow {
+  font-size: 12px;
+  color: #64748b;
+  transition: transform 0.15s ease;
+}
+
+.due-header:hover .due-arrow {
+  color: #334155;
+}
+
+/* =========================
+   Native Picker Fixes
+========================= */
+
+input[type="time"],
+input[type="date"] {
+  transform: none !important;
+}
+
+.list-item:has(input[type="time"]:focus),
+.card:has(input[type="time"]:focus),
+.modal-content:has(input[type="time"]:focus) {
+  transform: none !important;
+}
+
+@media (max-width: 640px) {
+  input[type="time"],
+  input[type="date"] {
+    font-size: 16px; /* 🔥 forces iOS/Chrome fullscreen picker */
+  }
+}
+
+/* =========================
+   Settings Dashboard
+========================= */
+
+.settings-dashboard {
+  padding: 16px;
+}
+
+.settings-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.settings-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.settings-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    transform 0.1s ease,
+    box-shadow 0.1s ease;
+}
+
+.settings-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+}
+
+.settings-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.settings-icon.blue {
+  background: #2563eb;
+}
+.settings-icon.green {
+  background: #16a34a;
+}
+.settings-icon.orange {
+  background: #ea580c;
+}
+.settings-icon.gray {
+  background: #6b7280;
+}
+
+.settings-content {
+  flex: 1;
+}
+
+.settings-content h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.settings-content p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.settings-card .arrow {
+  color: #9ca3af;
+}
+
+/* =========================
+   Admin Card (Settings)
+========================= */
+
+.settings-admin-card {
+  background: white;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 18px;
+  border: 1px solid #e5e7eb;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.admin-left {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.admin-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: white;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.admin-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.admin-name {
+  font-size: 15px;
+}
+
+.admin-email {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.admin-role {
+  margin-top: 4px;
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #2563eb;
+  background: #eff6ff;
+  padding: 2px 8px;
+  border-radius: 999px;
+  width: fit-content;
+}
+
+.admin-right {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+}
+
+.admin-meta {
+  font-size: 12px;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.logout-btn {
+  margin-top: 6px;
+  background: #fee2e2;
+  color: #991b1b;
+  border: none;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.logout-btn:hover {
+  background: #fecaca;
+}
+
+/* =========================
+   Vault List
+========================= */
+
+.vault-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.vault-list-item {
+  background: #fff;
+  border-radius: 12px;
+  padding: 14px;
+  border: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+}
+
+.vault-list-item:hover {
+  background: #f9fafb;
+}
+
+.vault-balance {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+.add-vault-btn {
+  margin-top: 10px;
+  background: #f3f4f6;
+  color: #111827;
+}
+
+/* ============================================================
+   APP CSS
+   (Settings + calendar compact + search + admin layout)
+============================================================ */
+
+/* =========================
+   Admin Meta Layout
+========================= */
+
+.admin-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  max-width: 55%;
+}
+
+/* phone & address rows */
+.admin-meta {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+
+  max-width: 100%;
+  font-size: 13px;
+  color: #374151;
+
+  /* 🔑 FIX */
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* limit address height */
+.admin-meta.address {
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* ⬅️ max 2 lines */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* =========================
+   CALENDAR COMPACT FIX
+========================= */
+
+.calendar-grid {
+  gap: 4px; /* tighter grid */
+}
+
+.calendar-day {
+  min-height: 30px; /* ⬅️ key */
+  padding: 4px 2px; /* ⬅️ key */
+  font-size: 12px; /* smaller numbers */
+  border-radius: 5px;
+}
+
+/* number inside the cell */
+.calendar-day > div:first-child {
+  line-height: 1;
+}
+
+/* dots tighter */
+.day-indicators {
+  margin-top: 2px;
+  gap: 3px;
+}
+
+.day-dot {
+  width: 5px;
+  height: 5px;
+}
+
+@media (max-width: 420px) {
+  .calendar-day {
+    min-height: 36px;
+    font-size: 11px;
+    padding: 3px 2px;
+  }
+
+  .weekday-row {
+    font-size: 11px;
+  }
+}
+
+/* =========================
+   SETTINGS SECTIONS
+========================= */
+
+.settings-section {
+  margin-bottom: 20px;
+}
+
+.settings-section h4 {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6b7280;
+  margin: 12px 6px 8px;
+}
+
+/* =========================
+   SETTINGS CARDS
+========================= */
+
+.settings-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  width: 100%;
+  padding: 14px 14px;
+  margin-bottom: 10px;
+
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.settings-card:hover {
+  background: #f9fafb;
+  border-color: #dbeafe;
+  transform: translateY(-1px);
+}
+
+.settings-card:active {
+  transform: translateY(0);
+}
+
+/* =========================
+   ICONS
+========================= */
+
+.settings-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 18px;
+  color: white;
+}
+
+.settings-icon.gray {
+  background: #6b7280;
+}
+
+.settings-icon.blue {
+  background: #2563eb;
+}
+
+/* =========================
+   TEXT CONTENT
+========================= */
+
+.settings-content {
+  flex: 1;
+  text-align: left;
+}
+
+.settings-content h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+  color: #111827;
+}
+
+.settings-content p {
+  font-size: 12px;
+  margin: 2px 0 0;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+/* =========================
+   ARROW
+========================= */
+
+.settings-card .arrow {
+  font-size: 14px;
+  color: #9ca3af;
+}
+
+/* =========================
+   TOGGLE ROW
+========================= */
+
+.settings-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+  background: #f8fafc;
+
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.settings-toggle:hover {
+  background: #f1f5f9;
+}
+
+.settings-toggle.active {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+}
+
+/* Toggle left content */
+.settings-toggle .left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-toggle .left-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e40af;
+}
+
+.settings-toggle .left-sub {
+  font-size: 12px;
+  color: #6b7280;
+  margin-left: 26px;
+}
+
+/* =========================
+   SWITCH PILL
+========================= */
+
+.settings-toggle .pill {
+  width: 42px;
+  height: 24px;
+  border-radius: 999px;
+  background: #c7d2fe;
+  position: relative;
+}
+
+.settings-toggle .pill::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: white;
+  transition: all 0.2s ease;
+}
+
+.settings-toggle.active .pill {
+  background: #2563eb;
+}
+
+.settings-toggle.active .pill::after {
+  left: 21px;
+}
+
+/* =========================
+   SEARCH BAR (CANONICAL)
+========================= */
+
+/* Sticky container under header */
+.search-sticky {
+  position: sticky;
+  top: 0px; /* header height */
+  z-index: 95;
+
+  background: var(--bg);
+  padding: 8px 12px;
+
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* Horizontal row */
+.search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px; /* 🔒 single source of height */
+}
+
+/* Input wrapper (for clear button positioning) */
+.search-input-wrapper {
+  position: relative;
+  flex: 1;
+  height: 44px;
+}
+
+/* Text input */
+.search-bar {
+  width: 100%;
+  height: 100%;
+
+  padding: 0 40px 0 14px; /* space for X button */
+  border-radius: 999px;
+  border: 1px solid #ddd;
+
+  font-size: 14px;
+  background: white;
+}
+
+/* Clear (X) button */
+.search-clear-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+
+  background: #f1f5f9;
+  border: none;
+  cursor: pointer;
+
+  display: grid;
+  place-items: center;
+
+  color: #64748b;
+  font-size: 14px;
+}
+
+.search-clear-btn:hover {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+/* =========================
+   SORT BUTTON (ICON)
+========================= */
+
+.sort-wrapper {
+  position: relative;
+  width: 42px;
+  height: 44px;
+  flex-shrink: 0;
+}
+
+.sort-icon-btn {
+  width: 42px;
+  height: 44px;
+
+  border-radius: 999px;
+  border: 1px solid #ddd;
+
+  background: white;
+  cursor: pointer;
+  font-size: 16px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sort-icon-btn:hover {
+  background: #f8fafc;
+}
+
+/* Hidden select (still clickable) */
+.sort-hidden-select {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* ============================================================
+   APP CSS
+   (Modern Invoice + Print Isolation)
+============================================================ */
+
+/* =========================
+   MODERN INVOICE (PRINT + SCREEN)
+========================= */
+
+.print-invoice {
+  max-width: 900px;
+  margin: auto;
+  background: white;
+  padding: 48px;
+  border-radius: 14px;
+  color: #1f2937;
+  font-family: "Inter", Arial, sans-serif;
+}
+
+.invoice-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #e5e7eb;
+  margin-bottom: 30px;
+}
+
+.logo {
+  font-size: 26px;
+  font-weight: 700;
+  color: #2563eb;
+}
+
+.header-right {
+  text-align: right;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.customer {
+  background: #e3f2fd;
+  padding: 18px 20px;
+  border-radius: 10px;
+  margin-bottom: 35px;
+  font-size: 14px;
+}
+
+.job {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 30px;
+  position: relative;
+}
+
+.job::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background: #2563eb;
+  border-radius: 12px 0 0 12px;
+}
+
+.job h4 {
+  margin: 0 0 16px;
+  font-size: 17px;
+}
+
+.section-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #6b7280;
+  margin-top: 14px;
+  text-transform: uppercase;
+}
+
+.print-invoice table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+  font-size: 14px;
+}
+
+.print-invoice th,
+.print-invoice td {
+  padding: 10px 8px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.print-invoice th:last-child,
+.print-invoice td:last-child {
+  text-align: right;
+}
+
+.subtotal {
+  text-align: right;
+  font-weight: 700;
+  margin-top: 12px;
+}
+
+.totals {
+  margin-left: auto;
+  max-width: 380px;
+  margin-top: 40px;
+  border-top: 2px solid #e5e7eb;
+  padding-top: 20px;
+}
+
+.paid {
+  color: #2e7d32;
+  font-weight: 700;
+}
+
+.balance {
+  color: #c62828;
+  font-weight: 800;
+  font-size: 18px;
+}
+
+.footer {
+  margin-top: 60px;
+  text-align: center;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+@media print {
+  .print-invoice {
+    box-shadow: none;
+    border-radius: 0;
+  }
+}
+
+/* =========================
+   PRINT OVERRIDE — HARD ISOLATION
+   (THIS FIXES YOUR ISSUE)
+========================= */
+@media print {
+  /* HIDE EVERYTHING */
+  body * {
+    visibility: hidden !important;
+  }
+
+  /* SHOW ONLY INVOICE */
+  .print-invoice,
+  .print-invoice * {
+    visibility: visible !important;
+  }
+
+  /* POSITION INVOICE AT TOP */
+  .print-invoice {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 24px;
+  }
+}
