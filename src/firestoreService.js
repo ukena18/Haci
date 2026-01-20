@@ -1,6 +1,24 @@
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "./firebase";
 
+/**
+ * 🔒 Firestore safety helper
+ * Removes ALL undefined values (recursively)
+ */
+function stripUndefined(obj) {
+  if (obj === null || typeof obj !== "object") return obj;
+
+  if (Array.isArray(obj)) {
+    return obj.map(stripUndefined);
+  }
+
+  return Object.fromEntries(
+    Object.entries(obj)
+      .filter(([, v]) => v !== undefined)
+      .map(([k, v]) => [k, stripUndefined(v)]),
+  );
+}
+
 // Create user document if it doesn't exist
 export async function ensureUserData(userId) {
   const ref = doc(db, "users", userId);
@@ -61,24 +79,18 @@ export async function loadUserData(userId) {
 export async function saveUserData(userId, data) {
   const ref = doc(db, "users", userId);
 
-  await setDoc(
-    ref,
-    {
-      profile: data.profile ?? {},
-      customers: data.customers ?? [],
-      jobs: data.jobs ?? [],
-      payments: data.payments ?? [],
+  const safePayload = stripUndefined({
+    profile: data.profile ?? {},
+    customers: data.customers ?? [],
+    jobs: data.jobs ?? [],
+    payments: data.payments ?? [],
+    reservations: data.reservations ?? [],
+    vaults: data.vaults ?? [],
+    activeVaultId: data.activeVaultId ?? null,
+    updatedAt: Date.now(),
+  });
 
-      // ✅ ADD THIS
-      reservations: data.reservations ?? [],
-
-      vaults: data.vaults ?? [],
-
-      activeVaultId: data.activeVaultId ?? null,
-      updatedAt: Date.now(),
-    },
-    { merge: false }, // 🔥 FULL overwrite
-  );
+  await setDoc(ref, safePayload, { merge: false });
 }
 
 export async function publishCustomerSnapshot(customerId, payload) {

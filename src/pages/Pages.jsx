@@ -227,6 +227,22 @@ export function HomePage({
                       <strong>
                         {c.name} {c.surname}
                       </strong>
+                      {c.currency && (
+                        <span
+                          style={{
+                            marginLeft: 6,
+                            fontSize: 11,
+                            padding: "2px 6px",
+                            borderRadius: 6,
+                            background: "#eef2ff",
+                            color: "#3730a3",
+                            fontWeight: 700,
+                          }}
+                        >
+                          {c.currency}
+                        </span>
+                      )}
+
                       <br />
                       <small>
                         {daysLeft <= 0 ? (
@@ -426,7 +442,7 @@ export function HomePage({
                           alignItems: "center",
                         }}
                       >
-                        <strong style={{ color: "var(--primary)" }}>
+                        <strong className="customer-debt-amount">
                           {money(totalAmount, currency)}
                         </strong>
 
@@ -566,6 +582,7 @@ export function CustomersPage({
               state.jobs,
               state.payments,
             );
+            const rowCurrency = c.currency || currency;
 
             return (
               <div
@@ -615,8 +632,7 @@ export function CustomersPage({
                       textAlign: "right",
                     }}
                   >
-                    {balance >= 0 ? "+" : "-"}
-                    {Math.abs(balance).toFixed(2)} {currency}
+                    {money(balance, rowCurrency)}
                   </div>
                 </div>
               </div>
@@ -719,44 +735,6 @@ export function SettingsPage({
       </div>
 
       <div className="settings-grid">
-        {/* LANGUAGE */}
-        <div className="settings-card">
-          <div className="settings-icon purple">
-            <i className="fa-solid fa-language"></i>
-          </div>
-
-          <div className="settings-content">
-            <h3>{t("settings.language.title")}</h3>
-            <p>{t("settings.language.desc")}</p>
-
-            <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-              <button
-                className={`btn ${lang === "tr" ? "btn-save" : ""}`}
-                onClick={() => changeLanguage("tr")}
-                type="button"
-              >
-                🇹🇷 TR
-              </button>
-
-              <button
-                className={`btn ${lang === "en" ? "btn-save" : ""}`}
-                onClick={() => changeLanguage("en")}
-                type="button"
-              >
-                🇬🇧 EN
-              </button>
-
-              <button
-                className={`btn ${lang === "de" ? "btn-save" : ""}`}
-                onClick={() => changeLanguage("de")}
-                type="button"
-              >
-                🇩🇪 DE
-              </button>
-            </div>
-          </div>
-        </div>
-
         {/* VAULTS */}
         <button
           className="settings-card"

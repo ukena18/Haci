@@ -1,5 +1,9 @@
 import { useState } from "react";
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
+} from "firebase/auth";
 import { auth } from "./firebase";
 
 export default function AuthPage() {
@@ -20,6 +24,30 @@ export default function AuthPage() {
       }
     } catch (err) {
       setError(err.message);
+    }
+  }
+
+  async function handleForgotPassword() {
+    setError("");
+
+    if (!email) {
+      setError("Lütfen e-posta adresinizi girin");
+      return;
+    }
+
+    try {
+      await sendPasswordResetEmail(auth, email);
+      alert("Şifre sıfırlama e-postası gönderildi");
+    } catch (err) {
+      console.error(err);
+
+      if (err.code === "auth/user-not-found") {
+        setError("Bu e-posta ile kayıtlı kullanıcı yok");
+      } else if (err.code === "auth/invalid-email") {
+        setError("Geçersiz e-posta adresi");
+      } else {
+        setError("Şifre sıfırlama başarısız");
+      }
     }
   }
 
@@ -45,6 +73,19 @@ export default function AuthPage() {
           required
           style={styles.input}
         />
+        {!isRegister && (
+          <div
+            style={{
+              textAlign: "right",
+              marginBottom: 10,
+              fontSize: 13,
+            }}
+          >
+            <span style={styles.link} onClick={handleForgotPassword}>
+              Şifreni mi unuttun?
+            </span>
+          </div>
+        )}
 
         {error && <div style={styles.error}>{error}</div>}
 
@@ -54,10 +95,7 @@ export default function AuthPage() {
 
         <p style={{ marginTop: 10 }}>
           {isRegister ? "Zaten hesabın var mı?" : "Hesabın yok mu?"}{" "}
-          <span
-            style={styles.link}
-            onClick={() => setIsRegister(!isRegister)}
-          >
+          <span style={styles.link} onClick={() => setIsRegister(!isRegister)}>
             {isRegister ? "Giriş Yap" : "Kayıt Ol"}
           </span>
         </p>

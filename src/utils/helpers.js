@@ -159,7 +159,7 @@ export function jobTotalOf(job) {
   const hours =
     job?.timeMode === "clock"
       ? totalMs / 36e5
-      : calcHours(job?.start, job?.end);
+      : calcHoursWithBreak(job?.start, job?.end, job?.breakMinutes);
 
   return hours * toNum(job?.rate) + parts;
 }
@@ -187,6 +187,7 @@ export function makeEmptyCustomer() {
     phone: "",
     email: "",
     address: "",
+    currency: null, // ✅ LOCKED AFTER FIRST PAYMENT
 
     createdAt: Date.now(),
   };
@@ -196,7 +197,7 @@ export function makeEmptyJob(customers = []) {
   return {
     id: uid(),
     customerId: "",
-    vaultId: "", // ✅ ADD THIS
+
     date: new Date().toISOString().slice(0, 10),
 
     // 👇 NEW
@@ -251,4 +252,19 @@ export function computeCustomerTotals(customerId, jobs = [], payments = []) {
 // ✅ Backward compatibility wrapper
 export function computeCustomerBalance(customerId, jobs = [], payments = []) {
   return computeCustomerTotals(customerId, jobs, payments).balance;
+}
+
+export function formatDateByLang(dateStr, lang) {
+  if (!dateStr) return "";
+
+  // Expecting YYYY-MM-DD
+  const [y, m, d] = dateStr.split("-");
+
+  if (lang === "en") {
+    // US format
+    return `${m}/${d}/${y}`;
+  }
+
+  // European format (TR, DE, etc.)
+  return `${d}/${m}/${y}`;
 }

@@ -159,8 +159,7 @@ import { useLang } from "./i18n/LanguageContext";
   This separation is intentional and stable.
 */
 
-import "./css/theme.css";
-import "./css/app.css";
+import "./App.css";
 
 import {
   HomePage,
@@ -235,6 +234,7 @@ import {
   makeEmptyCustomer,
   makeEmptyJob,
   clockHoursOf,
+  calcHoursWithBreak,
 } from "./utils/helpers";
 
 /**
@@ -343,7 +343,7 @@ function AppRoutes({ user }) {
       fixed.jobs = (fixed.jobs || []).map((j) => ({
         ...j,
         trackPayment: j.trackPayment !== false, // default TRUE
-        dueDays: j.dueDays ?? 30, // default 30 days
+        dueDays: j.dueDays ?? "30",
       }));
 
       // ==============================
@@ -537,7 +537,10 @@ function MainApp({ state, setState, user }) {
     open: false,
     vaultId: null,
     text: "",
+    transactionCount: 0, // ✅ ADD THIS
   });
+
+  const hasTransactions = vaultDeleteConfirm.transactionCount > 0;
 
   const [editingVaultId, setEditingVaultId] = useState(null);
   const [editingVaultName, setEditingVaultName] = useState("");
@@ -640,7 +643,8 @@ function MainApp({ state, setState, user }) {
         const startDate = getJobStartDate(job);
         if (!startDate) return null;
 
-        const dueInDays = job.dueDays ?? 30;
+        const dueInDays =
+          job.dueDays === "" || job.dueDays == null ? 30 : Number(job.dueDays);
         const dueDate = addDaysSkippingWeekend(startDate, dueInDays);
         const daysLeft = daysBetween(new Date(), dueDate);
 
@@ -698,19 +702,19 @@ function MainApp({ state, setState, user }) {
 
   function getVaultTotals(vaultId) {
     let totalPayment = 0;
-    let totalDebt = 0;
+    let transactionCount = 0;
 
-    // ✅ payments affect vault
     (state.payments || []).forEach((p) => {
       if (p.vaultId !== vaultId) return;
-      if (p.type === "payment") totalPayment += toNum(p.amount);
-      if (p.type === "debt") totalDebt += toNum(p.amount);
+      if (p.type !== "payment") return; // ✅ ONLY PAYMENTS
+
+      totalPayment += toNum(p.amount);
+      transactionCount += 1;
     });
 
     return {
       totalPayment,
-      totalDebt,
-      net: totalPayment - totalDebt,
+      transactionCount,
     };
   }
 
@@ -957,6 +961,16 @@ ${t("duplicate_customer_confirm")}
     setState((s) => {
       const usedVaultId = vaultId || s.activeVaultId;
 
+      const vault = (s.vaults || []).find((k) => k.id === usedVaultId);
+      const vaultCurrency = vault?.currency || s.currency || "TRY";
+
+      // 🔒 LOCK CUSTOMER CURRENCY ON FIRST PAYMENT
+      const nextCustomers = s.customers.map((c) =>
+        c.id === customerId && !c.currency
+          ? { ...c, currency: vaultCurrency }
+          : c,
+      );
+
       const payment = {
         id: uid(),
         customerId,
@@ -967,14 +981,12 @@ ${t("duplicate_customer_confirm")}
         note: note || t("payment_default_note"),
         date,
         createdAt: Date.now(),
-        currency:
-          (s.vaults || []).find((k) => k.id === usedVaultId)?.currency ||
-          s.currency ||
-          "TRY",
+        currency: vaultCurrency,
       };
 
       const nextState = {
         ...s,
+        customers: nextCustomers,
         payments: [...(s.payments || []), payment],
       };
 
@@ -1020,14 +1032,32 @@ ${t("duplicate_customer_confirm")}
       const old = (s.payments || []).find((p) => p.id === updated.id);
       if (!old) return s;
 
-      const newAmt = toNum(updated.amount);
+      const cleaned = stripUndefined({
+        ...old,
+        ...updated,
+        amount: toNum(updated.amount),
+      });
 
       const nextPayments = (s.payments || []).map((p) =>
-        p.id === updated.id ? { ...p, ...updated, amount: newAmt } : p,
+        p.id === updated.id ? cleaned : p,
       );
 
       return { ...s, payments: nextPayments };
     });
+  }
+
+  function stripUndefined(obj) {
+    if (!obj || typeof obj !== "object") return obj;
+
+    if (Array.isArray(obj)) {
+      return obj.map(stripUndefined);
+    }
+
+    return Object.fromEntries(
+      Object.entries(obj)
+        .filter(([, v]) => v !== undefined)
+        .map(([k, v]) => [k, stripUndefined(v)]),
+    );
   }
 
   function markJobComplete(jobId) {
@@ -1417,8 +1447,6 @@ ${t("duplicate_customer_confirm")}
             editingJobId={editingJobId}
             onSave={(job) => upsertJob(job)}
             currency={currency}
-            vaults={state.vaults || []}
-            activeVaultId={state.activeVaultId}
             setConfirm={setConfirm}
             fixedCustomerId={jobFixedCustomerId}
             zIndex={3000}
@@ -1557,6 +1585,7 @@ ${t("duplicate_customer_confirm")}
                       className="vault-list-item"
                       onClick={(e) => {
                         e.stopPropagation();
+
                         setSelectedVaultId(vault.id);
                         setVaultDetailOpen(true);
                       }}
@@ -1565,7 +1594,10 @@ ${t("duplicate_customer_confirm")}
                         <strong>{vault.name}</strong>
 
                         <div className="vault-balance">
-                          {money(getVaultTotals(vault.id).net, vault.currency)}
+                          {money(
+                            getVaultTotals(vault.id).totalPayment,
+                            vault.currency,
+                          )}
                         </div>
                       </div>
 
@@ -1688,8 +1720,14 @@ ${t("duplicate_customer_confirm")}
               open={true}
               title={t("vault_delete_title")}
               onClose={() =>
-                setVaultDeleteConfirm({ open: false, vaultId: null, text: "" })
+                setVaultDeleteConfirm({
+                  open: false,
+                  vaultId: null,
+                  text: "",
+                  transactionCount: 0,
+                })
               }
+              zIndex={6000}
             >
               <p style={{ color: "#b91c1c", fontWeight: 600 }}>
                 ⚠️ {t("vault_delete_warning")}
@@ -1716,6 +1754,7 @@ ${t("duplicate_customer_confirm")}
                       open: false,
                       vaultId: null,
                       text: "",
+                      transactionCount: 0,
                     })
                   }
                 >
@@ -1724,44 +1763,60 @@ ${t("duplicate_customer_confirm")}
 
                 <button
                   className="btn btn-delete"
-                  disabled={vaultDeleteConfirm.text !== "SIL"}
+                  disabled={
+                    hasTransactions ||
+                    vaultDeleteConfirm.text.trim().toUpperCase() !==
+                      t("vault_delete_confirm_word").toUpperCase()
+                  }
                   onClick={() => {
+                    if (hasTransactions) {
+                      alert(t("vault_cannot_delete_has_transactions"));
+                      return;
+                    }
+
                     const vaultId = vaultDeleteConfirm.vaultId;
 
                     setState((s) => {
-                      const nextVaults = (s.vaults || []).filter(
+                      const remainingVaults = s.vaults.filter(
                         (k) => k.id !== vaultId,
                       );
 
-                      const nextPayments = (s.payments || []).filter(
-                        (p) => p.vaultId !== vaultId,
-                      );
-
-                      const nextActiveVaultId =
-                        s.activeVaultId === vaultId
-                          ? nextVaults[0]?.id || null
-                          : s.activeVaultId;
-
-                      const nextState = {
+                      return {
                         ...s,
-                        vaults: nextVaults,
-                        payments: nextPayments,
-                        activeVaultId: nextActiveVaultId,
+                        vaults: remainingVaults,
+                        payments: (s.payments || []).filter(
+                          (p) => p.vaultId !== vaultId,
+                        ),
+                        activeVaultId:
+                          s.activeVaultId === vaultId
+                            ? remainingVaults[0]?.id || null
+                            : s.activeVaultId,
                       };
-
-                      saveUserData(auth.currentUser.uid, nextState);
-                      return nextState;
                     });
 
                     setVaultDeleteConfirm({
                       open: false,
                       vaultId: null,
                       text: "",
+                      transactionCount: 0,
                     });
                   }}
                 >
                   {t("delete_permanently")}
                 </button>
+
+                {hasTransactions && (
+                  <div
+                    style={{
+                      marginTop: 8,
+                      fontSize: 12,
+                      color: "#7f1d1d",
+                      textAlign: "center",
+                    }}
+                  >
+                    ⚠️ {t("vault_delete_blocked_reason")}
+                  </div>
+                )}
               </div>
             </ModalBase>
           )}
@@ -1796,14 +1851,15 @@ function JobCard({
   const hours =
     job.timeMode === "clock"
       ? clockHoursOf(job)
-      : calcHours(job.start, job.end);
+      : calcHoursWithBreak(job.start, job.end, job.breakMinutes);
 
   const partsTotal = partsTotalOf(job);
 
   const total = jobTotalOf(job);
 
-  // ✅ Jobs are ALWAYS debt (red)
-  let jobStatusClass = "job-card job-debt";
+  const jobStatusClass = `job-card ${
+    job.isCompleted ? "job-completed" : "job-active"
+  }`;
 
   return (
     <div className={jobStatusClass}>
@@ -1832,8 +1888,12 @@ function JobCard({
 
             <strong>{c ? `${c.name} ${c.surname}` : t("unknown")}</strong>
 
-            <span className="job-status-badge debt">
-              {t("job_status_debt")}
+            <span
+              className={`job-status-badge ${
+                job.isCompleted ? "debt" : "active"
+              }`}
+            >
+              {job.isCompleted ? t("job_status_debt") : t("job_status_active")}
             </span>
 
             {job.isRunning && <span className="badge">{t("working")}</span>}
@@ -1918,7 +1978,7 @@ function JobCard({
           )}
 
           {/* 3) price */}
-          <strong style={{ color: "var(--primary)", whiteSpace: "nowrap" }}>
+          <strong className="job-amount" style={{ whiteSpace: "nowrap" }}>
             {money(total, currency)}
           </strong>
         </div>
@@ -2083,22 +2143,19 @@ function VaultDetailModal({
   }, [open, vault]);
   if (!open || !vault) return null;
 
-  // ✅ Payments
-  const vaultPayments = (payments || []).filter((p) => p.vaultId === vault.id);
+  // ✅ ONLY payments
+  const vaultPayments = (payments || []).filter(
+    (p) => p.vaultId === vault.id && p.type === "payment",
+  );
 
-  // ✅ Jobs
-  const vaultJobs = (jobs || []).filter((j) => j.vaultId === vault.id);
+  const totalPayment = vaultPayments.reduce(
+    (sum, p) => sum + toNum(p.amount),
+    0,
+  );
 
-  let totalPayment = 0;
-  let totalDebt = 0;
+  const transactionCount = vaultPayments.length;
 
-  // Payments
-  vaultPayments.forEach((p) => {
-    if (p.type === "payment") totalPayment += toNum(p.amount);
-    if (p.type === "debt") totalDebt += toNum(p.amount);
-  });
-
-  const net = totalPayment - totalDebt;
+  const hasTransactions = transactionCount > 0;
 
   function printVault() {
     const html = printRef.current?.innerHTML;
@@ -2232,56 +2289,22 @@ function VaultDetailModal({
             </button>
           </div>
 
-          {/* STATS */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: 12,
-              marginTop: 12,
-            }}
-          >
-            <div
-              className="card"
-              style={{ background: "#f0fdf4", color: "#166534" }}
-            >
-              <div style={{ fontSize: 12 }}>{t("total_payment")}</div>
-              <strong>
-                +{totalPayment.toFixed(2)} {vault.currency}
-              </strong>
+          {/* PRIMARY PAYMENT */}
+          <div className="card vault-primary-payment">
+            <div className="label">{t("total_payment")}</div>
+
+            <div className="amount">
+              +{totalPayment.toFixed(2)} {vault.currency}
             </div>
 
-            <div
-              className="card"
-              style={{ background: "#fef2f2", color: "#7f1d1d" }}
-            >
-              <div style={{ fontSize: 12 }}>{t("total_debt")}</div>
-              <strong>
-                -{totalDebt.toFixed(2)} {vault.currency}
-              </strong>
+            <div className="hint">
+              <i className="fa-solid fa-money-bill-1"></i> {t("cash_received")}
             </div>
-          </div>
-
-          {/* NET */}
-          <div
-            className="card"
-            style={{
-              marginTop: 12,
-              textAlign: "center",
-              fontWeight: 700,
-              background: net >= 0 ? "#eff6ff" : "#fef2f2",
-            }}
-          >
-            {t("net_status")}: {net.toFixed(2)} {vault.currency}
           </div>
 
           {/* COUNT */}
-          <div
-            className="card"
-            style={{ marginTop: 12, fontSize: 12, color: "#555" }}
-          >
-            {t("total_transaction_count")}:{" "}
-            <strong>{vaultPayments.length + vaultJobs.length}</strong>
+          <div className="card vault-transaction-count">
+            {t("total_transaction_count")} <strong>{transactionCount}</strong>
           </div>
 
           <div className="hidden">
@@ -2308,18 +2331,22 @@ function VaultDetailModal({
                   </tr>
                 </thead>
                 <tbody>
-                  {vaultPayments.map((p) => (
-                    <tr key={p.id}>
-                      <td>{p.date}</td>
-                      <td>{p.type === "payment" ? t("payment") : t("debt")}</td>
-                      <td>{p.note || "-"}</td>
-                      <td>{p.method || "-"}</td>
-                      <td className="right">
-                        {p.type === "payment" ? "+" : "-"}
-                        {p.amount.toFixed(2)} {vault.currency}
-                      </td>
-                    </tr>
-                  ))}
+                  {vaultPayments
+                    .filter((p) => p.type === "payment")
+                    .map((p) => (
+                      <tr key={p.id}>
+                        <td>{p.date}</td>
+                        <td>
+                          {p.type === "payment" ? t("payment") : t("debt")}
+                        </td>
+                        <td>{p.note || "-"}</td>
+                        <td>{p.method || "-"}</td>
+                        <td className="right">
+                          {p.type === "payment" ? "+" : "-"}
+                          {p.amount.toFixed(2)} {vault.currency}
+                        </td>
+                      </tr>
+                    ))}
                 </tbody>
               </table>
 
@@ -2329,10 +2356,6 @@ function VaultDetailModal({
                 <b>{t("total_payment")}:</b> +{totalPayment.toFixed(2)}{" "}
                 {vault.currency}
                 <br />
-                <b>{t("total_debt")}:</b> -{totalDebt.toFixed(2)}{" "}
-                {vault.currency}
-                <br />
-                <b>{t("net_status")}:</b> {net.toFixed(2)} {vault.currency}
               </div>
             </div>
           </div>
@@ -2343,22 +2366,28 @@ function VaultDetailModal({
         <button
           className="btn btn-delete"
           style={{ width: "100%" }}
+          disabled={hasTransactions}
           onClick={() => {
+            if (hasTransactions) {
+              alert(t("vault_cannot_delete_has_transactions"));
+              return;
+            }
+
             if (vault.id === activeVaultId) {
               alert(t("active_vault_cannot_delete"));
               return;
             }
 
-            onClose();
-
             setVaultDeleteConfirm({
               open: true,
               vaultId: vault.id,
               text: "",
+              transactionCount, // ✅ PASS REAL COUNT
             });
           }}
         >
-          <i className="fa-solid fa-trash"></i> {t("delete_vault")}
+          <i className="fa-solid fa-trash"></i>{" "}
+          {hasTransactions ? t("vault_has_transactions") : t("delete_vault")}
         </button>
 
         {vault.id !== activeVaultId && (

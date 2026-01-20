@@ -9,6 +9,7 @@ import {
   jobTotalOf, // ✅ ADD THIS
   partsTotalOf,
   calcHoursWithBreak, // ✅ ADD THIS
+  formatDateByLang,
 } from "../utils/helpers";
 
 import {
@@ -19,6 +20,8 @@ import {
   JOB_STATUS_LABEL_TR,
 } from "../utils/labels";
 
+import ChangeEmailModal from "./ChangeEmailModal";
+
 import {
   EmailAuthProvider,
   reauthenticateWithCredential,
@@ -28,6 +31,8 @@ import {
 } from "firebase/auth";
 
 import { publishCustomerSnapshot, saveUserData } from "../firestoreService";
+
+import { useLang } from "../i18n/LanguageContext";
 
 /* ============================================================
    7) MODALS (Job / Customer / Customer Detail / Confirm)
@@ -328,10 +333,8 @@ export function JobModal({
   editingJobId,
   onSave,
   currency,
-  vaults, // ✅ ADD
-  activeVaultId, // ✅ ADD
-  setConfirm, // ✅ ADD
-  fixedCustomerId = null, // ✅ ADD THIS
+  setConfirm,
+  fixedCustomerId = null,
 }) {
   const editing = editingJobId ? jobs.find((j) => j.id === editingJobId) : null;
   const customerBoxRef = useRef(null);
@@ -339,13 +342,7 @@ export function JobModal({
   const [draft, setDraft] = useState(() => makeEmptyJob(customers));
   const [customerSearch, setCustomerSearch] = useState("");
   const [customerDropdownOpen, setCustomerDropdownOpen] = useState(false);
-  // ✅ ACTIVE VAULT (TOP LEVEL)
-  const activeVault = useMemo(() => {
-    return (vaults || []).find((v) => v.id === draft.vaultId);
-  }, [vaults, draft.vaultId]);
-
-  // ✅ JOB CURRENCY (TOP LEVEL)
-  const jobCurrency = activeVault?.currency || currency;
+  const jobCurrency = currency;
 
   const customerOptions = useMemo(() => {
     const q = customerSearch.trim().toLowerCase();
@@ -396,15 +393,12 @@ export function JobModal({
         trackPayment: editing.trackPayment !== false,
 
         // optional safety
-        dueDays: editing.dueDays ?? 30,
+        dueDays: editing.dueDays == null ? "" : String(editing.dueDays),
 
         dueDismissed: editing.dueDismissed === true,
       });
     } else {
       const fresh = makeEmptyJob(customers);
-
-      // ✅ default kasa = active kasa
-      fresh.vaultId = activeVaultId || "";
 
       if (fixedCustomerId) {
         fresh.customerId = fixedCustomerId;
@@ -491,14 +485,15 @@ export function JobModal({
       alert("Müşteri seçmelisiniz.");
       return;
     }
-    if (!draft.vaultId) {
-      alert("İş için kasa seçmelisiniz.");
-      return;
-    }
 
     // Save with cleaned numeric fields
     onSave({
       ...draft,
+
+      breakMinutes:
+        draft.breakMinutes === "" || draft.breakMinutes == null
+          ? 0
+          : Number(draft.breakMinutes),
 
       dueDismissed: draft.dueDismissed === true,
 
@@ -506,9 +501,9 @@ export function JobModal({
       dueDays:
         draft.trackPayment === false
           ? null
-          : draft.dueDays == null || draft.dueDays < 1
+          : draft.dueDays === "" || draft.dueDays == null
             ? 30
-            : draft.dueDays,
+            : Number(draft.dueDays),
 
       // ✅ IMPORTANT: if clock mode, workedMs must come from sessions
       workedMs:
@@ -631,21 +626,6 @@ export function JobModal({
       )}
 
       <div className="form-group">
-        <label>Kasa</label>
-        <select
-          value={draft.vaultId || ""}
-          onChange={(e) => setField("vaultId", e.target.value)}
-        >
-          <option value="">Kasa seçin</option>
-          {(vaults || []).map((v) => (
-            <option key={v.id} value={v.id}>
-              {v.name}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="form-group">
         <label>Tarih</label>
         <input
           type="date"
@@ -758,12 +738,11 @@ export function JobModal({
             min={1}
             max={365}
             style={{ flex: 1 }}
-            value={draft.dueDays === null ? "" : draft.dueDays}
+            value={draft.dueDays ?? ""}
             onChange={(e) => {
-              const v = e.target.value;
               setDraft((d) => ({
                 ...d,
-                dueDays: v === "" ? null : Number(v),
+                dueDays: e.target.value, // ✅ STRING ONLY
               }));
             }}
             disabled={!draft.trackPayment}
@@ -982,11 +961,11 @@ export function JobModal({
                 min="0"
                 step="5"
                 placeholder="Örn: 30"
-                value={draft.breakMinutes || ""}
+                value={draft.breakMinutes ?? ""}
                 onChange={(e) =>
                   setDraft((d) => ({
                     ...d,
-                    breakMinutes: Number(e.target.value) || 0,
+                    breakMinutes: e.target.value, // ✅ STRING ONLY
                   }))
                 }
               />
@@ -1213,6 +1192,8 @@ export function CustomerDetailModal({
   onUpdatePayment,
   setConfirm, // ✅ ADD THIS
 }) {
+  const { lang } = useLang();
+
   const [selectedVaultId, setSelectedVaultId] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [paymentAmount, setPaymentAmount] = useState("");
@@ -1225,16 +1206,23 @@ export function CustomerDetailModal({
   const [editDate, setEditDate] = useState("");
   const [editMethod, setEditMethod] = useState("cash");
   const [editVaultId, setEditVaultId] = useState("");
-  const [editDueDays, setEditDueDays] = useState(30);
+  const [editDueDays, setEditDueDays] = useState("30");
   const [editDueDismissed, setEditDueDismissed] = useState(false);
+
+  const displayCurrency = customer?.currency || currency;
+
+  function parseLocalDate(dateStr) {
+    const [y, m, d] = dateStr.split("-").map(Number);
+    return new Date(y, m - 1, d);
+  }
 
   // "payment" | "debt"
   function isInRange(dateStr) {
     if (!dateStr) return false;
 
-    const d = new Date(dateStr);
-    const from = fromDate ? new Date(fromDate) : null;
-    const to = toDate ? new Date(toDate) : null;
+    const d = parseLocalDate(dateStr);
+    const from = fromDate ? parseLocalDate(fromDate) : null;
+    const to = toDate ? parseLocalDate(toDate) : null;
 
     if (from && d < from) return false;
     if (to && d > to) return false;
@@ -1282,9 +1270,10 @@ export function CustomerDetailModal({
     text += `Müşteri: ${customer.name} ${customer.surname}\n`;
     text += `Telefon: ${customer.phone || "-"}\n`;
     text += `E-posta: ${customer.email || "-"}\n`;
-    text += `Borç: ${money(balance, currency)}\n`;
+    text += `Borç: ${money(balance, displayCurrency)}\n`;
 
-    text += `Tarih: ${new Date().toLocaleDateString("tr-TR")}\n\n`;
+    const today = new Date().toISOString().slice(0, 10);
+    text += `Tarih: ${formatDateByLang(today, lang)}\n\n`;
 
     /*  PAYMENTS / DEBTS */
     if (customerPayments.length > 0) {
@@ -1295,7 +1284,7 @@ export function CustomerDetailModal({
         const typeLabel = PAYMENT_TYPE_LABEL_TR[p.type] || "—";
         const sign = p.type === "payment" ? "+" : "-"; // sign is logic, keep it
 
-        text += `${p.date} | ${typeLabel}\n`;
+        text += `${formatDateByLang(p.date, lang)} | ${typeLabel}\n`;
         text += `Tutar: ${sign}${money(p.amount, p.currency || currency)}\n`;
         text += `Kasa: ${vaultNameOf(p.vaultId)}\n`;
         text += `Yöntem: ${PAYMENT_METHOD_LABEL_TR[p.method] || "—"}\n`;
@@ -1319,11 +1308,11 @@ export function CustomerDetailModal({
               36e5
             : calcHoursWithBreak(j.start, j.end, j.breakMinutes);
 
-        text += `${j.date}\n`;
+        text += `${formatDateByLang(j.date, lang)}\n`;
         text += `${j.start || "--:--"} - ${j.end || "--:--"} | ${hours.toFixed(
           2,
         )} saat\n`;
-        text += `Toplam: ${money(total, currency)}\n`;
+        text += `Toplam: ${money(total, displayCurrency)}\n`;
         const statusKey = j.isCompleted ? "completed" : "open";
         text += `Durum: ${JOB_STATUS_LABEL_TR[statusKey]}\n\n`;
       });
@@ -1389,6 +1378,10 @@ export function CustomerDetailModal({
     if (j.timeMode === "fixed") return "Sabit Ücret";
     return "İş";
   }
+
+  const allowedVaults = customer?.currency
+    ? vaults.filter((v) => v.currency === customer.currency)
+    : vaults;
 
   const unifiedHistory = useMemo(() => {
     if (!customer) return [];
@@ -1496,7 +1489,7 @@ export function CustomerDetailModal({
       },
       jobs,
       payments,
-      currency,
+      currency: customer.currency || currency,
     });
 
     // 🔥 open portal WITH print flag
@@ -1597,19 +1590,21 @@ export function CustomerDetailModal({
             <div className="cust-stat">
               <div className="stat-label">Toplam Tahsilat</div>
               <div className="stat-value green">
-                +{money(totalPayment, currency)}
+                +{money(totalPayment, displayCurrency)}
               </div>
             </div>
 
             <div className="cust-stat">
               <div className="stat-label">Toplam Borç</div>
-              <div className="stat-value red">{money(totalDebt, currency)}</div>
+              <div className="stat-value red">
+                -{money(totalDebt, displayCurrency)}
+              </div>
             </div>
 
             <div className="cust-stat">
               <div className="stat-label">Bakiye</div>
               <div className={`stat-value ${balance >= 0 ? "green" : "red"}`}>
-                {money(balance, currency)}
+                {money(balance, displayCurrency)}
               </div>
             </div>
           </div>
@@ -1726,7 +1721,9 @@ export function CustomerDetailModal({
                         setEditVaultId(p.vaultId || activeVaultId || "");
 
                         // ✅ NEW (for debt watchlist)
-                        setEditDueDays(p.dueDays ?? 30);
+                        setEditDueDays(
+                          p.dueDays == null ? "" : String(p.dueDays),
+                        );
                         setEditDueDismissed(p.dueDismissed === true);
                       }}
                     >
@@ -1759,9 +1756,8 @@ export function CustomerDetailModal({
                               {p.note}
                             </div>
                           )}
-
                         <div style={{ fontSize: 12, color: "#777" }}>
-                          {p.date}
+                          {formatDateByLang(p.date, lang)}
                           {" • "}
                           Kasa: <b>{vaultNameOf(p.vaultId)}</b>
                           {" • "}
@@ -1821,7 +1817,7 @@ export function CustomerDetailModal({
                       </strong>
 
                       <div style={{ fontSize: 12, color: "#777" }}>
-                        {j.date}
+                        {formatDateByLang(j.date, lang)}
                         {" • "}
                         <b>{jobTimeModeLabel(j)}</b>
 
@@ -1867,7 +1863,7 @@ export function CustomerDetailModal({
                         fontSize: 12,
                       }}
                     >
-                      -{money(total, currency)}
+                      -{money(total, displayCurrency)}
                     </div>
                   </div>
                 );
@@ -1909,9 +1905,9 @@ export function CustomerDetailModal({
                   value={editVaultId}
                   onChange={(e) => setEditVaultId(e.target.value)}
                 >
-                  {vaults.map((k) => (
+                  {allowedVaults.map((k) => (
                     <option key={k.id} value={k.id}>
-                      {k.name}
+                      {k.name} ({k.currency})
                     </option>
                   ))}
                 </select>
@@ -1980,7 +1976,7 @@ export function CustomerDetailModal({
                   min={1}
                   max={365}
                   value={editDueDays}
-                  onChange={(e) => setEditDueDays(Number(e.target.value) || 30)}
+                  onChange={(e) => setEditDueDays(e.target.value)}
                 />
 
                 {/* 🔔 add back button only if dismissed */}
@@ -2033,6 +2029,7 @@ export function CustomerDetailModal({
                     amount: toNum(editAmount),
                     note: editNote,
                     date: editDate,
+                    currency: editTx.currency, // 🔒 LOCK
 
                     method: editTx.type === "payment" ? editMethod : null,
                     vaultId:
@@ -2040,7 +2037,12 @@ export function CustomerDetailModal({
 
                     // ✅ NEW: only debt uses these
                     dueDays:
-                      editTx.type === "debt" ? editDueDays : editTx.dueDays,
+                      editTx.type === "debt"
+                        ? editDueDays === ""
+                          ? null
+                          : Number(editDueDays)
+                        : editTx.dueDays,
+
                     dueDismissed:
                       editTx.type === "debt"
                         ? editDueDismissed
@@ -2069,6 +2071,10 @@ export function PaymentActionModal({
   activeVaultId,
   onSubmit,
 }) {
+  const allowedVaults = customer?.currency
+    ? vaults.filter((v) => v.currency === customer.currency)
+    : vaults;
+
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [vaultId, setVaultId] = useState(activeVaultId || "");
@@ -2117,9 +2123,9 @@ export function PaymentActionModal({
                 onChange={(e) => setVaultId(e.target.value)}
               >
                 <option value="">Kasa seçin</option>
-                {vaults.map((k) => (
+                {allowedVaults.map((k) => (
                   <option key={k.id} value={k.id}>
-                    {k.name}
+                    {k.name} ({k.currency})
                   </option>
                 ))}
               </select>
@@ -2200,6 +2206,13 @@ export function PaymentActionModal({
             <button
               className={mode === "payment" ? "btn btn-save" : "btn btn-delete"}
               onClick={() => {
+                if (mode === "debt" && !customer?.currency) {
+                  alert(
+                    "Önce tahsilat yaparak müşteri para birimini belirleyin.",
+                  );
+                  return;
+                }
+
                 onSubmit(
                   amount,
                   note,
@@ -2324,6 +2337,8 @@ export function CalendarPage({
   onUpdateReservation,
   onDeleteReservation,
 }) {
+  const { lang } = useLang();
+
   const [view, setView] = React.useState("monthly"); // daily | weekly | monthly
   const [referenceDate, setReferenceDate] = React.useState(new Date());
   const [selectedDate, setSelectedDate] = React.useState(
@@ -2341,6 +2356,10 @@ export function CalendarPage({
     end: "",
     note: "",
   });
+  function parseLocalDate(dateStr) {
+    const [y, m, d] = dateStr.split("-").map(Number);
+    return new Date(y, m - 1, d); // LOCAL date, no timezone shift
+  }
 
   const WEEKDAYS = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
 
@@ -2362,8 +2381,11 @@ export function CalendarPage({
   }
 
   function formatDayHeader(dateStr) {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString("tr-TR", {
+    const d = parseLocalDate(dateStr);
+
+    const locale = lang === "en" ? "en-US" : "tr-TR";
+
+    return d.toLocaleDateString(locale, {
       weekday: "long",
       day: "numeric",
       month: "short",
@@ -2390,7 +2412,7 @@ export function CalendarPage({
     if (view === "daily") return null;
 
     const visible = reservations.filter((r) => {
-      const d = new Date(r.date);
+      const d = parseLocalDate(r.date);
 
       if (view === "weekly") {
         const start = atMidnight(referenceDate);
@@ -2503,6 +2525,8 @@ export function CalendarPage({
     (groupedVisibleReservations &&
       Object.keys(groupedVisibleReservations).length > 0);
 
+  const headerLocale = lang === "en" ? "en-US" : "tr-TR";
+
   /* =============================
      RENDER
   ============================= */
@@ -2535,18 +2559,18 @@ export function CalendarPage({
 
           <strong>
             {view === "monthly" &&
-              referenceDate.toLocaleDateString("tr-TR", {
+              referenceDate.toLocaleDateString(headerLocale, {
                 month: "long",
                 year: "numeric",
               })}
 
             {view === "weekly" &&
-              referenceDate.toLocaleDateString("tr-TR", {
+              referenceDate.toLocaleDateString(headerLocale, {
                 day: "numeric",
                 month: "short",
-              }) + " Haftası"}
+              }) + (lang === "en" ? " week" : " Haftası")}
 
-            {view === "daily" && referenceDate.toLocaleDateString("tr-TR")}
+            {view === "daily" && referenceDate.toLocaleDateString(headerLocale)}
           </strong>
 
           <button className="btn" onClick={() => changePeriod(1)}>
@@ -2747,7 +2771,19 @@ export function CalendarPage({
                       margin: "10px 4px 6px",
                     }}
                   >
-                    {formatDayHeader(date)}
+                    <div
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 700,
+                        color: "#374151",
+                        margin: "10px 4px 6px",
+                      }}
+                    >
+                      {formatDayHeader(date)}
+                      <div style={{ fontSize: 11, color: "#6b7280" }}>
+                        {formatDateByLang(date, lang)}
+                      </div>
+                    </div>
                   </div>
 
                   {/* JOBS */}
@@ -3063,6 +3099,9 @@ export function AdvancedSettingsModal({
   const showCalendar = state.profile?.settings?.showCalendar !== false;
 
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
+  const [changeEmailOpen, setChangeEmailOpen] = useState(false);
+
+  const { lang, changeLanguage, t } = useLang();
 
   function toggleCalendar() {
     setState((s) => ({
@@ -3088,18 +3127,6 @@ export function AdvancedSettingsModal({
     a.click();
 
     URL.revokeObjectURL(url);
-  }
-
-  function changeEmail() {
-    const newEmail = prompt("Yeni e-posta adresini girin:");
-    if (!newEmail) return;
-
-    auth.currentUser
-      .updateEmail(newEmail)
-      .then(() => alert("E-posta güncellendi"))
-      .catch(() =>
-        alert("Güvenlik nedeniyle tekrar giriş yapmanız gerekebilir."),
-      );
   }
 
   return (
@@ -3130,6 +3157,33 @@ export function AdvancedSettingsModal({
           <div className="pill" />
         </button>
       </div>
+      {/* LANGUAGE */}
+      <div className="settings-card" style={{ cursor: "default" }}>
+        <div className="settings-icon purple">
+          <i className="fa-solid fa-language"></i>
+        </div>
+
+        <div className="settings-content">
+          <h3>{t("settings.language.title")}</h3>
+          <p>{t("settings.language.desc")}</p>
+        </div>
+
+        <div className="settings-card-right">
+          <div className="language-select-wrapper compact">
+            <select
+              value={lang}
+              onChange={(e) => changeLanguage(e.target.value)}
+              className="language-select compact"
+            >
+              <option value="tr"> Türkçe</option>
+              <option value="en"> English</option>
+              <option value="de"> Deutsch</option>
+            </select>
+
+            <i className="fa-solid fa-chevron-down select-arrow"></i>
+          </div>
+        </div>
+      </div>
 
       <div className="settings-section">
         <h4>Güvenlik</h4>
@@ -3151,7 +3205,11 @@ export function AdvancedSettingsModal({
           <i className="fa-solid fa-chevron-right arrow"></i>
         </button>
 
-        <button className="settings-card" onClick={changeEmail} type="button">
+        <button
+          className="settings-card"
+          onClick={() => setChangeEmailOpen(true)}
+          type="button"
+        >
           <div className="settings-icon gray">
             <i className="fa-solid fa-envelope"></i>
           </div>
@@ -3184,6 +3242,11 @@ export function AdvancedSettingsModal({
       <ChangePasswordModal
         open={changePasswordOpen}
         onClose={() => setChangePasswordOpen(false)}
+        auth={auth}
+      />
+      <ChangeEmailModal
+        open={changeEmailOpen}
+        onClose={() => setChangeEmailOpen(false)}
         auth={auth}
       />
     </ModalBase>

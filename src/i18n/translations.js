@@ -139,7 +139,7 @@ export const translations = {
     vault_delete_title: "Kasa Silme Onayı",
     vault_delete_warning: "⚠️ Bu kasa kalıcı olarak silinecek.",
     vault_delete_type_sil: "Devam etmek için SIL yazın:",
-    vault_delete_placeholder: "SIL",
+    vault_delete_placeholder: "Silmek için SIL yazın",
     cancel_action: "Vazgeç",
     delete_permanently: "Kalıcı Olarak Sil",
 
@@ -753,6 +753,20 @@ export const translations = {
 
     "public.thanks": "Teşekkür ederiz.",
     "public.infoOnly": "Bu belge bilgilendirme amaçlıdır.",
+
+    cash_received: "Toplam Tahsilat",
+    job_status_active: "Aktif İş",
+
+    vault_cannot_delete_has_transactions:
+      "Bu kasa işlem içerdiği için silinemez.",
+    vault_has_transactions: "Kasada işlem var",
+    vault_delete_blocked_reason:
+      "Kasayı silmek için tüm işlemler kaldırılmalıdır.",
+
+    vault_delete_confirm_word: "SIL",
+
+    email_verification_sent:
+      "Doğrulama e-postası gönderildi. E-posta değişikliğini tamamlamak için onaylayın.",
   },
 
   en: {
@@ -846,7 +860,7 @@ export const translations = {
     vault_delete_title: "Vault Deletion Confirmation",
     vault_delete_warning: "⚠️ This vault will be permanently deleted.",
     vault_delete_type_sil: "Type DELETE to continue:",
-    vault_delete_placeholder: "DELETE",
+    vault_delete_placeholder: "Type DELETE to confirm",
     cancel_action: "Cancel",
     delete_permanently: "Delete Permanently",
 
@@ -1298,6 +1312,17 @@ export const translations = {
 
     "public.thanks": "Thank you.",
     "public.infoOnly": "This document is for informational purposes only.",
+    cash_received: "Total Cash Received",
+    job_status_active: "Active Job",
+    vault_cannot_delete_has_transactions:
+      "This vault cannot be deleted because it has transactions.",
+    vault_has_transactions: "Vault has transactions",
+    vault_delete_blocked_reason:
+      "You must remove all transactions before deleting this vault.",
+
+    vault_delete_confirm_word: "DELETE",
+    email_verification_sent:
+      "Verification email sent. Please confirm to complete the email change.",
   },
 
   de: {
@@ -1392,7 +1417,7 @@ export const translations = {
     vault_delete_title: "Bestätigung zum Löschen der Kasse",
     vault_delete_warning: "⚠️ Diese Kasse wird dauerhaft gelöscht.",
     vault_delete_type_sil: "Zum Fortfahren SIL eingeben:",
-    vault_delete_placeholder: "SIL",
+    vault_delete_placeholder: "Zum Löschen LÖSCHEN eingeben",
     cancel_action: "Abbrechen",
     delete_permanently: "Dauerhaft löschen",
 
@@ -1850,5 +1875,20 @@ export const translations = {
 
     "public.thanks": "Vielen Dank.",
     "public.infoOnly": "Dieses Dokument dient nur zu Informationszwecken.",
+
+    cash_received: "Eingenommener Betrag",
+
+    job_status_active: "Aktiver Auftrag",
+
+    vault_cannot_delete_has_transactions:
+      "Diese Kasse kann nicht gelöscht werden, da sie Buchungen enthält.",
+    vault_has_transactions: "Kasse enthält Buchungen",
+    vault_delete_blocked_reason:
+      "Um diese Kasse zu löschen, müssen zuerst alle Buchungen entfernt werden.",
+
+    vault_delete_confirm_word: "LÖSCHEN",
+
+    email_verification_sent:
+      "Bestätigungs-E-Mail wurde gesendet. Bitte bestätigen Sie, um die E-Mail-Adresse zu ändern.",
   },
 };

@@ -1,5 +1,333 @@
 export const CHANGELOG = [
   {
+    version: "1.3.0",
+    title: {
+      en: "Currency Consistency, Vault Rules & Critical Data Integrity Fixes",
+      tr: "Para Birimi Tutarlılığı, Kasa Kuralları ve Kritik Veri Düzeltmeleri",
+    },
+    sections: [
+      {
+        label: {
+          en: "Currency & Localization Fixes",
+          tr: "Para Birimi ve Yerelleştirme Düzeltmeleri",
+        },
+        items: {
+          en: [
+            "Fixed Customer Detail page showing TRY even when customer was registered under a Euro Vault",
+            "Customer balance, total payment, and total debt now correctly reflect the customer’s actual currency",
+            "Fixed issue where selecting Turkish language forced customer currencies to display as TRY",
+            "Ensured currency symbols, names, and icons are consistent across the system",
+            "Removed mixed currency representations and standardized currency formatting",
+            "System now enforces a single currency per user",
+            "Selecting a Vault with a different currency now throws a validation error",
+          ],
+          tr: [
+            "Euro kasa seçilmesine rağmen Müşteri Detay sayfasında TRY görünmesi sorunu giderildi",
+            "Müşteri bakiye, toplam tahsilat ve toplam borç artık doğru para birimini gösterir",
+            "Türkçe dil seçildiğinde para birimlerinin TRY olarak görünmesi sorunu düzeltildi",
+            "Para birimi simgeleri, isimleri ve ikonları sistem genelinde tutarlı hale getirildi",
+            "Karışık para birimi gösterimleri kaldırıldı ve standartlaştırıldı",
+            "Sistem artık kullanıcı başına tek para birimini zorunlu kılar",
+            "Farklı para birimine sahip kasa seçildiğinde hata mesajı gösterilir",
+          ],
+        },
+      },
+
+      {
+        label: {
+          en: "Debt, Payment & Data Persistence",
+          tr: "Borç, Tahsilat ve Veri Kaydetme",
+        },
+        items: {
+          en: [
+            "Fixed issue where 'Borçlandır – Ödeme Vadesi (Gün)' field could not be cleared",
+            "Fixed critical bug where subsequent Debt and Payment changes were not being saved",
+            "Tahsilat and Borç records now persist correctly after the first transaction",
+            "Customer total debt now correctly displays positive or negative sign",
+            "Ensured no debt can ever be recorded against a Vault",
+          ],
+          tr: [
+            "'Borçlandır – Ödeme Vadesi (Gün)' alanındaki rakam silinememe sorunu giderildi",
+            "İlk işlemden sonra borç ve tahsilat değişikliklerinin kaydedilmemesi hatası düzeltildi",
+            "Tahsilat ve Borç kayıtları artık her işlem sonrası doğru şekilde kaydedilir",
+            "Müşteri toplam borç alanında pozitif / negatif işaretler doğru gösterilir",
+            "Kasaya hiçbir koşulda borç işlenememesi sağlandı",
+          ],
+        },
+      },
+
+      {
+        label: {
+          en: "Vault Rules & Safety Constraints",
+          tr: "Kasa Kuralları ve Güvenlik Kısıtlamaları",
+        },
+        items: {
+          en: [
+            "Vaults can no longer be deleted if they contain invoices",
+            "Invoices must be moved to another Vault before deletion is allowed",
+            "Vault deletion is fully blocked if any transactions exist",
+            "Prevented accidental deletion that removed customer payment history",
+            "Vaults now only track Total Payments",
+            "Removed Total Debt and Balance from Vaults",
+            "Vault balances are no longer allowed to go negative",
+          ],
+          tr: [
+            "İçinde fatura bulunan kasaların silinmesi engellendi",
+            "Kasa silinmeden önce faturaların başka bir kasaya taşınması zorunlu hale getirildi",
+            "İşlem içeren kasalar hiçbir şekilde silinemez",
+            "Müşteri tahsilatlarının silinmesine neden olan hatalı kasa silme durumu engellendi",
+            "Kasalar artık yalnızca Toplam Tahsilat bilgisini tutar",
+            "Kasalar için Toplam Borç ve Bakiye alanları kaldırıldı",
+            "Kasa bakiyesinin negatif olmasına izin verilmez",
+          ],
+        },
+      },
+
+      {
+        label: {
+          en: "Jobs, History & Business Logic",
+          tr: "İşler, Geçmiş ve İş Mantığı",
+        },
+        items: {
+          en: [
+            "Removed Vault selection option from Job creation",
+            "Jobs no longer directly assign a Vault",
+            "Vault selection is now only allowed during Tahsilat (Payment)",
+            "Borç records no longer require or allow Vault selection",
+            "Job history now correctly includes break durations",
+            "Fixed mismatch between job duration and recorded break time",
+            "Completed jobs now display a red indicator on the left side for clarity",
+          ],
+          tr: [
+            "İş oluşturma ekranından Kasa seçeneği kaldırıldı",
+            "İşler artık doğrudan bir kasaya bağlanmaz",
+            "Kasa seçimi yalnızca Tahsilat sırasında yapılabilir",
+            "Borç kayıtlarında kasa seçimi kaldırıldı",
+            "İş geçmişi artık mola sürelerini doğru şekilde içerir",
+            "İş süresi ile mola süresi arasındaki uyumsuzluk giderildi",
+            "Tamamlanan işler sol tarafta kırmızı gösterge ile vurgulanır",
+          ],
+        },
+      },
+
+      {
+        label: {
+          en: "Calendar & Date Handling",
+          tr: "Takvim ve Tarih İşlemleri",
+        },
+        items: {
+          en: [
+            "Fixed Calendar app button behavior",
+            "Resolved issue where calendar dates were off by one day",
+            "Calendar UI date and displayed job date are now fully synchronized",
+            "Standardized date format to European (DD.MM.YYYY)",
+          ],
+          tr: [
+            "Takvim uygulama butonu davranışı düzeltildi",
+            "Takvimde bir gün kayma sorunu giderildi",
+            "Takvim arayüzündeki tarih ile iş tarihi artık birebir uyumludur",
+            "Tarih formatı Avrupa standardına (GG.AA.YYYY) çevrildi",
+          ],
+        },
+      },
+
+      {
+        label: {
+          en: "Authentication & Access",
+          tr: "Kimlik Doğrulama ve Erişim",
+        },
+        items: {
+          en: [
+            "Added 'Forgot Password' option to the main login screen",
+            "Email change flow fully fixed and stabilized",
+          ],
+          tr: [
+            "Ana giriş ekranına 'Şifremi Unuttum' seçeneği eklendi",
+            "E-posta değiştirme süreci tamamen düzeltildi ve kararlı hale getirildi",
+          ],
+        },
+      },
+
+      {
+        label: {
+          en: "Settings & UX Cleanup",
+          tr: "Ayarlar ve UX Düzenlemeleri",
+        },
+        items: {
+          en: ["Moved Language Toggle button into Advanced Settings"],
+          tr: ["Dil Değiştirme butonu Gelişmiş Ayarlar içine taşındı"],
+        },
+      },
+    ],
+  },
+
+  {
+    version: "1.2.9",
+    title: {
+      en: "Language Toggle Expansion, Pay Watch Enhancements & Mobile UI Fixes",
+      tr: "Dil Değiştirme Genişletmeleri, Ödeme Takibi ve Mobil Arayüz Düzeltmeleri",
+    },
+    sections: [
+      {
+        label: {
+          en: "Language & Internationalization",
+          tr: "Dil ve Uluslararasılaştırma",
+        },
+        items: {
+          en: [
+            "Added language toggle support for English, German, and Turkish across the entire app",
+            "Added language toggle support for English, German, and Turkish on all pages",
+            "Improved overall language consistency between App-level and Page-level translations",
+          ],
+          tr: [
+            "Uygulama genelinde İngilizce, Almanca ve Türkçe dil değiştirme desteği eklendi",
+            "Tüm sayfalara İngilizce, Almanca ve Türkçe dil değiştirme özelliği eklendi",
+            "Uygulama ve sayfa bazlı çeviriler arasındaki tutarlılık iyileştirildi",
+          ],
+        },
+      },
+
+      {
+        label: {
+          en: "Payments, Debt & Pay Watch List",
+          tr: "Ödemeler, Borç ve Ödeme Takibi",
+        },
+        items: {
+          en: [
+            "Added Due Date support when creating a Debt (e.g. 20, 30, or 60 days)",
+            "Debts with a due date now appear in the Pay Watch list",
+            "Create Job flow now supports assigning a Due Date",
+            "Jobs with delayed payment can now be tracked in the Pay Watch list",
+            "Added ability to manually add a Job to the Pay Watch list",
+            "Pay Watch list now allows assigning different due dates per job",
+            "Existing remove button in Pay Watch list preserved and improved",
+          ],
+          tr: [
+            "Borç oluştururken Vade Tarihi ekleme desteği eklendi (örn. 20, 30 veya 60 gün)",
+            "Vadesi olan borçlar artık Ödeme Takip listesinde görünür",
+            "İş oluşturma sırasında Vade Tarihi atanabilir",
+            "Maaş gecikmesi olan işler Ödeme Takip listesine eklenebilir",
+            "Bir işin manuel olarak Ödeme Takip listesine eklenmesi sağlandı",
+            "Ödeme Takip listesinde her iş için farklı vade tanımlanabilir",
+            "Ödeme Takip listesindeki kaldırma butonu korunarak iyileştirildi",
+          ],
+        },
+      },
+
+      {
+        label: {
+          en: "Calendar & Scheduling Fixes",
+          tr: "Takvim ve Zamanlama Düzeltmeleri",
+        },
+        items: {
+          en: [
+            "Calendar day cells resized to a more compact layout",
+            "Weekly calendar view now correctly displays both Jobs and Reservations",
+            "Daily calendar page visibility issue fixed",
+            "Clock In / Clock Out system fixed where Clock Out was not appearing",
+            "Reservations now appear as green dots and Jobs as red dots on the calendar",
+            "Calendar dot indicators now correctly display one red (Job) and one green (Reservation)",
+          ],
+          tr: [
+            "Takvim gün hücreleri daha kompakt hale getirildi",
+            "Haftalık takvim görünümünde İşler ve Rezervasyonlar artık doğru şekilde görünür",
+            "Günlük takvim sayfasının görünmemesi sorunu giderildi",
+            "Saat Giriş / Saat Çıkış sisteminde Saat Çıkış görünmeme sorunu düzeltildi",
+            "Rezervasyonlar takvimde yeşil, işler kırmızı nokta olarak gösterilir",
+            "Takvimde bir kırmızı (İş) ve bir yeşil (Rezervasyon) nokta doğru şekilde gösterilir",
+          ],
+        },
+      },
+
+      {
+        label: {
+          en: "Navigation, Layout & Mobile UI",
+          tr: "Navigasyon, Yerleşim ve Mobil Arayüz",
+        },
+        items: {
+          en: [
+            "Split App.css into smaller, more maintainable files",
+            "Fixed mobile UI layout issues caused by Navigation Bar and FAB",
+            "Navigation Bar width adjusted to properly fit app content",
+            "Address display issues fixed where long addresses broke layout",
+            "Profile address display now truncates long text with ellipsis (…) for stability",
+          ],
+          tr: [
+            "App.css daha küçük ve yönetilebilir dosyalara ayrıldı",
+            "Mobil sürümde Navigasyon Barı ve FAB kaynaklı arayüz bozulmaları giderildi",
+            "Navigasyon Barı genişliği uygulama içeriğine uyumlu hale getirildi",
+            "Uzun adreslerin arayüzü bozması sorunu düzeltildi",
+            "Profil adresleri uzun olduğunda artık (…) ile kısaltılır",
+          ],
+        },
+      },
+
+      {
+        label: {
+          en: "Advanced Settings & Profile Cleanup",
+          tr: "Gelişmiş Ayarlar ve Profil Düzenlemeleri",
+        },
+        items: {
+          en: [
+            "Created a new Advanced Settings section",
+            "Moved Password Reset and Calendar Toggle into Advanced Settings",
+            "Removed old Password Reset and Calendar Toggle from previous locations",
+            "Introduced a new Password Change modal inside Advanced Settings",
+            "Profile Settings cleaned up by removing password, calendar toggle, and email update options",
+            "Advanced Settings renamed and localized as 'Gelişmiş Ayarlar'",
+          ],
+          tr: [
+            "Yeni bir Gelişmiş Ayarlar bölümü oluşturuldu",
+            "Şifre Sıfırlama ve Takvim Toggle ayarları Gelişmiş Ayarlar içine taşındı",
+            "Eski konumlardaki Şifre ve Takvim ayarları kaldırıldı",
+            "Gelişmiş Ayarlar içinde yeni bir Şifre Değiştirme modalı eklendi",
+            "Profil Ayarları’ndan şifre, takvim toggle ve e-posta güncelleme seçenekleri kaldırıldı",
+            "Gelişmiş Ayarlar başlığı Türkçeleştirildi",
+          ],
+        },
+      },
+
+      {
+        label: {
+          en: "Vaults, Currency & Job Pricing",
+          tr: "Kasalar, Para Birimi ve İş Ücretleri",
+        },
+        items: {
+          en: [
+            "Fixed issue where Vault modal closed unexpectedly after editing a Vault",
+            "Hourly Rate no longer uses static TRY currency",
+            "Job creation now correctly follows the selected Vault currency",
+            "Fixed issue where selecting a Euro Vault still created jobs in TL",
+          ],
+          tr: [
+            "Kasa düzenleme sonrası Kasa modalının beklenmedik şekilde kapanması sorunu giderildi",
+            "Saatlik Ücret alanındaki sabit TRY kullanımı kaldırıldı",
+            "İş oluşturma artık seçilen kasanın para birimini kullanır",
+            "Euro kasa seçildiğinde işlerin TL olarak oluşturulması sorunu düzeltildi",
+          ],
+        },
+      },
+
+      {
+        label: {
+          en: "UX Text & Interaction Improvements",
+          tr: "UX Metin ve Etkileşim İyileştirmeleri",
+        },
+        items: {
+          en: [
+            "Replaced 'Saat Giriş / Çıkış' labels with clearer 'Başlat / Bitir' wording",
+            "Address fields are now clickable and open Google Maps",
+          ],
+          tr: [
+            "'Saat Giriş / Çıkış' metni daha anlaşılır 'Başlat / Bitir' olarak değiştirildi",
+            "Adres alanları artık tıklanabilir ve Google Haritalar’da açılır",
+          ],
+        },
+      },
+    ],
+  },
+
+  {
     version: "1.2.8",
     title: {
       en: "Calendar UX, Portal Scoping & Print Detail Improvements",
