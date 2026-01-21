@@ -89,8 +89,12 @@ export function toNum(v) {
 }
 
 /** Format money as currency */
-export function money(v, currency = "TRY") {
+export function money(v, currency) {
   const n = toNum(v);
+
+  if (!currency) {
+    return n.toFixed(2); // ✅ NO SYMBOL
+  }
 
   const symbols = {
     TRY: "₺",
@@ -98,7 +102,7 @@ export function money(v, currency = "TRY") {
     EUR: "€",
   };
 
-  const symbol = symbols[currency] || "₺";
+  const symbol = symbols[currency] || currency;
   return `${n.toFixed(2)} ${symbol}`;
 }
 
@@ -200,7 +204,10 @@ export function makeEmptyJob(customers = []) {
 
     date: new Date().toISOString().slice(0, 10),
 
-    // 👇 NEW
+    // ✅ IMPORTANT: enable payment tracking by default
+    trackPayment: true,
+
+    // default due date (user can change)
     dueDays: 30,
 
     start: "",
@@ -208,10 +215,10 @@ export function makeEmptyJob(customers = []) {
     rate: "",
     timeMode: "manual",
     fixedPrice: "",
-    // 🗓 FIXED JOB DATE RANGE (NEW)
+
     plannedStartDate: "",
     plannedEndDate: "",
-    breakMinutes: "", // ✅ FIX
+    breakMinutes: "",
     parts: [],
     notes: "",
     isRunning: false,

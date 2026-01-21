@@ -168,14 +168,13 @@ export function HomePage({
       </div>
 
       <div id="job-list">
-        {/* 30-DAY PAYMENT TRACKING */}
         <div className="card">
           <div
-            className="list-item section-header due-header"
+            className="list-item section-row"
             onClick={() => setPaymentOpen((o) => !o)}
           >
             <strong>
-              <i className="fa-solid fa-bell"></i> {t("payment_tracking_30")} (
+              <i className="fa-solid fa-bell"></i> {t("payment_tracking")} (
               {paymentWatchList.length})
             </strong>
             <i
@@ -372,8 +371,7 @@ export function HomePage({
         {/* ACTIVE JOBS FOLDER */}
         <div className="card">
           <div
-            className="list-item"
-            style={{ cursor: "pointer" }}
+            className="list-item section-row"
             onClick={() => {
               const next = !activeOpen;
               setActiveOpen(next);
@@ -484,8 +482,7 @@ export function HomePage({
         {/* COMPLETED JOBS FOLDER */}
         <div className="card" style={{ marginTop: 10 }}>
           <div
-            className="list-item"
-            style={{ cursor: "pointer" }}
+            className="list-item section-row"
             onClick={() => {
               const next = !completedOpen;
               setCompletedOpen(next);

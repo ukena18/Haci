@@ -1,5 +1,148 @@
 export const CHANGELOG = [
   {
+    version: "1.3.1",
+    title: {
+      en: "Job Creation UX, Due Date Logic & Input Validation Improvements",
+      tr: "İş Oluşturma UX, Vade Tarihi Mantığı ve Girdi Doğrulamaları",
+    },
+    sections: [
+      {
+        label: {
+          en: "Debt, Currency & Financial Flow",
+          tr: "Borç, Para Birimi ve Finans Akışı",
+        },
+        items: {
+          en: [
+            "Users can now add Debt without selecting a currency first",
+            "Customer currency is assigned automatically on first Payment (Tahsilat)",
+            "Customer balances no longer display any currency symbol before the first payment",
+            "Removed incorrect default TRY symbol from early debt records",
+          ],
+          tr: [
+            "Kullanıcılar artık para birimi seçmeden borç ekleyebilir",
+            "Müşteri para birimi ilk Tahsilat işlemiyle otomatik olarak belirlenir",
+            "İlk tahsilat öncesinde müşteri bakiyesinde para birimi simgesi gösterilmez",
+            "İlk borç işlemlerinde görünen varsayılan TRY simgesi kaldırıldı",
+          ],
+        },
+      },
+
+      {
+        label: {
+          en: "Job Creation & Due Date Handling",
+          tr: "İş Oluşturma ve Vade Tarihi",
+        },
+        items: {
+          en: [
+            "30-Day Payment Tracking renamed to Due Tracking",
+            "Payment Due is now selected as a Date instead of day count",
+            "Default due date is auto-calculated from the Job Date (30 days)",
+            "Due Date field is positioned directly under Job Date",
+            "Users can freely select longer due dates (e.g. 60 days)",
+            "Removed yellow info warning from Fixed Time job mode",
+          ],
+          tr: [
+            "30 Günlük Ödeme Takibi adı Vade Takibi olarak değiştirildi",
+            "Ödeme Vadesi artık gün sayısı yerine tarih olarak seçilir",
+            "Varsayılan vade tarihi iş tarihinden otomatik 30 gün sonrası olarak hesaplanır",
+            "Vade Tarihi alanı İş Tarihi altına taşındı",
+            "Kullanıcılar 60 gün gibi daha uzun vadeler seçebilir",
+            "Sabit Ücret çalışma modundaki sarı bilgilendirme alanı kaldırıldı",
+          ],
+        },
+      },
+
+      {
+        label: {
+          en: "Inputs, Validation & UX Cleanup",
+          tr: "Girdi Doğrulamaları ve UX Temizliği",
+        },
+        items: {
+          en: [
+            "Customer selection label removed from Job creation screen",
+            "Date labels removed and replaced with placeholders to save space",
+            "Customer selection input now includes a clear (✕) button",
+            "Hourly Rate can no longer be negative",
+            "Hourly Rate currency label moved inside the input",
+            "Lunch Break input no longer shows default zero value",
+            "Removed green currency symbol from Fixed Price jobs",
+          ],
+          tr: [
+            "İş oluşturma ekranındaki Müşteri Seç etiketi kaldırıldı",
+            "Tarih etiketleri kaldırılarak placeholder kullanıldı",
+            "Müşteri seçim alanına temizleme (✕) butonu eklendi",
+            "Saatlik Ücret alanında negatif değer girilmesi engellendi",
+            "Saatlik Ücret para birimi bilgisi input içine alındı",
+            "Mola alanındaki varsayılan 0 değeri kaldırıldı",
+            "Sabit Ücret alanındaki yeşil para birimi simgesi kaldırıldı",
+          ],
+        },
+      },
+
+      {
+        label: {
+          en: "UI Consistency & Layout",
+          tr: "Arayüz Tutarlılığı ve Yerleşim",
+        },
+        items: {
+          en: [
+            "All arrows and expandable indicators standardized to the same size",
+            "All cards and boxes now follow consistent sizing rules",
+            "CSS files consolidated for easier maintenance",
+            "Language icon added to Settings page",
+          ],
+          tr: [
+            "Tüm ok ikonları ve açılır göstergeler aynı boyuta getirildi",
+            "Kartlar ve kutular için tutarlı ölçüler sağlandı",
+            "CSS dosyaları birleştirilerek sadeleştirildi",
+            "Ayarlar sayfasına dil ikonu eklendi",
+          ],
+        },
+      },
+
+      {
+        label: {
+          en: "Calendar, Jobs & Access Control",
+          tr: "Takvim, İşler ve Erişim Kontrolü",
+        },
+        items: {
+          en: [
+            "Customer selection in Calendar reservation now defaults to 'Select customer'",
+            "New Advanced Setting added to enable / disable Job creation and FAB button",
+            "When disabled, users cannot create Jobs",
+          ],
+          tr: [
+            "Takvimden yeni randevu oluştururken müşteri alanı varsayılan olarak 'Müşteri Seçiniz' olur",
+            "İş oluşturma ve FAB butonunu açıp kapatmak için yeni Gelişmiş Ayar eklendi",
+            "Devre dışı bırakıldığında kullanıcılar iş oluşturamaz",
+          ],
+        },
+      },
+
+      {
+        label: {
+          en: "Authentication & Registration",
+          tr: "Kayıt ve Kimlik Doğrulama",
+        },
+        items: {
+          en: [
+            "Registration screen now includes Name, Phone, and Address fields",
+            "These fields are automatically synced to the user Profile after signup",
+            "Phone number input now blocks letters and spaces",
+            "Phone numbers are enforced as continuous digits with optional leading +",
+          ],
+          tr: [
+            "Kayıt ol ekranına Ad, Telefon ve Adres alanları eklendi",
+            "Bu bilgiler kayıt sonrası otomatik olarak Profil’e yansıtılır",
+            "Telefon numarası alanında harf ve boşluk girişi engellendi",
+            "Telefon numarası bitişik rakamlar ve opsiyonel + ile sınırlandı",
+          ],
+        },
+      },
+    ],
+  },
+
+  {
     version: "1.3.0",
     title: {
       en: "Currency Consistency, Vault Rules & Critical Data Integrity Fixes",

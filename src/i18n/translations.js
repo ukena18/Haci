@@ -234,7 +234,7 @@ export const translations = {
     // =====================
     // PAYMENT TRACKING (HOME)
     // =====================
-    payment_tracking_30: "30 Günlük Ödeme Takibi",
+    payment_tracking: "Vade Takibi",
     no_tracked_jobs: "Takip edilecek aktif iş yok.",
     days_overdue: "gün gecikmiş",
     days_left: "gün kaldı",
@@ -770,6 +770,9 @@ export const translations = {
 
     "settings.calendar.title": "Takvimi Göster",
     "settings.calendar.desc": "Takvim menüde ve ana ekranda görünür.",
+    "settings.jobs.title": "İş Takibini Etkinleştir",
+    "settings.jobs.desc":
+      "İş oluşturma, takip ve borçlandırma özelliklerini aç veya kapat.",
   },
 
   en: {
@@ -928,7 +931,7 @@ export const translations = {
     total_payment: "Total Payment",
     net_status: "Net Balance",
 
-    payment_tracking_30: "30-Day Payment Tracking",
+    payment_tracking: "Payment Tracking",
     no_tracked_jobs: "No active jobs to track.",
     days_overdue: "days overdue",
     days_left: "days left",
@@ -1330,6 +1333,10 @@ export const translations = {
     "settings.calendar.title": "Show Calendar",
     "settings.calendar.desc":
       "The calendar is visible in the menu and on the home screen.",
+
+    "settings.jobs.title": "Enable Job Tracking",
+    "settings.jobs.desc":
+      "Turn job creation, tracking, and billing features on or off.",
   },
 
   de: {
@@ -1489,7 +1496,7 @@ export const translations = {
     total_payment: "Gesamteinnahmen",
     net_status: "Nettostand",
 
-    payment_tracking_30: "30-Tage-Zahlungsverfolgung",
+    payment_tracking: "Zahlungsverfolgung",
     no_tracked_jobs: "Keine aktiven Aufträge zur Verfolgung.",
     days_overdue: "Tage überfällig",
     days_left: "Tage verbleibend",
@@ -1901,5 +1908,9 @@ export const translations = {
     "settings.calendar.title": "Kalender anzeigen",
     "settings.calendar.desc":
       "Der Kalender wird im Menü und auf dem Startbildschirm angezeigt.",
+
+    "settings.jobs.title": "Auftragsverfolgung aktivieren",
+    "settings.jobs.desc":
+      "Erstellen, Verfolgen und Abrechnen von Aufträgen ein- oder ausschalten.",
   },
 };

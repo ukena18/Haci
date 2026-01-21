@@ -385,13 +385,6 @@ function AppRoutes({ user }) {
       }
 
       // ==============================
-      // ✅ CURRENCY DEFAULT
-      // ==============================
-      if (!fixed.currency) {
-        fixed.currency = "TRY";
-      }
-
-      // ==============================
       // ✅ VAULT MIGRATION
       // ==============================
       if (!Array.isArray(fixed.vaults)) {
@@ -553,9 +546,11 @@ function MainApp({ state, setState, user }) {
     setPaymentModalOpen(true);
   }
 
-  const currency = state.currency || "TRY";
+  const currency = null; // ❌ do NOT force currency
 
   const showCalendar = state.profile?.settings?.showCalendar !== false;
+  // ✅ JOB FEATURE FLAG (GLOBAL)
+  const enableJobs = state.profile?.settings?.enableJobs !== false;
 
   const activeVault = useMemo(() => {
     return (
@@ -1026,29 +1021,29 @@ ${t("duplicate_customer_confirm")}
     });
   }
 
-  /** Add debt to a customer (does NOT affect cash) */
-  function addDebt(customerId, amount, note, date, vaultId, method) {
+  function addDebt(customerId, amount, note, date) {
     const amt = toNum(amount);
     if (amt <= 0) return;
 
     setState((s) => {
+      const customer = s.customers.find((c) => c.id === customerId);
+
       const debt = {
         id: uid(),
         customerId,
-        vaultId: vaultId || s.activeVaultId,
         type: "debt",
         amount: amt,
-        method,
         note: note || t("debt_default_note"),
         date,
         createdAt: Date.now(),
         dueDays: 30,
         dueDismissed: false,
-        currency:
-          (s.vaults || []).find((k) => k.id === (vaultId || s.activeVaultId))
-            ?.currency ||
-          s.currency ||
-          "TRY",
+
+        // 🔒 CRITICAL RULE:
+        // Debt NEVER defines currency
+        // Before first payment → null
+        // After payment → display uses customer.currency
+        currency: null,
       };
 
       return {
@@ -1240,6 +1235,7 @@ ${t("duplicate_customer_confirm")}
 ============================================================ */
   function onFabClick() {
     if (page === "home") {
+      if (!enableJobs) return; // ⛔ HARD BLOCK
       setEditingJobId(null);
       setJobFixedCustomerId(null);
       setJobModalOpen(true);
@@ -1316,12 +1312,13 @@ ${t("duplicate_customer_confirm")}
             {/* HOME PAGE */}
             {page === "home" && (
               <HomePage
-                currency={currency}
                 financialSummary={financialSummary}
                 paymentWatchList={paymentWatchList}
                 customersById={customersById}
                 activeJobs={activeJobs}
-                activeJobsByCustomer={activeJobsByCustomer}
+                activeJobsByCustomer={
+                  enableJobs ? activeJobsByCustomer : new Map()
+                }
                 completedJobs={completedJobs}
                 openCustomerFolders={openCustomerFolders}
                 paymentOpen={paymentOpen}
@@ -1414,12 +1411,13 @@ ${t("duplicate_customer_confirm")}
             )}
           </div>
 
-          {/* Floating Action Button */}
-          {page !== "settings" && page !== "calendar" && (
-            <button className="fab" id="fab-btn" onClick={onFabClick}>
-              <i className="fa-solid fa-plus"></i>
-            </button>
-          )}
+          {page !== "settings" &&
+            page !== "calendar" &&
+            (page !== "home" || enableJobs) && (
+              <button className="fab" id="fab-btn" onClick={onFabClick}>
+                <i className="fa-solid fa-plus"></i>
+              </button>
+            )}
 
           {/* Bottom navigation */}
           <nav className="bottom-nav">
@@ -1531,11 +1529,15 @@ ${t("duplicate_customer_confirm")}
               setEditingJobId(jobId);
               setJobModalOpen(true);
             }}
-            onAddJob={() => {
-              setEditingJobId(null);
-              setJobFixedCustomerId(selectedCustomerId);
-              setJobModalOpen(true);
-            }}
+            onAddJob={
+              enableJobs
+                ? () => {
+                    setEditingJobId(null);
+                    setJobFixedCustomerId(selectedCustomerId);
+                    setJobModalOpen(true);
+                  }
+                : null
+            }
             onDeleteJob={(jobId) =>
               setConfirm({
                 open: true,
@@ -1868,7 +1870,6 @@ function JobCard({
   setConfirm,
   markJobComplete,
 
-  currency, // ✅ ADD THIS
   onOpenActions, // ✅ ADD
   hideActions = false, // ✅ ADD THIS LINE
 }) {
@@ -2010,7 +2011,7 @@ function JobCard({
 
           {/* 3) price */}
           <strong className="job-amount" style={{ whiteSpace: "nowrap" }}>
-            {money(total, currency)}
+            {money(total, c?.currency)}
           </strong>
         </div>
       </div>
@@ -2021,25 +2022,25 @@ function JobCard({
             {job.timeMode === "fixed" ? (
               <div className="miniRow">
                 <span>{t("fixed_price")}:</span>
-                <strong>{money(job.fixedPrice, currency)}</strong>
+                <strong>{money(job.fixedPrice, c?.currency)}</strong>
               </div>
             ) : (
               <>
                 <div className="miniRow">
                   <span>{t("hourly_rate")}:</span>
-                  <strong>{money(job.rate, currency)}</strong>
+                  <strong>{money(job.rate, c?.currency)}</strong>
                 </div>
 
                 <div className="miniRow">
                   <span>{t("labor")}:</span>
-                  <strong>{money(hours * toNum(job.rate), currency)}</strong>
+                  <strong>{money(hours * toNum(job.rate), c?.currency)}</strong>
                 </div>
               </>
             )}
 
             <div className="miniRow">
               <span>{t("parts")}:</span>
-              <strong>{money(partsTotal, currency)}</strong>
+              <strong>{money(partsTotal, c?.currency)}</strong>
             </div>
 
             {job.parts?.length ? (
@@ -2054,7 +2055,7 @@ function JobCard({
                       {p.name || t("part_generic")}{" "}
                       {p.qty != null ? `× ${p.qty}` : ""}
                     </span>
-                    <span>{money(partLineTotal(p), currency)}</span>
+                    <span>{money(partLineTotal(p), c?.currency)}</span>
                   </div>
                 ))}
               </div>

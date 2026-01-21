@@ -338,7 +338,7 @@ export function JobModal({
   jobs,
   editingJobId,
   onSave,
-  currency,
+
   setConfirm,
   fixedCustomerId = null,
 }) {
@@ -348,7 +348,6 @@ export function JobModal({
   const [draft, setDraft] = useState(() => makeEmptyJob(customers));
   const [customerSearch, setCustomerSearch] = useState("");
   const [customerDropdownOpen, setCustomerDropdownOpen] = useState(false);
-  const jobCurrency = currency;
 
   const customerOptions = useMemo(() => {
     const q = customerSearch.trim().toLowerCase();
@@ -400,12 +399,17 @@ export function JobModal({
 
         // optional safety
         dueDays: editing.dueDays == null ? "" : String(editing.dueDays),
+        dueDate: editing.dueDays
+          ? addDaysToDate(editing.date, editing.dueDays)
+          : "",
 
         dueDismissed: editing.dueDismissed === true,
       });
     } else {
       const fresh = makeEmptyJob(customers);
 
+      fresh.dueDate = addDaysToDate(fresh.date, 30);
+      fresh.dueDays = 30;
       if (fixedCustomerId) {
         fresh.customerId = fixedCustomerId;
       }
@@ -413,6 +417,12 @@ export function JobModal({
       setDraft(fresh);
     }
   }, [open, editingJobId, fixedCustomerId]); // ✅ include fixedCustomerId
+
+  // ✅ Currency is derived from selected customer (can be null)
+  const jobCurrency = useMemo(() => {
+    const c = customers.find((x) => x.id === draft.customerId);
+    return c?.currency || null;
+  }, [customers, draft.customerId]);
 
   function setField(k, v) {
     setDraft((d) => ({ ...d, [k]: v }));
@@ -426,6 +436,21 @@ export function JobModal({
         { id: uid(), name: "", qty: null, unitPrice: null },
       ],
     }));
+  }
+
+  function addDaysToDate(dateStr, days) {
+    if (!dateStr || days == null) return "";
+    const d = new Date(dateStr);
+    d.setDate(d.getDate() + Number(days));
+    return d.toISOString().slice(0, 10);
+  }
+
+  function diffDays(fromDateStr, toDateStr) {
+    if (!fromDateStr || !toDateStr) return null;
+    const from = new Date(fromDateStr);
+    const to = new Date(toDateStr);
+    const diff = Math.ceil((to - from) / (1000 * 60 * 60 * 24));
+    return diff > 0 ? diff : 0;
   }
 
   function updatePart(partId, patch) {
@@ -507,9 +532,9 @@ export function JobModal({
       dueDays:
         draft.trackPayment === false
           ? null
-          : draft.dueDays === "" || draft.dueDays == null
-            ? 30
-            : Number(draft.dueDays),
+          : draft.dueDate
+            ? diffDays(draft.date, draft.dueDate)
+            : 30,
 
       // ✅ IMPORTANT: if clock mode, workedMs must come from sessions
       workedMs:
@@ -520,8 +545,7 @@ export function JobModal({
       // ✅ persist fixed job duration
       fixedDays: draft.timeMode === "fixed" ? workingDays : null,
 
-      currency: jobCurrency,
-      rate: toNum(draft.rate),
+      rate: Math.max(0, toNum(draft.rate)),
       parts: (draft.parts || []).map((p) => ({
         ...p,
         qty: toNum(p.qty),
@@ -546,27 +570,57 @@ export function JobModal({
           ref={customerBoxRef}
           style={{ position: "relative" }}
         >
-          <label>Müşteri Seç</label>
-
           {/* SEARCH INPUT */}
-          <input
-            type="text"
-            placeholder="Müşteri ara…"
-            value={
-              draft.customerId
-                ? (() => {
-                    const c = customers.find((x) => x.id === draft.customerId);
-                    return c ? `${c.name} ${c.surname}` : "";
-                  })()
-                : customerSearch
-            }
-            onChange={(e) => {
-              setCustomerSearch(e.target.value);
-              setCustomerDropdownOpen(true);
-              setField("customerId", "");
-            }}
-            onFocus={() => setCustomerDropdownOpen(true)}
-          />
+          {/* SEARCH INPUT WITH CLEAR (X) */}
+          <div style={{ position: "relative" }}>
+            <input
+              type="text"
+              placeholder="Müşteri ara…"
+              value={
+                draft.customerId
+                  ? (() => {
+                      const c = customers.find(
+                        (x) => x.id === draft.customerId,
+                      );
+                      return c ? `${c.name} ${c.surname}` : "";
+                    })()
+                  : customerSearch
+              }
+              onChange={(e) => {
+                setCustomerSearch(e.target.value);
+                setCustomerDropdownOpen(true);
+                setField("customerId", "");
+              }}
+              onFocus={() => setCustomerDropdownOpen(true)}
+              style={{ paddingRight: 36 }} // 👈 space for X
+            />
+
+            {/* ❌ CLEAR BUTTON */}
+            {(customerSearch || draft.customerId) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setCustomerSearch("");
+                  setField("customerId", "");
+                  setCustomerDropdownOpen(false);
+                }}
+                style={{
+                  position: "absolute",
+                  right: 10,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "#6b7280",
+                  fontSize: 16,
+                }}
+                aria-label="Clear"
+              >
+                ✕
+              </button>
+            )}
+          </div>
 
           {/* DROPDOWN */}
           {customerDropdownOpen && (
@@ -632,13 +686,79 @@ export function JobModal({
       )}
 
       <div className="form-group">
-        <label>Tarih</label>
         <input
           type="date"
           value={draft.date}
-          onChange={(e) => setField("date", e.target.value)}
+          onChange={(e) => {
+            const newDate = e.target.value;
+
+            setDraft((d) => {
+              // if dueDate was auto (date + 30), keep it in sync
+              const autoDue =
+                d.dueDate === addDaysToDate(d.date, 30) || !d.dueDate;
+
+              return {
+                ...d,
+                date: newDate,
+                dueDate: autoDue ? addDaysToDate(newDate, 30) : d.dueDate,
+                dueDays: autoDue ? 30 : d.dueDays,
+              };
+            });
+          }}
         />
       </div>
+      <div className="form-group">
+        <label>Ödeme Vadesi</label>
+
+        <input
+          type="date"
+          value={draft.dueDate ?? ""}
+          onChange={(e) => {
+            const v = e.target.value;
+
+            setDraft((d) => ({
+              ...d,
+              dueDate: v,
+              // 🔁 auto-calc dueDays from job date
+              dueDays: v ? diffDays(d.date, v) : "",
+            }));
+          }}
+          disabled={!draft.trackPayment}
+        />
+
+        <small style={{ color: "#6b7280" }}>
+          {draft.trackPayment
+            ? "Ödeme seçilen tarihte vadesi dolacaktır."
+            : "Bu iş ödeme takibine dahil edilmez."}
+        </small>
+
+        {editing && draft.dueDismissed && (
+          <div style={{ marginTop: 10 }}>
+            <button
+              type="button"
+              className="btn"
+              style={{
+                background: "#ecfeff",
+                color: "#0369a1",
+                fontWeight: 600,
+              }}
+              onClick={() =>
+                setDraft((d) => ({
+                  ...d,
+                  dueDismissed: false,
+                }))
+              }
+            >
+              🔔 Ödeme Takibini Geri Ekle
+            </button>
+
+            <div style={{ fontSize: 12, color: "#0369a1", marginTop: 4 }}>
+              Takip kaldığı yerden devam eder (günler sıfırlanmaz).
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* ============================= */}
       {/* ÇALIŞMA ZAMANI GİRİŞİ */}
       {/* ============================= */}
@@ -703,89 +823,6 @@ export function JobModal({
             <span>Sabit Ücret</span>
           </label>
         </div>
-
-        {/* 🔎 Time mode description (single block) */}
-        <div className="time-mode-info" aria-live="polite">
-          {draft.timeMode === "manual" ? (
-            <>
-              Başlangıç ve bitiş saatlerini elle girersiniz.
-              <br />
-              Toplam süreye göre işçilik hesaplanır.
-            </>
-          ) : draft.timeMode === "clock" ? (
-            <>
-              Çalışma süresi sayaç ile takip edilir.
-              <br />
-              Saat Giriş / Çıkış ile otomatik hesaplama yapılır.
-            </>
-          ) : (
-            <>
-              Bu işin toplam ücreti süreden bağımsızdır.
-              <br />
-              Girilen sabit fiyat üzerinden hesaplanır.
-            </>
-          )}
-        </div>
-      </div>
-
-      <div className="form-group">
-        <label>Ödeme Vadesi (gün)</label>
-
-        <div
-          style={{
-            display: "flex",
-            gap: 10,
-            alignItems: "center",
-          }}
-        >
-          {/* DAYS INPUT */}
-          <input
-            type="number"
-            min={1}
-            max={365}
-            style={{ flex: 1 }}
-            value={draft.dueDays ?? ""}
-            onChange={(e) => {
-              setDraft((d) => ({
-                ...d,
-                dueDays: e.target.value, // ✅ STRING ONLY
-              }));
-            }}
-            disabled={!draft.trackPayment}
-          />
-        </div>
-
-        <small style={{ color: "#6b7280" }}>
-          {draft.trackPayment
-            ? "İş tamamlandıktan sonra ödeme takibine alınır."
-            : "Bu iş ödeme takibine dahil edilmez."}
-        </small>
-        {/* ✅ BRING BACK TO PAYMENT WATCHLIST */}
-        {editing && draft.dueDismissed && (
-          <div style={{ marginTop: 10 }}>
-            <button
-              type="button"
-              className="btn"
-              style={{
-                background: "#ecfeff",
-                color: "#0369a1",
-                fontWeight: 600,
-              }}
-              onClick={() =>
-                setDraft((d) => ({
-                  ...d,
-                  dueDismissed: false,
-                }))
-              }
-            >
-              🔔 Ödeme Takibini Geri Ekle
-            </button>
-
-            <div style={{ fontSize: 12, color: "#0369a1", marginTop: 4 }}>
-              Takip kaldığı yerden devam eder (günler sıfırlanmaz).
-            </div>
-          </div>
-        )}
       </div>
 
       {/* ============================= */}
@@ -960,13 +997,11 @@ export function JobModal({
           </div>
           {draft.timeMode === "manual" && (
             <div className="form-group">
-              <label>Öğle Molası (dakika)</label>
-
               <input
                 type="number"
                 min="0"
                 step="5"
-                placeholder="Örn: 30"
+                placeholder="Öğle Molası (dakika)"
                 value={draft.breakMinutes ?? ""}
                 onChange={(e) =>
                   setDraft((d) => ({
@@ -983,12 +1018,33 @@ export function JobModal({
           )}
 
           <div className="form-group">
-            <label>Saatlik Ücret ({jobCurrency})</label>
             <input
               type="number"
-              value={draft.rate}
-              placeholder="Ücret"
-              onChange={(e) => setField("rate", e.target.value)}
+              inputMode="decimal"
+              min="0"
+              step="0.01"
+              placeholder="Saatlik Ücret"
+              value={draft.rate ?? ""}
+              onKeyDown={(e) => {
+                // ❌ block minus & scientific notation
+                if (e.key === "-" || e.key === "e" || e.key === "E") {
+                  e.preventDefault();
+                }
+              }}
+              onChange={(e) => {
+                const v = e.target.value;
+
+                // allow empty while typing
+                if (v === "") {
+                  setField("rate", "");
+                  return;
+                }
+
+                const n = Number(v);
+
+                // clamp to >= 0
+                setField("rate", Number.isFinite(n) ? Math.max(0, n) : 0);
+              }}
             />
           </div>
         </>
@@ -999,13 +1055,25 @@ export function JobModal({
       {/* ============================= */}
       {draft.timeMode === "fixed" && (
         <div className="form-group">
-          <label>Sabit Ücret ({jobCurrency})</label>
-
           <input
             type="number"
-            value={draft.fixedPrice}
-            placeholder="Ücret"
-            onChange={(e) => setField("fixedPrice", e.target.value)}
+            min="0"
+            step="0.01"
+            value={draft.fixedPrice ?? ""}
+            placeholder="Sabit Ücret"
+            onKeyDown={(e) => {
+              if (e.key === "-" || e.key === "e" || e.key === "E") {
+                e.preventDefault();
+              }
+            }}
+            onChange={(e) => {
+              const v = e.target.value;
+              if (v === "") {
+                setField("fixedPrice", "");
+                return;
+              }
+              setField("fixedPrice", Math.max(0, Number(v)));
+            }}
           />
         </div>
       )}
@@ -1215,7 +1283,7 @@ export function CustomerDetailModal({
   const [editDueDays, setEditDueDays] = useState("30");
   const [editDueDismissed, setEditDueDismissed] = useState(false);
 
-  const displayCurrency = customer?.currency || currency;
+  const displayCurrency = customer?.currency || null;
 
   function parseLocalDate(dateStr) {
     const [y, m, d] = dateStr.split("-").map(Number);
@@ -1291,7 +1359,7 @@ export function CustomerDetailModal({
         const sign = p.type === "payment" ? "+" : "-"; // sign is logic, keep it
 
         text += `${formatDateByLang(p.date, lang)} | ${typeLabel}\n`;
-        text += `Tutar: ${sign}${money(p.amount, p.currency || currency)}\n`;
+        text += `Tutar: ${sign}${money(p.amount, p.currency)}\n`;
         text += `Kasa: ${vaultNameOf(p.vaultId)}\n`;
         text += `Yöntem: ${PAYMENT_METHOD_LABEL_TR[p.method] || "—"}\n`;
         if (p.note) text += `Not: ${p.note}\n`;
@@ -1495,7 +1563,7 @@ export function CustomerDetailModal({
       },
       jobs,
       payments,
-      currency: customer.currency || currency,
+      currency: customer.currency,
     });
 
     // 🔥 open portal WITH print flag
@@ -1642,9 +1710,11 @@ export function CustomerDetailModal({
                   <i className="fa-solid fa-file-invoice"></i> Borç
                 </button>
 
-                <button className="btn-primary blue" onClick={onAddJob}>
-                  <i className="fa-solid fa-plus"></i> İş
-                </button>
+                {onAddJob && (
+                  <button className="btn btn-save" onClick={onAddJob}>
+                    {t("add_job")}
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -1780,7 +1850,7 @@ export function CustomerDetailModal({
                         }}
                       >
                         {isPayment ? "+" : "-"}
-                        {money(p.amount, p.currency || currency)}
+                        {money(p.amount, p.currency)}
                       </div>
                     </div>
                   );
@@ -2212,13 +2282,6 @@ export function PaymentActionModal({
             <button
               className={mode === "payment" ? "btn btn-save" : "btn btn-delete"}
               onClick={() => {
-                if (mode === "debt" && !customer?.currency) {
-                  alert(
-                    "Önce tahsilat yaparak müşteri para birimini belirleyin.",
-                  );
-                  return;
-                }
-
                 onSubmit(
                   amount,
                   note,
@@ -3246,6 +3309,66 @@ export function AdvancedSettingsModal({
                 type="checkbox"
                 checked={showCalendar}
                 onChange={toggleCalendar}
+              />
+              <span className="slider" />
+            </label>
+          </div>
+        </button>
+
+        {/* =========================
+    JOB SYSTEM TOGGLE
+========================= */}
+        <button
+          className="settings-card"
+          type="button"
+          onClick={() => {
+            setState((s) => ({
+              ...s,
+              profile: {
+                ...s.profile,
+                settings: {
+                  ...s.profile?.settings,
+                  enableJobs:
+                    s.profile?.settings?.enableJobs === false ? true : false,
+                },
+              },
+            }));
+          }}
+        >
+          {/* LEFT ICON */}
+          <div className="settings-icon gray">
+            <i className="fa-solid fa-briefcase"></i>
+          </div>
+
+          {/* CENTER CONTENT */}
+          <div className="settings-content">
+            <h3>{t("settings.jobs.title")}</h3>
+            <p>{t("settings.jobs.desc")}</p>
+          </div>
+
+          {/* RIGHT TOGGLE */}
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ display: "flex", alignItems: "center" }}
+          >
+            <label className="switch">
+              <input
+                type="checkbox"
+                checked={state.profile?.settings?.enableJobs !== false}
+                onChange={(e) => {
+                  const enabled = e.target.checked;
+
+                  setState((s) => ({
+                    ...s,
+                    profile: {
+                      ...s.profile,
+                      settings: {
+                        ...s.profile?.settings,
+                        enableJobs: enabled,
+                      },
+                    },
+                  }));
+                }}
               />
               <span className="slider" />
             </label>
