@@ -411,6 +411,8 @@ export function HomePage({
                 const customer = customersById.get(customerId);
                 const isOpen = openCustomerFolders[customerId] ?? false;
 
+                const customerCurrency = customer?.currency || currency;
+
                 const totalAmount = jobs.reduce(
                   (sum, j) => sum + jobTotalOf(j),
                   0,
@@ -443,7 +445,7 @@ export function HomePage({
                         }}
                       >
                         <strong className="customer-debt-amount">
-                          {money(totalAmount, currency)}
+                          {money(totalAmount, customerCurrency)}
                         </strong>
 
                         <span
@@ -702,7 +704,9 @@ export function SettingsPage({
 
           <div className="admin-info">
             <strong className="admin-name">
-              {user?.displayName || t("settings.adminFallback")}
+              {state.profile?.name ||
+                user?.displayName ||
+                t("settings.adminFallback")}
             </strong>
 
             <div className="admin-email">

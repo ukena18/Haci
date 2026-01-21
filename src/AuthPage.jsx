@@ -3,8 +3,10 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
+  updateProfile,
 } from "firebase/auth";
-import { auth } from "./firebase";
+import { auth, db } from "./firebase";
+import { doc, setDoc } from "firebase/firestore";
 
 export default function AuthPage() {
   const [email, setEmail] = useState("");
@@ -12,14 +14,54 @@ export default function AuthPage() {
   const [isRegister, setIsRegister] = useState(false);
   const [error, setError] = useState("");
 
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
 
     try {
       if (isRegister) {
-        await createUserWithEmailAndPassword(auth, email, password);
+        // ✅ validation
+        if (!name || !phone || !address) {
+          setError("Lütfen tüm alanları doldurun");
+          return;
+        }
+
+        // ✅ create user
+        const cred = await createUserWithEmailAndPassword(
+          auth,
+          email,
+          password,
+        );
+
+        const user = cred.user;
+
+        // ✅ sync displayName to Firebase Auth
+        await updateProfile(user, {
+          displayName: name,
+        });
+
+        // ✅ save profile to Firestore
+        await setDoc(doc(db, "users", user.uid), {
+          uid: user.uid,
+          email: user.email,
+          profile: {
+            name,
+            phone,
+            address,
+          },
+          createdAt: Date.now(),
+
+          // defaults for app
+          currency: "TRY",
+          vaults: [],
+          customers: [],
+        });
       } else {
+        // ✅ login
         await signInWithEmailAndPassword(auth, email, password);
       }
     } catch (err) {
@@ -39,8 +81,6 @@ export default function AuthPage() {
       await sendPasswordResetEmail(auth, email);
       alert("Şifre sıfırlama e-postası gönderildi");
     } catch (err) {
-      console.error(err);
-
       if (err.code === "auth/user-not-found") {
         setError("Bu e-posta ile kayıtlı kullanıcı yok");
       } else if (err.code === "auth/invalid-email") {
@@ -55,6 +95,34 @@ export default function AuthPage() {
     <div style={styles.page}>
       <form onSubmit={handleSubmit} style={styles.card}>
         <h2>{isRegister ? "Kayıt Ol" : "Giriş Yap"}</h2>
+
+        {isRegister && (
+          <>
+            <input
+              type="text"
+              placeholder="İsim Soyadı"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              style={styles.input}
+            />
+
+            <input
+              type="tel"
+              placeholder="Telefon"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              style={styles.input}
+            />
+
+            <input
+              type="text"
+              placeholder="Adres"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              style={styles.input}
+            />
+          </>
+        )}
 
         <input
           type="email"
@@ -73,14 +141,9 @@ export default function AuthPage() {
           required
           style={styles.input}
         />
+
         {!isRegister && (
-          <div
-            style={{
-              textAlign: "right",
-              marginBottom: 10,
-              fontSize: 13,
-            }}
-          >
+          <div style={{ textAlign: "right", marginBottom: 10, fontSize: 13 }}>
             <span style={styles.link} onClick={handleForgotPassword}>
               Şifreni mi unuttun?
             </span>
@@ -95,7 +158,16 @@ export default function AuthPage() {
 
         <p style={{ marginTop: 10 }}>
           {isRegister ? "Zaten hesabın var mı?" : "Hesabın yok mu?"}{" "}
-          <span style={styles.link} onClick={() => setIsRegister(!isRegister)}>
+          <span
+            style={styles.link}
+            onClick={() => {
+              setIsRegister(!isRegister);
+              setError("");
+              setName("");
+              setPhone("");
+              setAddress("");
+            }}
+          >
             {isRegister ? "Giriş Yap" : "Kayıt Ol"}
           </span>
         </p>

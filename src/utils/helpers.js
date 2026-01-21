@@ -211,7 +211,7 @@ export function makeEmptyJob(customers = []) {
     // 🗓 FIXED JOB DATE RANGE (NEW)
     plannedStartDate: "",
     plannedEndDate: "",
-    breakMinutes: 0,
+    breakMinutes: "", // ✅ FIX
     parts: [],
     notes: "",
     isRunning: false,

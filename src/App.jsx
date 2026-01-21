@@ -338,6 +338,37 @@ function AppRoutes({ user }) {
       const fixed = { ...data };
 
       // ==============================
+      // ✅ PROFILE HYDRATION (CRITICAL)
+      // ==============================
+      try {
+        const snap = await getDoc(doc(db, "users", user.uid));
+
+        if (snap.exists()) {
+          const u = snap.data();
+
+          fixed.profile = {
+            ...(u.profile || {}),
+          };
+
+          // 🔁 Backward compatibility (old users)
+          if (!fixed.profile.name && u.name) {
+            fixed.profile.name = u.name;
+          }
+          if (!fixed.profile.phone && u.phone) {
+            fixed.profile.phone = u.phone;
+          }
+          if (!fixed.profile.address && u.address) {
+            fixed.profile.address = u.address;
+          }
+        } else {
+          fixed.profile = {};
+        }
+      } catch (e) {
+        console.error("Profile load failed:", e);
+        fixed.profile = {};
+      }
+
+      // ==============================
       // ✅ JOB MIGRATION (CRITICAL)
       // ==============================
       fixed.jobs = (fixed.jobs || []).map((j) => ({
@@ -1909,7 +1940,7 @@ function JobCard({
               <>
                 <span>{job.date || t("no_date")}</span> |{" "}
                 {job.timeMode === "fixed" ? (
-                  <span>💲 {t("fixed_price")}</span>
+                  <span> {t("fixed_price")}</span>
                 ) : (
                   <>
                     <span>

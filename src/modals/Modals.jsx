@@ -268,9 +268,14 @@ export function CustomerModal({
         <label>Telefon</label>
         <input
           type="tel"
-          placeholder="+1 720 555 1234"
+          inputMode="tel"
+          placeholder="+90 5xx xxx xx xx"
           value={draft.phone}
-          onChange={(e) => setField("phone", e.target.value)}
+          onChange={(e) => {
+            // allow only numbers, spaces, +, -, ()
+            const v = e.target.value.replace(/[^\d+\s()-]/g, "");
+            setField("phone", v);
+          }}
         />
       </div>
 
@@ -280,7 +285,8 @@ export function CustomerModal({
           type="email"
           placeholder="example@email.com"
           value={draft.email}
-          onChange={(e) => setField("email", e.target.value)}
+          onChange={(e) => setField("email", e.target.value.trim())}
+          required
         />
       </div>
 
@@ -1109,7 +1115,7 @@ export function JobModal({
 
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span>Sabit Ücret:</span>
-              <strong>{money(draft.fixedPrice, currency)}</strong>
+              <strong>{money(draft.fixedPrice, jobCurrency)}</strong>
             </div>
           </>
         )}
@@ -2349,6 +2355,22 @@ export function CalendarPage({
 
   const [editingReservation, setEditingReservation] = useState(null);
 
+  const [reservationCustomerSearch, setReservationCustomerSearch] =
+    useState("");
+  const [reservationCustomerDropdownOpen, setReservationCustomerDropdownOpen] =
+    useState(false);
+
+  const reservationCustomerOptions = useMemo(() => {
+    const q = reservationCustomerSearch.trim().toLowerCase();
+
+    return customers
+      .filter((c) => {
+        if (!q) return true;
+        return `${c.name} ${c.surname}`.toLowerCase().includes(q);
+      })
+      .slice(0, 10);
+  }, [customers, reservationCustomerSearch]);
+
   const [reservationForm, setReservationForm] = useState({
     customerId: "",
     date: selectedDate,
@@ -2870,22 +2892,81 @@ export function CalendarPage({
         >
           <div className="form-stack">
             {/* CUSTOMER */}
-            <label>Müşteri</label>
-            <select
-              value={reservationForm.customerId}
-              onChange={(e) =>
-                setReservationForm((f) => ({
-                  ...f,
-                  customerId: e.target.value,
-                }))
-              }
-            >
-              {customers.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} {c.surname}
-                </option>
-              ))}
-            </select>
+            <label>Müşteri Seç</label>
+            <div style={{ position: "relative" }}>
+              <input
+                type="text"
+                placeholder="Müşteri ara…"
+                value={
+                  reservationForm.customerId
+                    ? (() => {
+                        const c = customers.find(
+                          (x) => x.id === reservationForm.customerId,
+                        );
+                        return c ? `${c.name} ${c.surname}` : "";
+                      })()
+                    : reservationCustomerSearch
+                }
+                onChange={(e) => {
+                  setReservationCustomerSearch(e.target.value);
+                  setReservationCustomerDropdownOpen(true);
+                  setReservationForm((f) => ({ ...f, customerId: "" }));
+                }}
+                onFocus={() => setReservationCustomerDropdownOpen(true)}
+              />
+
+              {reservationCustomerDropdownOpen && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "100%",
+                    left: 0,
+                    right: 0,
+                    zIndex: 50,
+                    marginTop: 4,
+                    background: "#fff",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 10,
+                    maxHeight: 220,
+                    overflowY: "auto",
+                    boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
+                  }}
+                >
+                  {reservationCustomerOptions.length === 0 ? (
+                    <div style={{ padding: 10, fontSize: 12, color: "#666" }}>
+                      Sonuç bulunamadı
+                    </div>
+                  ) : (
+                    reservationCustomerOptions.map((c) => (
+                      <div
+                        key={c.id}
+                        style={{
+                          padding: "10px 12px",
+                          cursor: "pointer",
+                          fontSize: 13,
+                          borderBottom: "1px solid #f1f5f9",
+                        }}
+                        onClick={() => {
+                          setReservationForm((f) => ({
+                            ...f,
+                            customerId: c.id,
+                          }));
+                          setReservationCustomerSearch("");
+                          setReservationCustomerDropdownOpen(false);
+                        }}
+                      >
+                        <strong>
+                          {c.name} {c.surname}
+                        </strong>
+                        <div style={{ fontSize: 11, color: "#666" }}>
+                          ID: {c.id}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
 
             {/* DATE */}
             <label>Tarih</label>
@@ -3140,47 +3221,62 @@ export function AdvancedSettingsModal({
         <h4>Uygulama</h4>
 
         <button
-          className={`settings-toggle ${showCalendar ? "active" : ""}`}
-          onClick={toggleCalendar}
+          className="settings-card"
           type="button"
+          onClick={toggleCalendar}
         >
-          <div className="left">
-            <div className="left-top">
-              <i className="fa-solid fa-calendar-days"></i>
-              <span>Takvimi Göster</span>
-            </div>
-            <div className="left-sub">
-              Takvim menüde ve ana ekranda görünür.
-            </div>
+          {/* LEFT ICON */}
+          <div className="settings-icon blue">
+            <i className="fa-solid fa-calendar-days"></i>
           </div>
 
-          <div className="pill" />
+          {/* CENTER CONTENT */}
+          <div className="settings-content">
+            <h3>{t("settings.calendar.title")}</h3>
+            <p>{t("settings.calendar.desc")}</p>
+          </div>
+
+          {/* RIGHT TOGGLE */}
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ display: "flex", alignItems: "center" }}
+          >
+            <label className="switch">
+              <input
+                type="checkbox"
+                checked={showCalendar}
+                onChange={toggleCalendar}
+              />
+              <span className="slider" />
+            </label>
+          </div>
         </button>
-      </div>
-      {/* LANGUAGE */}
-      <div className="settings-card" style={{ cursor: "default" }}>
-        <div className="settings-icon purple">
-          <i className="fa-solid fa-language"></i>
-        </div>
 
-        <div className="settings-content">
-          <h3>{t("settings.language.title")}</h3>
-          <p>{t("settings.language.desc")}</p>
-        </div>
+        {/* LANGUAGE */}
+        <div className="settings-card" style={{ cursor: "default" }}>
+          <div className="settings-icon purple">
+            <i className="fa-solid fa-language"></i>
+          </div>
 
-        <div className="settings-card-right">
-          <div className="language-select-wrapper compact">
-            <select
-              value={lang}
-              onChange={(e) => changeLanguage(e.target.value)}
-              className="language-select compact"
-            >
-              <option value="tr"> Türkçe</option>
-              <option value="en"> English</option>
-              <option value="de"> Deutsch</option>
-            </select>
+          <div className="settings-content">
+            <h3>{t("settings.language.title")}</h3>
+            <p>{t("settings.language.desc")}</p>
+          </div>
 
-            <i className="fa-solid fa-chevron-down select-arrow"></i>
+          <div className="settings-card-right">
+            <div className="language-select-wrapper compact">
+              <select
+                value={lang}
+                onChange={(e) => changeLanguage(e.target.value)}
+                className="language-select compact"
+              >
+                <option value="tr"> Türkçe</option>
+                <option value="en"> English</option>
+                <option value="de"> Deutsch</option>
+              </select>
+
+              <i className="fa-solid fa-chevron-down select-arrow"></i>
+            </div>
           </div>
         </div>
       </div>

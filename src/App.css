@@ -1552,13 +1552,15 @@ input[type="date"] {
 .settings-card {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   padding: 16px;
   background: #fff;
   border-radius: 14px;
   border: 1px solid #e5e7eb;
   cursor: pointer;
   text-align: left;
+  width: 100%;
+  min-width: 0; /* 🔥 CRITICAL */
   transition:
     transform 0.1s ease,
     box-shadow 0.1s ease;
@@ -1596,6 +1598,7 @@ input[type="date"] {
 
 .settings-content {
   flex: 1;
+  min-width: 0; /* 🔥 CRITICAL FIX */
 }
 
 .settings-content h3 {
@@ -2291,11 +2294,6 @@ input[type="date"] {
    Language Dropdown (Advanced Settings)
 ========================= */
 
-.language-select-wrapper {
-  position: relative;
-  min-width: 160px;
-}
-
 .language-select {
   width: 100%;
   appearance: none;
@@ -2339,32 +2337,42 @@ input[type="date"] {
    Language Select – Settings Card Variant
 ========================= */
 
-.language-select-wrapper.compact {
-  min-width: 140px;
+.language-select-wrapper {
+  width: auto;
+  max-width: 140px; /* 👈 hard limit */
+  min-width: 0;
 }
 
 .language-select.compact {
-  height: 32px; /* 👈 MATCH visual arrow height */
+  height: 36px; /* 👈 MATCH visual arrow height */
   padding: 0 32px 0 12px;
   font-size: 13px;
   border-radius: 10px;
   background: #f8fafc;
 }
 
-/* Align arrow vertically with compact select */
 .language-select-wrapper.compact .select-arrow {
-  right: 10px;
-  font-size: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.language-select-wrapper.compact {
+  max-width: 120px;
+  width: 100%;
+}
+
+.language-select.compact {
+  width: 100%;
+  white-space: nowrap;
 }
 
 /* =========================
    Settings card right align
 ========================= */
-
 .settings-card-right {
+  flex-shrink: 0; /* ⛔ do not push layout */
+  max-width: 140px; /* 🔒 hard cap */
   display: flex;
-  align-items: center; /* 🔥 MATCH arrow alignment */
-  height: 100%;
+  align-items: center;
 }
 
 /* ============================================================
@@ -2939,4 +2947,26 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* ============================================================
+   SETTINGS ICONS — FORCE NEUTRAL (FINAL OVERRIDE)
+   This MUST be at the very end of the file
+============================================================ */
+
+.settings-icon {
+  background: #6b7280 !important; /* gray */
+  color: #ffffff !important;
+}
+
+.settings-icon i {
+  color: #ffffff !important;
+}
+
+/* override any color variants */
+.settings-icon.blue,
+.settings-icon.green,
+.settings-icon.orange,
+.settings-icon.purple {
+  background: #6b7280 !important;
 }

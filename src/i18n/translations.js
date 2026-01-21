@@ -767,6 +767,9 @@ export const translations = {
 
     email_verification_sent:
       "Doğrulama e-postası gönderildi. E-posta değişikliğini tamamlamak için onaylayın.",
+
+    "settings.calendar.title": "Takvimi Göster",
+    "settings.calendar.desc": "Takvim menüde ve ana ekranda görünür.",
   },
 
   en: {
@@ -1323,6 +1326,10 @@ export const translations = {
     vault_delete_confirm_word: "DELETE",
     email_verification_sent:
       "Verification email sent. Please confirm to complete the email change.",
+
+    "settings.calendar.title": "Show Calendar",
+    "settings.calendar.desc":
+      "The calendar is visible in the menu and on the home screen.",
   },
 
   de: {
@@ -1890,5 +1897,9 @@ export const translations = {
 
     email_verification_sent:
       "Bestätigungs-E-Mail wurde gesendet. Bitte bestätigen Sie, um die E-Mail-Adresse zu ändern.",
+
+    "settings.calendar.title": "Kalender anzeigen",
+    "settings.calendar.desc":
+      "Der Kalender wird im Menü und auf dem Startbildschirm angezeigt.",
   },
 };
