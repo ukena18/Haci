@@ -1268,6 +1268,8 @@ export function CustomerDetailModal({
 }) {
   const { lang } = useLang();
 
+  const { t } = useLang();
+
   const [selectedVaultId, setSelectedVaultId] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [paymentAmount, setPaymentAmount] = useState("");
