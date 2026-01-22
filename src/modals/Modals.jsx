@@ -69,6 +69,7 @@ export function ModalBase({
   zIndex = 1000,
 }) {
   if (!open) return null;
+  const { t } = useLang();
 
   return (
     <div
@@ -95,7 +96,7 @@ export function ModalBase({
             }}
             style={{ flex: "unset" }}
           >
-            Kapat
+            {t("close")}
           </button>
         </div>
 
@@ -111,17 +112,18 @@ export function ModalBase({
  */
 export function ConfirmModal({ open, message, onYes, onNo, requireText }) {
   const [typed, setTyped] = useState("");
+  const { t } = useLang();
 
   useEffect(() => {
     if (!open) setTyped("");
   }, [open]);
 
-  const canConfirm = !requireText || typed === "SIL";
+  const canConfirm = !requireText || t("delete_confirm_word");
 
   return (
     <ModalBase
       open={open}
-      title="Silme Onayı"
+      title={t("delete_confirmation")}
       onClose={onNo}
       className="confirm-modal"
       zIndex={4000}
@@ -131,19 +133,19 @@ export function ConfirmModal({ open, message, onYes, onNo, requireText }) {
       {requireText && (
         <div className="form-group">
           <label>
-            Silmek için <b>SIL</b> yazın
+            {t("type_to_delete")} <b>{t("delete_confirm_word")}</b>
           </label>
           <input
             value={typed}
             onChange={(e) => setTyped(e.target.value)}
-            placeholder="SIL"
+            placeholder={t("delete_confirm_word")}
           />
         </div>
       )}
 
       <div className="btn-row">
         <button className="btn btn-cancel" onClick={onNo}>
-          No
+          {t("no")}
         </button>
 
         <button
@@ -152,7 +154,7 @@ export function ConfirmModal({ open, message, onYes, onNo, requireText }) {
           style={{ opacity: canConfirm ? 1 : 0.5 }}
           onClick={onYes}
         >
-          Yes
+          {t("yes")}
         </button>
       </div>
     </ModalBase>
@@ -171,6 +173,7 @@ export function CustomerModal({
   onDeleteCustomer,
   zIndex = 1000, // ✅ ADD THIS
 }) {
+  const { t } = useLang();
   const editing = editingCustomerId
     ? customers.find((c) => c.id === editingCustomerId)
     : null;
@@ -202,19 +205,19 @@ export function CustomerModal({
   function save() {
     // Required fields
     if (!draft.name.trim() || !draft.surname.trim()) {
-      alert("Ad ve Soyad zorunludur.");
+      alert(t("name_surname_required"));
       return;
     }
 
     // Phone validation
     if (!isValidPhone(draft.phone)) {
-      alert("Lütfen geçerli bir telefon numarası girin.");
+      alert(t("invalid_phone"));
       return;
     }
 
     // Email validation
     if (!isValidEmail(draft.email)) {
-      alert("Lütfen geçerli bir e-posta adresi girin.");
+      alert(t("invalid_email"));
       return;
     }
 
@@ -224,7 +227,7 @@ export function CustomerModal({
       (!editing || editing.id !== draft.id);
 
     if (duplicate) {
-      alert("Bu ID zaten var. Lütfen tekrar deneyin.");
+      alert(t("duplicate_customer_id"));
       return;
     }
 
@@ -235,21 +238,22 @@ export function CustomerModal({
   return (
     <ModalBase
       open={open}
-      title={editing ? "Müşteri Düzenle" : "Yeni Müşteri"}
+      title={editing ? t("edit_customer") : t("new_customer")}
       onClose={onClose}
       zIndex={zIndex} // ✅ ADD THIS
     >
       <div className="customer-edit-modal">
         <div className="form-group">
-          <label>Müşteri ID</label>
+          <label>{t("customer_id")}</label>
           <input value={draft.id} readOnly />
           <small style={{ color: "#666" }}>
-            Bu ID paylaşım linki için kullanılır: <b>/customer/{draft.id}</b>
+            {t("customer_id_info")} <b>/customer/{draft.id}</b>
           </small>
         </div>
       </div>
+
       <div className="form-group">
-        <label>Ad</label>
+        <label>{t("name")}</label>
         <input
           value={draft.name}
           onChange={(e) => setField("name", e.target.value)}
@@ -257,7 +261,7 @@ export function CustomerModal({
       </div>
 
       <div className="form-group">
-        <label>Soyad</label>
+        <label>{t("surname")}</label>
         <input
           value={draft.surname}
           onChange={(e) => setField("surname", e.target.value)}
@@ -265,14 +269,13 @@ export function CustomerModal({
       </div>
 
       <div className="form-group">
-        <label>Telefon</label>
+        <label>{t("phone")}</label>
         <input
           type="tel"
           inputMode="tel"
           placeholder="+90 5xx xxx xx xx"
           value={draft.phone}
           onChange={(e) => {
-            // allow only numbers, spaces, +, -, ()
             const v = e.target.value.replace(/[^\d+\s()-]/g, "");
             setField("phone", v);
           }}
@@ -280,7 +283,7 @@ export function CustomerModal({
       </div>
 
       <div className="form-group">
-        <label>E-posta</label>
+        <label>{t("email")}</label>
         <input
           type="email"
           placeholder="example@email.com"
@@ -291,7 +294,7 @@ export function CustomerModal({
       </div>
 
       <div className="form-group">
-        <label>Adres</label>
+        <label>{t("address")}</label>
         <textarea
           value={draft.address}
           onChange={(e) => setField("address", e.target.value)}
@@ -300,11 +303,11 @@ export function CustomerModal({
 
       <div className="btn-row">
         <button className="btn btn-cancel" onClick={onClose}>
-          İptal
+          {t("cancel")}
         </button>
 
         <button className="btn btn-save" onClick={save}>
-          Kaydet
+          {t("save")}
         </button>
       </div>
 
@@ -318,7 +321,7 @@ export function CustomerModal({
               onClose();
             }}
           >
-            Müşteriyi Sil
+            {t("delete_customer")}
           </button>
         </div>
       )}
@@ -342,6 +345,7 @@ export function JobModal({
   setConfirm,
   fixedCustomerId = null,
 }) {
+  const { t } = useLang();
   const editing = editingJobId ? jobs.find((j) => j.id === editingJobId) : null;
   const customerBoxRef = useRef(null);
 
@@ -513,10 +517,9 @@ export function JobModal({
 
   function save() {
     if (!draft.customerId) {
-      alert("Müşteri seçmelisiniz.");
+      alert(t("select_customer_required"));
       return;
     }
-
     // Save with cleaned numeric fields
     onSave({
       ...draft,
@@ -560,7 +563,7 @@ export function JobModal({
   return (
     <ModalBase
       open={open}
-      title={editing ? "İşi Düzenle" : "Yeni İş Ekle"}
+      title={editing ? t("edit_job") : t("add_job")}
       onClose={onClose}
       zIndex={1300} // ✅ add this
     >
@@ -571,11 +574,10 @@ export function JobModal({
           style={{ position: "relative" }}
         >
           {/* SEARCH INPUT */}
-          {/* SEARCH INPUT WITH CLEAR (X) */}
           <div style={{ position: "relative" }}>
             <input
               type="text"
-              placeholder="Müşteri ara…"
+              placeholder={t("search_customer")}
               value={
                 draft.customerId
                   ? (() => {
@@ -642,7 +644,7 @@ export function JobModal({
             >
               {customerOptions.length === 0 ? (
                 <div style={{ padding: 10, fontSize: 12, color: "#666" }}>
-                  Sonuç bulunamadı
+                  {t("no_results")}
                 </div>
               ) : (
                 customerOptions.map((c) => (
@@ -674,7 +676,7 @@ export function JobModal({
         </div>
       ) : (
         <div className="form-group">
-          <label>Müşteri</label>
+          <label>{t("customer")}</label>
           <input
             value={(() => {
               const c = customers.find((x) => x.id === fixedCustomerId);
@@ -708,7 +710,7 @@ export function JobModal({
         />
       </div>
       <div className="form-group">
-        <label>Ödeme Vadesi</label>
+        <label>{t("payment_due_date")}</label>
 
         <input
           type="date"
@@ -728,8 +730,8 @@ export function JobModal({
 
         <small style={{ color: "#6b7280" }}>
           {draft.trackPayment
-            ? "Ödeme seçilen tarihte vadesi dolacaktır."
-            : "Bu iş ödeme takibine dahil edilmez."}
+            ? t("payment_due_info")
+            : t("payment_tracking_disabled")}
         </small>
 
         {editing && draft.dueDismissed && (
@@ -749,11 +751,11 @@ export function JobModal({
                 }))
               }
             >
-              🔔 Ödeme Takibini Geri Ekle
+              🔔 {t("restore_payment_tracking")}
             </button>
 
             <div style={{ fontSize: 12, color: "#0369a1", marginTop: 4 }}>
-              Takip kaldığı yerden devam eder (günler sıfırlanmaz).
+              {t("payment_tracking_resume_info")}
             </div>
           </div>
         )}
@@ -763,7 +765,7 @@ export function JobModal({
       {/* ÇALIŞMA ZAMANI GİRİŞİ */}
       {/* ============================= */}
       <div className="form-group">
-        <label>Çalışma Zamanı Girişi</label>
+        <label>{t("work_time_input")}</label>
 
         {/* RADIO OPTIONS */}
         <div className="time-mode-row">
@@ -782,7 +784,7 @@ export function JobModal({
                 }))
               }
             />
-            <span>Elle Giriş</span>
+            <span>{t("manual_entry")}</span>
           </label>
 
           <label className="time-mode-option">
@@ -799,7 +801,7 @@ export function JobModal({
                 }))
               }
             />
-            <span>Başlat / Bitir </span>
+            <span>{t("start_stop")}</span>
           </label>
 
           <label className="time-mode-option">
@@ -820,7 +822,7 @@ export function JobModal({
                 }))
               }
             />
-            <span>Sabit Ücret</span>
+            <span>{t("fixed_price")}</span>
           </label>
         </div>
       </div>
@@ -830,7 +832,7 @@ export function JobModal({
       {/* ============================= */}
       {draft.timeMode === "clock" && (
         <div className="form-group">
-          <label>Çalışma Geçmişi (Düzelt)</label>
+          <label>{t("work_history_edit")}</label>
 
           {(draft.sessions || []).length === 0 ? (
             <div style={{ fontSize: 12, color: "#666" }}>Henüz kayıt yok</div>
@@ -931,18 +933,18 @@ export function JobModal({
               })
             }
           >
-            + Çalışma Ekle
+            + {t("add_work_session")}
           </button>
         </div>
       )}
 
       {/* ============================= */}
-      {/* PLANLANAN İŞ SÜRESİ (FIXED ONLY) */}
+      {/* PLANNED JOB DURATION (FIXED ONLY) */}
       {/* ============================= */}
       {draft.timeMode === "fixed" && (
         <div className="form-group">
           {/* ✅ ONE LINE HEADER (like the other one) */}
-          <label>Planlanan İş Süresi (Başlangıç - Bitiş)</label>
+          <label>{t("planned_job_duration")}</label>
 
           <div style={{ display: "flex", gap: 10 }}>
             <input
@@ -978,7 +980,7 @@ export function JobModal({
       {draft.timeMode !== "fixed" && (
         <>
           <div className="form-group">
-            <label>Çalışma Saatleri (Başlangıç - Bitiş)</label>
+            <label>{t("work_hours_range")}</label>
             <div style={{ display: "flex", gap: 5 }}>
               <input
                 type="time"
@@ -1001,7 +1003,7 @@ export function JobModal({
                 type="number"
                 min="0"
                 step="5"
-                placeholder="Öğle Molası (dakika)"
+                placeholder={t("lunch_break_minutes")}
                 value={draft.breakMinutes ?? ""}
                 onChange={(e) =>
                   setDraft((d) => ({
@@ -1012,7 +1014,7 @@ export function JobModal({
               />
 
               <small style={{ color: "#6b7280" }}>
-                Mola süresi toplam çalışmadan otomatik düşülür
+                {t("break_auto_deduct_info")}
               </small>
             </div>
           )}
@@ -1023,7 +1025,7 @@ export function JobModal({
               inputMode="decimal"
               min="0"
               step="0.01"
-              placeholder="Saatlik Ücret"
+              placeholder={t("hourly_rate")}
               value={draft.rate ?? ""}
               onKeyDown={(e) => {
                 // ❌ block minus & scientific notation
@@ -1080,7 +1082,7 @@ export function JobModal({
 
       {/* Parts */}
       <div id="parca-container">
-        <label>Kullanılan Parçalar</label>
+        <label>{t("used_parts")}</label>
 
         {(draft.parts || []).map((p) => (
           <div
@@ -1096,7 +1098,7 @@ export function JobModal({
           >
             <input
               type="text"
-              placeholder="Parça Adı (örn: Filtre)"
+              placeholder={t("part_name_placeholder")}
               value={p.name}
               onChange={(e) => updatePart(p.id, { name: e.target.value })}
             />
@@ -1104,7 +1106,7 @@ export function JobModal({
             <div style={{ display: "flex", gap: 6 }}>
               <input
                 type="number"
-                placeholder="Adet"
+                placeholder={t("quantity")}
                 min="1"
                 value={p.qty === null ? "" : p.qty}
                 onChange={(e) => {
@@ -1117,7 +1119,7 @@ export function JobModal({
 
               <input
                 type="number"
-                placeholder="Birim Fiyat"
+                placeholder={t("unit_price")}
                 value={p.unitPrice === null ? "" : p.unitPrice}
                 onChange={(e) => {
                   const v = e.target.value;
@@ -1129,7 +1131,7 @@ export function JobModal({
 
               <button
                 onClick={() => removePart(p.id)}
-                title="Parçayı sil"
+                title={t("delete_part")}
                 style={{
                   background: "#fee2e2",
                   border: "none",
@@ -1153,7 +1155,7 @@ export function JobModal({
         style={{ background: "#eee", color: "#333", marginBottom: 10 }}
         onClick={addPartRow}
       >
-        + Parça Ekle
+        + {t("add_part")}
       </button>
 
       {/* Totals */}
@@ -1162,12 +1164,14 @@ export function JobModal({
         {draft.timeMode !== "fixed" && (
           <>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span>Çalışma Saati:</span>
-              <strong>{hours.toFixed(2)} saat</strong>
+              <span>{t("work_hours")}:</span>
+              <strong>
+                {hours.toFixed(2)} {t("hours")}
+              </strong>
             </div>
 
             <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span>İşçilik:</span>
+              <span>{t("labor")}:</span>
               <strong>{money(laborTotal, jobCurrency)}</strong>
             </div>
           </>
@@ -1177,12 +1181,14 @@ export function JobModal({
         {draft.timeMode === "fixed" && (
           <>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span>Çalışma Günü:</span>
-              <strong>{workingDays} gün</strong>
+              <span>{t("working_days")}:</span>
+              <strong>
+                {workingDays} {t("days")}
+              </strong>
             </div>
 
             <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span>Sabit Ücret:</span>
+              <span>{t("fixed_price")}:</span>
               <strong>{money(draft.fixedPrice, jobCurrency)}</strong>
             </div>
           </>
@@ -1190,7 +1196,7 @@ export function JobModal({
 
         {/* COMMON */}
         <div style={{ display: "flex", justifyContent: "space-between" }}>
-          <span>Parçalar:</span>
+          <span>{t("parts")}:</span>
           <strong>{money(partsTotal, jobCurrency)}</strong>
         </div>
 
@@ -1204,14 +1210,14 @@ export function JobModal({
 
         <div style={{ display: "flex", justifyContent: "space-between" }}>
           <span>
-            <strong>Toplam Tutar:</strong>
+            <strong>{t("total_amount")}:</strong>
           </span>
           <strong>{money(grandTotal, jobCurrency)}</strong>
         </div>
       </div>
 
       <div className="form-group">
-        <label>Not (opsiyonel)</label>
+        <label>{t("note_optional")}</label>
         <textarea
           value={draft.notes}
           onChange={(e) => setField("notes", e.target.value)}
@@ -1232,16 +1238,16 @@ export function JobModal({
               });
             }}
           >
-            <i className="fa-solid fa-trash"></i> Sil
+            <i className="fa-solid fa-trash"></i> {t("delete")}
           </button>
         )}
 
         <button className="btn btn-cancel" onClick={onClose}>
-          İptal
+          {t("cancel")}
         </button>
 
         <button className="btn btn-save" onClick={save}>
-          Kaydet
+          {t("save")}
         </button>
       </div>
     </ModalBase>
@@ -1267,7 +1273,6 @@ export function CustomerDetailModal({
   setConfirm, // ✅ ADD THIS
 }) {
   const { lang } = useLang();
-
   const { t } = useLang();
 
   const [selectedVaultId, setSelectedVaultId] = useState("");
@@ -1292,7 +1297,6 @@ export function CustomerDetailModal({
     return new Date(y, m - 1, d);
   }
 
-  // "payment" | "debt"
   function isInRange(dateStr) {
     if (!dateStr) return false;
 
@@ -1306,34 +1310,34 @@ export function CustomerDetailModal({
     return true;
   }
 
+  const portalUrl = customer
+    ? `${window.location.origin}/customer/${customer.id}`
+    : "";
+
   useEffect(() => {
     if (!open) return;
 
     setPaymentAmount("");
     setPaymentNote("");
 
-    // ✅ default vault = active vault
     setSelectedVaultId(activeVaultId || "");
-
-    // ✅ default payment method
     setPaymentMethod("cash");
   }, [open]);
 
   function vaultNameOf(id) {
-    return (vaults || []).find((k) => k.id === id)?.name || "—";
+    return (vaults || []).find((k) => k.id === id)?.name || t("unknown");
   }
 
   function jobMetaLine(j, hours) {
     if (j.timeMode === "fixed") {
-      return `${j.date} • Sabit Ücret`;
+      return `${j.date} • ${t("fixed_price")}`;
     }
 
     if (j.timeMode === "clock") {
-      return `${j.date} • Başlat / Bitir • ${hours.toFixed(2)} saat`;
+      return `${j.date} • ${t("start_stop")} • ${hours.toFixed(2)} ${t("hours")}`;
     }
 
-    // manual
-    return `${j.date} • Elle Giriş • ${hours.toFixed(2)} saat`;
+    return `${j.date} • ${t("manual_entry")} • ${hours.toFixed(2)} ${t("hours")}`;
   }
 
   function buildShareText() {
@@ -1341,41 +1345,41 @@ export function CustomerDetailModal({
 
     let text = "";
 
-    text += `MÜŞTERİ HESAP DÖKÜMÜ\n`;
+    text += `${t("customer_account_statement").toUpperCase()}\n`;
     text += `-------------------------\n`;
-    text += `Müşteri: ${customer.name} ${customer.surname}\n`;
-    text += `Telefon: ${customer.phone || "-"}\n`;
-    text += `E-posta: ${customer.email || "-"}\n`;
-    text += `Borç: ${money(balance, displayCurrency)}\n`;
+    text += `${t("customer")}: ${customer.name} ${customer.surname}\n`;
+    text += `${t("phone")}: ${customer.phone || "-"}\n`;
+    text += `${t("email")}: ${customer.email || "-"}\n`;
+    text += `${t("balance")}: ${money(balance, displayCurrency)}\n`;
 
     const today = new Date().toISOString().slice(0, 10);
-    text += `Tarih: ${formatDateByLang(today, lang)}\n\n`;
+    text += `${t("date")}: ${formatDateByLang(today, lang)}\n\n`;
 
-    /*  PAYMENTS / DEBTS */
     if (customerPayments.length > 0) {
-      text += ` TAHSİLAT / BORÇ KAYITLARI\n`;
+      text += ` ${t("transaction_history").toUpperCase()}\n`;
       text += `-------------------------\n`;
 
       customerPayments.forEach((p) => {
-        const typeLabel = PAYMENT_TYPE_LABEL_TR[p.type] || "—";
-        const sign = p.type === "payment" ? "+" : "-"; // sign is logic, keep it
+        const typeLabel = p.type === "payment" ? t("payment") : t("debt");
+        const sign = p.type === "payment" ? "+" : "-";
 
         text += `${formatDateByLang(p.date, lang)} | ${typeLabel}\n`;
-        text += `Tutar: ${sign}${money(p.amount, p.currency)}\n`;
-        text += `Kasa: ${vaultNameOf(p.vaultId)}\n`;
-        text += `Yöntem: ${PAYMENT_METHOD_LABEL_TR[p.method] || "—"}\n`;
-        if (p.note) text += `Not: ${p.note}\n`;
+        text += `${t("amount")}: ${sign}${money(p.amount, p.currency)}\n`;
+        text += `${t("vault")}: ${vaultNameOf(p.vaultId)}\n`;
+        text += `${t("method_label")}: ${
+          PAYMENT_METHOD_LABEL_TR[p.method] || t("unknown")
+        }\n`;
+        if (p.note) text += `${t("note")}: ${p.note}\n`;
         text += `\n`;
       });
     }
 
-    /*  JOBS */
     if (customerJobs.length > 0) {
-      text += ` İŞLER\n`;
+      text += ` ${t("jobs").toUpperCase()}\n`;
       text += `-------------------------\n`;
 
       customerJobs.forEach((j) => {
-        const total = jobTotalOf(j); // ✅ SINGLE SOURCE OF TRUTH
+        const total = jobTotalOf(j);
 
         const hours =
           j.timeMode === "clock"
@@ -1387,23 +1391,30 @@ export function CustomerDetailModal({
         text += `${formatDateByLang(j.date, lang)}\n`;
         text += `${j.start || "--:--"} - ${j.end || "--:--"} | ${hours.toFixed(
           2,
-        )} saat\n`;
-        text += `Toplam: ${money(total, displayCurrency)}\n`;
-        const statusKey = j.isCompleted ? "completed" : "open";
-        text += `Durum: ${JOB_STATUS_LABEL_TR[statusKey]}\n\n`;
+        )} ${t("hours")}\n`;
+        text += `${t("total")}: ${money(total, displayCurrency)}\n`;
+
+        const statusKey = j.isCompleted
+          ? t("completed_jobs")
+          : t("active_jobs");
+
+        text += `${t("job_status")}: ${statusKey}\n\n`;
       });
     }
+    text += `\n-------------------------\n`;
+    text += `${t("customer_portal")}:\n`;
+    text += `${portalUrl}\n`;
 
     return text.trim();
   }
 
   function sendByEmail() {
     if (!customer?.email) {
-      alert("Bu müşteri için e-posta adresi yok.");
+      alert(t("send_email_missing"));
       return;
     }
 
-    const subject = encodeURIComponent("Müşteri Hesap Dökümü");
+    const subject = encodeURIComponent(t("customer_account_statement"));
     const body = encodeURIComponent(buildShareText());
 
     window.location.href = `mailto:${customer.email}?subject=${subject}&body=${body}`;
@@ -1411,13 +1422,11 @@ export function CustomerDetailModal({
 
   function sendByWhatsApp() {
     if (!customer?.phone) {
-      alert("Bu müşteri için telefon numarası yok.");
+      alert(t("send_phone_missing"));
       return;
     }
 
-    // WhatsApp needs digits only usually (removes spaces, dashes, parentheses)
     const phone = customer.phone.replace(/[^\d+]/g, "");
-
     const text = encodeURIComponent(buildShareText());
 
     window.open(`https://wa.me/${phone}?text=${text}`, "_blank");
@@ -1449,10 +1458,10 @@ export function CustomerDetailModal({
   }, [payments, customer, fromDate, toDate]);
 
   function jobTimeModeLabel(j) {
-    if (j.timeMode === "manual") return "Elle Giriş";
-    if (j.timeMode === "clock") return "Saat Giriş / Çıkış";
-    if (j.timeMode === "fixed") return "Sabit Ücret";
-    return "İş";
+    if (j.timeMode === "manual") return t("manual_entry");
+    if (j.timeMode === "clock") return t("clock_history");
+    if (j.timeMode === "fixed") return t("fixed_price");
+    return t("job");
   }
 
   const allowedVaults = customer?.currency
@@ -1495,7 +1504,7 @@ export function CustomerDetailModal({
       open: true,
       type: "payment",
       id: txId,
-      message: "Bu işlemi silmek istediğinize emin misiniz?",
+      message: t("delete_transaction_confirm"),
     });
     setEditTx(null);
   }
@@ -1577,12 +1586,12 @@ export function CustomerDetailModal({
   return (
     <ModalBase
       open={open}
-      title="Müşteri Detayı"
+      title={t("customer_detail")}
       onClose={onClose}
       zIndex={1100} // ✅ add this
     >
       {!customer ? (
-        <div className="card">Müşteri bulunamadı.</div>
+        <div className="card">{t("customer_not_found")}</div>
       ) : (
         <>
           <div className="cust-header-card">
@@ -1658,27 +1667,28 @@ export function CustomerDetailModal({
                 window.open(`/customer/${customer.id}`, "_blank");
               }}
             >
-              <i className="fa-solid fa-globe"></i> Müşteri Portalını Aç
+              <i className="fa-solid fa-globe"></i> {t("open_customer_portal")}
             </button>
           </div>
+
           {/* 📊 QUICK CUSTOMER STATS */}
           <div className="cust-stats">
             <div className="cust-stat">
-              <div className="stat-label">Toplam Tahsilat</div>
+              <div className="stat-label">{t("total_payment")}</div>
               <div className="stat-value green">
                 +{money(totalPayment, displayCurrency)}
               </div>
             </div>
 
             <div className="cust-stat">
-              <div className="stat-label">Toplam Borç</div>
+              <div className="stat-label">{t("total_debt")}</div>
               <div className="stat-value red">
                 -{money(totalDebt, displayCurrency)}
               </div>
             </div>
 
             <div className="cust-stat">
-              <div className="stat-label">Bakiye</div>
+              <div className="stat-label">{t("balance")}</div>
               <div className={`stat-value ${balance >= 0 ? "green" : "red"}`}>
                 {money(balance, displayCurrency)}
               </div>
@@ -1686,7 +1696,6 @@ export function CustomerDetailModal({
           </div>
 
           <hr />
-
           {/* Payment / debt */}
           {/* i basically add another button and havent changed payment amonut for debt button */}
           <div className="btn-row">
@@ -1699,7 +1708,7 @@ export function CustomerDetailModal({
                     onOpenPayment("payment", customer);
                   }}
                 >
-                  <i className="fa-solid fa-money-bill-wave"></i> Tahsilat
+                  <i className="fa-solid fa-money-bill-wave"></i> {t("payment")}
                 </button>
 
                 <button
@@ -1709,7 +1718,7 @@ export function CustomerDetailModal({
                     onOpenPayment("debt", customer);
                   }}
                 >
-                  <i className="fa-solid fa-file-invoice"></i> Borç
+                  <i className="fa-solid fa-file-invoice"></i> {t("debt")}
                 </button>
 
                 {onAddJob && (
@@ -1723,14 +1732,13 @@ export function CustomerDetailModal({
 
           <div className="secondary-actions">
             <button onClick={shareAsPDF}>
-              <i className="fa-solid fa-print"></i> PDF
+              <i className="fa-solid fa-print"></i> {t("pdf")}
             </button>
             <button onClick={sendByEmail}>
-              <i className="fa-solid fa-envelope"></i>
-              Mail
+              <i className="fa-solid fa-envelope"></i> {t("mail")}
             </button>
             <button onClick={sendByWhatsApp}>
-              <i className="fa-brands fa-whatsapp"></i> WA
+              <i className="fa-brands fa-whatsapp"></i> {t("whatsapp")}
             </button>
             <button onClick={onEditCustomer}>
               <i className="fa-solid fa-pen"></i>
@@ -1741,7 +1749,7 @@ export function CustomerDetailModal({
 
           <div className="history-card">
             <div className="history-header">
-              <h4>İş Geçmişi</h4>
+              <h4>{t("job_history")}</h4>
 
               <div style={{ display: "flex", gap: 6 }}>
                 <input
@@ -1764,10 +1772,9 @@ export function CustomerDetailModal({
               style={{ marginTop: 8, fontSize: 12 }}
             ></div>
 
-            {/* 💰 Payment / Borç Kayıtları */}
-            {/* 💰 Payment / Borç Kayıtları */}
+            {/* 💰 Payment / Debt Records */}
             {unifiedHistory.length === 0 ? (
-              <div className="card">Kayıt yok.</div>
+              <div className="card">{t("no_records")}</div>
             ) : (
               unifiedHistory.map((item) => {
                 // ======================
@@ -1798,7 +1805,6 @@ export function CustomerDetailModal({
                         setEditMethod(p.method || "cash");
                         setEditVaultId(p.vaultId || activeVaultId || "");
 
-                        // ✅ NEW (for debt watchlist)
                         setEditDueDays(
                           p.dueDays == null ? "" : String(p.dueDays),
                         );
@@ -1812,18 +1818,19 @@ export function CustomerDetailModal({
                           {isPayment ? (
                             <>
                               <i className="fa-solid fa-money-bill-wave"></i>{" "}
-                              Tahsilat
+                              {t("payment")}
                             </>
                           ) : (
                             <>
-                              <i className="fa-solid fa-file-invoice"></i> Borç
+                              <i className="fa-solid fa-file-invoice"></i>{" "}
+                              {t("debt")}
                             </>
                           )}
                         </strong>
 
                         {p.note &&
-                          p.note !== "Tahsilat" &&
-                          p.note !== "Borç" && (
+                          p.note !== t("default_payment_note") &&
+                          p.note !== t("default_debt_note") && (
                             <div
                               style={{
                                 fontSize: 12,
@@ -1834,13 +1841,16 @@ export function CustomerDetailModal({
                               {p.note}
                             </div>
                           )}
+
                         <div style={{ fontSize: 12, color: "#777" }}>
                           {formatDateByLang(p.date, lang)}
                           {" • "}
-                          Kasa: <b>{vaultNameOf(p.vaultId)}</b>
+                          {t("vault")}: <b>{vaultNameOf(p.vaultId)}</b>
                           {" • "}
-                          Yöntem:{" "}
-                          <b>{PAYMENT_METHOD_LABEL_TR[p.method] || "—"}</b>
+                          {t("method_label")}:{" "}
+                          <b>
+                            {PAYMENT_METHOD_LABEL_TR[p.method] || t("unknown")}
+                          </b>
                         </div>
                       </div>
 
@@ -1863,12 +1873,8 @@ export function CustomerDetailModal({
                 // ======================
                 const j = item.data;
 
-                const liveMs =
-                  j.isRunning && j.clockInAt ? Date.now() - j.clockInAt : 0;
-
                 const total = jobTotalOf(j);
 
-                // ⏱ hours is ONLY for display
                 const hours =
                   j.timeMode === "clock"
                     ? ((j.workedMs || 0) +
@@ -1891,7 +1897,7 @@ export function CustomerDetailModal({
                   >
                     <div>
                       <strong style={{ color: "#7f1d1d" }}>
-                        <i className="fa-solid fa-briefcase"></i> İş
+                        <i className="fa-solid fa-briefcase"></i> {t("job")}
                       </strong>
 
                       <div style={{ fontSize: 12, color: "#777" }}>
@@ -1899,32 +1905,22 @@ export function CustomerDetailModal({
                         {" • "}
                         <b>{jobTimeModeLabel(j)}</b>
 
-                        {/* CLOCK → total hours */}
-                        {j.timeMode === "clock" && (
+                        {(j.timeMode === "clock" ||
+                          j.timeMode === "manual") && (
                           <>
                             {" • "}
-                            {hours.toFixed(2)} saat
+                            {hours.toFixed(2)} {t("hours")}
                           </>
                         )}
 
-                        {/* MANUAL → entered hours */}
-                        {j.timeMode === "manual" && (
-                          <>
-                            {" • "}
-                            {hours.toFixed(2)} saat
-                          </>
-                        )}
-
-                        {/* FIXED → always 1 day */}
                         {j.timeMode === "fixed" && j.fixedDays != null && (
                           <>
                             {" • "}
-                            {j.fixedDays} gün
+                            {j.fixedDays} {t("days")}
                           </>
                         )}
                       </div>
 
-                      {/* optional: job note, same style as payment note */}
                       {j.notes && (
                         <div
                           style={{ fontSize: 12, color: "#555", marginTop: 4 }}
@@ -1965,12 +1961,12 @@ export function CustomerDetailModal({
               {editTx.type === "payment" ? (
                 <>
                   <i className="fa-solid fa-money-bill-wave"></i>
-                  Tahsilat Düzenle
+                  {t("edit_payment")}
                 </>
               ) : (
                 <>
                   <i className="fa-solid fa-file-invoice"></i>
-                  Borç Düzenle
+                  {t("edit_debt")}
                 </>
               )}
             </h3>
@@ -1978,7 +1974,7 @@ export function CustomerDetailModal({
             {/* vault (only for Payment) */}
             {editTx.type === "payment" && (
               <div className="form-group">
-                <label>Kasa</label>
+                <label>{t("vault")}</label>
                 <select
                   value={editVaultId}
                   onChange={(e) => setEditVaultId(e.target.value)}
@@ -1994,7 +1990,7 @@ export function CustomerDetailModal({
 
             {/* DATE */}
             <div className="form-group">
-              <label>Tarih</label>
+              <label>{t("date")}</label>
               <input
                 type="date"
                 value={editDate}
@@ -2005,7 +2001,7 @@ export function CustomerDetailModal({
             {/* METHOD */}
             {editTx.type === "payment" && (
               <div className="form-group">
-                <label>Yöntem</label>
+                <label>{t("method_label")}</label>
                 <select
                   value={editMethod}
                   onChange={(e) => setEditMethod(e.target.value)}
@@ -2027,7 +2023,7 @@ export function CustomerDetailModal({
 
             {/* AMOUNT */}
             <div className="form-group">
-              <label>Tutar</label>
+              <label>{t("amount")}</label>
               <input
                 type="number"
                 value={editAmount}
@@ -2037,7 +2033,7 @@ export function CustomerDetailModal({
 
             {/* NOTE */}
             <div className="form-group">
-              <label>Not</label>
+              <label>{t("note")}</label>
               <input
                 value={editNote}
                 onChange={(e) => setEditNote(e.target.value)}
@@ -2047,7 +2043,7 @@ export function CustomerDetailModal({
             {/* ✅ DUE DAYS + WATCHLIST (ONLY FOR DEBT) */}
             {editTx.type === "debt" && (
               <div className="form-group">
-                <label>Ödeme Vadesi (gün)</label>
+                <label>{t("due_days")}</label>
 
                 <input
                   type="number"
@@ -2070,13 +2066,13 @@ export function CustomerDetailModal({
                       }}
                       onClick={() => setEditDueDismissed(false)}
                     >
-                      🔔 Ödeme Takibini Geri Ekle
+                      🔔 {t("restore_payment_tracking")}
                     </button>
 
                     <div
                       style={{ fontSize: 12, color: "#0369a1", marginTop: 4 }}
                     >
-                      Takip kaldığı yerden devam eder (günler sıfırlanmaz).
+                      {t("payment_tracking_resume_info")}
                     </div>
                   </div>
                 )}
@@ -2089,14 +2085,15 @@ export function CustomerDetailModal({
                 className="btn btn-delete"
                 onClick={() => deleteTransaction(editTx.id)}
               >
-                <i className="fa-solid fa-trash"></i>Sil
+                <i className="fa-solid fa-trash"></i>
+                {t("delete")}
               </button>
 
               <button
                 className="btn btn-cancel"
                 onClick={() => setEditTx(null)}
               >
-                İptal
+                {t("cancel")}
               </button>
 
               <button
@@ -2130,7 +2127,7 @@ export function CustomerDetailModal({
                   setEditTx(null);
                 }}
               >
-                Kaydet
+                {t("save")}
               </button>
             </div>
           </div>
@@ -2158,17 +2155,18 @@ export function PaymentActionModal({
   const [vaultId, setVaultId] = useState(activeVaultId || "");
   const [method, setMethod] = useState(PAYMENT_METHOD.CASH);
 
-  // ✅ NEW: date picker state (today default)
   const [paymentDate, setPaymentDate] = useState(
     new Date().toISOString().slice(0, 10),
   );
+
+  const { t } = useLang();
 
   useEffect(() => {
     if (!open) return;
     setAmount("");
     setNote("");
     setVaultId(activeVaultId || "");
-    setMethod("cash");
+    setMethod(PAYMENT_METHOD.CASH);
     setPaymentDate(new Date().toISOString().slice(0, 10));
   }, [open, activeVaultId]);
 
@@ -2179,7 +2177,9 @@ export function PaymentActionModal({
       <div className="payment-modal" onClick={(e) => e.stopPropagation()}>
         <div className="payment-modal-header">
           <h3 style={{ margin: 0 }}>
-            {mode === "payment" ? "Tahsilat Al" : "Borçlandır"}
+            {mode === "payment"
+              ? t("collect_payment_title")
+              : t("add_debt_title")}
           </h3>
 
           <button
@@ -2187,20 +2187,20 @@ export function PaymentActionModal({
             onClick={onClose}
             style={{ flex: "unset" }}
           >
-            Kapat
+            {t("close")}
           </button>
         </div>
 
         <div style={{ marginTop: 14 }}>
-          {/* thisis for vault secimi for Debt and Payment yap  */}
+          {/* VAULT */}
           {mode === "payment" && (
             <div className="form-group">
-              <label>Kasa</label>
+              <label>{t("vault")}</label>
               <select
                 value={vaultId}
                 onChange={(e) => setVaultId(e.target.value)}
               >
-                <option value="">Kasa seçin</option>
+                <option value="">{t("select_vault")}</option>
                 {allowedVaults.map((k) => (
                   <option key={k.id} value={k.id}>
                     {k.name} ({k.currency})
@@ -2210,8 +2210,9 @@ export function PaymentActionModal({
             </div>
           )}
 
+          {/* DATE */}
           <div className="form-group">
-            <label>Tarih</label>
+            <label>{t("date")}</label>
             <input
               type="date"
               value={paymentDate}
@@ -2219,46 +2220,49 @@ export function PaymentActionModal({
             />
           </div>
 
-          {/* Ödeme Yöntemi */}
+          {/* PAYMENT METHOD */}
           {mode === "payment" && (
             <div className="form-group">
-              <div className="form-group">
-                <label>Ödeme Yöntemi</label>
+              <label>{t("payment_method")}</label>
 
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button
-                    type="button"
-                    className={`btn ${
-                      method === PAYMENT_METHOD.CASH ? "btn-save" : ""
-                    }`}
-                    onClick={() => setMethod(PAYMENT_METHOD.CASH)}
-                  >
-                    <i className="fa-solid fa-money-bill-wave"></i> Nakit
-                  </button>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  type="button"
+                  className={`btn ${
+                    method === PAYMENT_METHOD.CASH ? "btn-save" : ""
+                  }`}
+                  onClick={() => setMethod(PAYMENT_METHOD.CASH)}
+                >
+                  <i className="fa-solid fa-money-bill-wave"></i> {t("cash")}
+                </button>
 
-                  <button
-                    type="button"
-                    className={`btn ${method === "card" ? "btn-save" : ""}`}
-                    onClick={() => setMethod(PAYMENT_METHOD.CARD)}
-                  >
-                    <i className="fa-solid fa-credit-card"></i> Kart
-                  </button>
+                <button
+                  type="button"
+                  className={`btn ${
+                    method === PAYMENT_METHOD.CARD ? "btn-save" : ""
+                  }`}
+                  onClick={() => setMethod(PAYMENT_METHOD.CARD)}
+                >
+                  <i className="fa-solid fa-credit-card"></i> {t("card")}
+                </button>
 
-                  <button
-                    type="button"
-                    className={`btn ${method === "transfer" ? "btn-save" : ""}`}
-                    onClick={() => setMethod(PAYMENT_METHOD.TRANSFER)}
-                  >
-                    <i className="fa-solid fa-building-columns"></i> Havale
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  className={`btn ${
+                    method === PAYMENT_METHOD.TRANSFER ? "btn-save" : ""
+                  }`}
+                  onClick={() => setMethod(PAYMENT_METHOD.TRANSFER)}
+                >
+                  <i className="fa-solid fa-building-columns"></i>{" "}
+                  {t("transfer")}
+                </button>
               </div>
             </div>
           )}
 
-          {/* Tutar */}
+          {/* AMOUNT */}
           <div className="form-group">
-            <label>Tutar</label>
+            <label>{t("amount")}</label>
             <input
               type="number"
               value={amount}
@@ -2267,18 +2271,20 @@ export function PaymentActionModal({
             />
           </div>
 
+          {/* NOTE */}
           <div className="form-group">
-            <label>Açıklama / Not</label>
+            <label>{t("description_note")}</label>
             <input
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder="Örn: Avans, Parça ücreti"
+              placeholder={t("note_placeholder")}
             />
           </div>
 
+          {/* ACTIONS */}
           <div className="btn-row">
             <button className="btn btn-cancel" onClick={onClose}>
-              İptal
+              {t("cancel")}
             </button>
 
             <button
@@ -2294,7 +2300,7 @@ export function PaymentActionModal({
                 onClose();
               }}
             >
-              {mode === "payment" ? "Tahsilat Al" : "Borçlandır"}
+              {mode === "payment" ? t("collect_payment") : t("add_debt")}
             </button>
           </div>
         </div>
@@ -2307,6 +2313,8 @@ export function ProfileModal({ open, onClose, user, profile, setState }) {
   const [name, setName] = useState(user?.displayName || "");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
+
+  const { t } = useLang();
 
   useEffect(() => {
     if (!open) return;
@@ -2339,10 +2347,10 @@ export function ProfileModal({ open, onClose, user, profile, setState }) {
         },
       }));
 
-      alert("Profil güncellendi ✅");
+      alert(t("profile_updated"));
       onClose();
     } catch (err) {
-      alert("Profil güncellenemedi");
+      alert(t("profile_update_failed"));
       console.error(err);
     }
   }
@@ -2352,21 +2360,21 @@ export function ProfileModal({ open, onClose, user, profile, setState }) {
   return (
     <ModalBase
       open={open}
-      title="Profil Ayarları"
+      title={t("profile_settings")}
       onClose={onClose}
       zIndex={3000}
     >
       <div className="form-group">
-        <label>Ad / Ünvan</label>
+        <label>{t("name_or_title")}</label>
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Adınız"
+          placeholder={t("your_name")}
         />
       </div>
 
       <div className="form-group">
-        <label>Telefon</label>
+        <label>{t("phone")}</label>
         <input
           type="tel"
           placeholder="+90 5xx xxx xx xx"
@@ -2376,10 +2384,10 @@ export function ProfileModal({ open, onClose, user, profile, setState }) {
       </div>
 
       <div className="form-group">
-        <label>Adres</label>
+        <label>{t("address")}</label>
         <textarea
           rows={2}
-          placeholder="Adres"
+          placeholder={t("address")}
           value={address}
           onChange={(e) => setAddress(e.target.value)}
         />
@@ -2389,11 +2397,11 @@ export function ProfileModal({ open, onClose, user, profile, setState }) {
 
       <div className="btn-row">
         <button className="btn btn-cancel" onClick={onClose}>
-          İptal
+          {t("cancel")}
         </button>
 
         <button className="btn btn-save" onClick={save}>
-          Kaydet
+          {t("save")}
         </button>
       </div>
     </ModalBase>
@@ -2408,7 +2416,7 @@ export function CalendarPage({
   onUpdateReservation,
   onDeleteReservation,
 }) {
-  const { lang } = useLang();
+  const { t, lang } = useLang();
 
   const [view, setView] = React.useState("monthly"); // daily | weekly | monthly
   const [referenceDate, setReferenceDate] = React.useState(new Date());
@@ -2448,7 +2456,10 @@ export function CalendarPage({
     return new Date(y, m - 1, d); // LOCAL date, no timezone shift
   }
 
-  const WEEKDAYS = ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
+  const WEEKDAYS =
+    lang === "en"
+      ? ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+      : ["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"];
 
   /* =============================
      HELPERS
@@ -2532,15 +2543,15 @@ export function CalendarPage({
 
     // Explicit time modes (if you use them)
     if (job.timeMode === "manual") {
-      return "Saat girilmedi";
+      return t("time_not_entered");
     }
 
     if (job.timeMode === "fixed") {
-      return "Sabit ücret";
+      return t("fixed_price");
     }
 
     // Safe fallback
-    return "Zamanlama bekleniyor";
+    return t("scheduling_pending");
   }
 
   const jobsOfSelectedDay = useMemo(() => {
@@ -2623,9 +2634,9 @@ export function CalendarPage({
       {/* VIEW SWITCH */}
       <div className="view-switcher">
         {[
-          { k: "daily", l: "Günlük" },
-          { k: "weekly", l: "Haftalık" },
-          { k: "monthly", l: "Aylık" },
+          { k: "daily", l: t("daily") },
+          { k: "weekly", l: t("weekly") },
+          { k: "monthly", l: t("monthly") },
         ].map((v) => (
           <button
             key={v.k}
@@ -2655,7 +2666,7 @@ export function CalendarPage({
               referenceDate.toLocaleDateString(headerLocale, {
                 day: "numeric",
                 month: "short",
-              }) + (lang === "en" ? " week" : " Haftası")}
+              }) + t("calendar.week_suffix")}
 
             {view === "daily" && referenceDate.toLocaleDateString(headerLocale)}
           </strong>
@@ -2785,7 +2796,7 @@ export function CalendarPage({
       {view === "daily" && (
         <>
           {visibleJobs.length === 0 && visibleReservations.length === 0 && (
-            <div className="card">Bu tarih için kayıt yok.</div>
+            <div className="card"> {t("no_records_for_date")}</div>
           )}
 
           {visibleJobs.map((job) => {
@@ -2800,7 +2811,7 @@ export function CalendarPage({
                 <strong>
                   {customer
                     ? `${customer.name} ${customer.surname}`
-                    : "Müşteri"}
+                    : t("customer")}
                 </strong>
                 <div style={{ fontSize: 13 }}>{getJobTimeLabel(job)}</div>
               </div>
@@ -2820,7 +2831,7 @@ export function CalendarPage({
                 <strong>
                   {customer
                     ? `${customer.name} ${customer.surname}`
-                    : "Müşteri"}
+                    : t("customer")}
                 </strong>
                 <div style={{ fontSize: 13, color: "#15803d" }}>
                   {r.start} – {r.end}
@@ -2836,7 +2847,7 @@ export function CalendarPage({
       {view !== "daily" && (
         <>
           {!hasGroupedItems && (
-            <div className="card">Bu dönem için kayıt yok.</div>
+            <div className="card">{t("no_records_for_period")}</div>
           )}
 
           {hasGroupedItems &&
@@ -2888,7 +2899,7 @@ export function CalendarPage({
                         <strong>
                           {customer
                             ? `${customer.name} ${customer.surname}`
-                            : "Müşteri"}
+                            : t("customer")}
                         </strong>
                         <div style={{ fontSize: 13 }}>
                           {getJobTimeLabel(job)}
@@ -2916,7 +2927,7 @@ export function CalendarPage({
                         <strong>
                           {customer
                             ? `${customer.name} ${customer.surname}`
-                            : "Müşteri"}
+                            : t("customer")}
                         </strong>
                         <div style={{ fontSize: 13, color: "#15803d" }}>
                           {r.start} – {r.end}
@@ -2933,7 +2944,7 @@ export function CalendarPage({
         className=" fab reservation-fab"
         onClick={() => {
           if (!customers || customers.length === 0) {
-            alert("Rezervasyon eklemek için önce müşteri eklemelisiniz.");
+            alert(t("add_reservation_missing_customer"));
             return;
           }
 
@@ -2952,16 +2963,16 @@ export function CalendarPage({
       {reservationModalOpen && (
         <ModalBase
           open={true}
-          title="Yeni Rezervasyon"
+          title={t("new_reservation")}
           onClose={() => setReservationModalOpen(false)}
         >
           <div className="form-stack">
             {/* CUSTOMER */}
-            <label>Müşteri Seç</label>
+            <label>{t("select_customer")}</label>
             <div style={{ position: "relative" }}>
               <input
                 type="text"
-                placeholder="Müşteri ara…"
+                placeholder={t("search_customer")}
                 value={
                   reservationForm.customerId
                     ? (() => {
@@ -2999,7 +3010,7 @@ export function CalendarPage({
                 >
                   {reservationCustomerOptions.length === 0 ? (
                     <div style={{ padding: 10, fontSize: 12, color: "#666" }}>
-                      Sonuç bulunamadı
+                      {t("no_results")}
                     </div>
                   ) : (
                     reservationCustomerOptions.map((c) => (
@@ -3034,7 +3045,7 @@ export function CalendarPage({
             </div>
 
             {/* DATE */}
-            <label>Tarih</label>
+            <label>{t("date")}</label>
             <input
               type="date"
               value={reservationForm.date}
@@ -3046,7 +3057,7 @@ export function CalendarPage({
             {/* TIME */}
             <div style={{ display: "flex", gap: 8 }}>
               <div style={{ flex: 1 }}>
-                <label>Başlangıç</label>
+                <label>{t("start_time")}</label>
                 <input
                   type="time"
                   value={reservationForm.start}
@@ -3057,7 +3068,7 @@ export function CalendarPage({
               </div>
 
               <div style={{ flex: 1 }}>
-                <label>Bitiş</label>
+                <label>{t("end_time")}</label>
                 <input
                   type="time"
                   value={reservationForm.end}
@@ -3069,9 +3080,9 @@ export function CalendarPage({
             </div>
 
             {/* NOTE */}
-            <label>Not</label>
+            <label>{t("reservation_note")}</label>
             <textarea
-              placeholder="Rezervasyon notu"
+              placeholder={t("reservation_note")}
               value={reservationForm.note}
               onChange={(e) =>
                 setReservationForm((f) => ({ ...f, note: e.target.value }))
@@ -3084,7 +3095,7 @@ export function CalendarPage({
                 className="btn btn-cancel"
                 onClick={() => setReservationModalOpen(false)}
               >
-                Vazgeç
+                {t("discard")}
               </button>
 
               <button
@@ -3109,7 +3120,7 @@ export function CalendarPage({
                   setReservationModalOpen(false);
                 }}
               >
-                Kaydet
+                {t("save")}
               </button>
             </div>
           </div>
@@ -3124,7 +3135,7 @@ export function CalendarPage({
         >
           <div className="form-stack">
             {/* CUSTOMER */}
-            <label>Müşteri</label>
+            <label>{t("customer")}</label>
             <select
               value={editingReservation.customerId}
               onChange={(e) =>
@@ -3142,7 +3153,7 @@ export function CalendarPage({
             </select>
 
             {/* DATE */}
-            <label>Tarih</label>
+            <label>{t("date")}</label>
             <input
               type="date"
               value={editingReservation.date}
@@ -3157,7 +3168,7 @@ export function CalendarPage({
             {/* TIME */}
             <div style={{ display: "flex", gap: 8 }}>
               <div style={{ flex: 1 }}>
-                <label>Başlangıç</label>
+                <label>{t("start_time")}</label>
                 <input
                   type="time"
                   value={editingReservation.start}
@@ -3171,7 +3182,7 @@ export function CalendarPage({
               </div>
 
               <div style={{ flex: 1 }}>
-                <label>Bitiş</label>
+                <label>{t("end_time")}</label>
                 <input
                   type="time"
                   value={editingReservation.end}
@@ -3186,7 +3197,7 @@ export function CalendarPage({
             </div>
 
             {/* NOTE */}
-            <label>Not</label>
+            <label>{t("reservation_note")}</label>
             <textarea
               value={editingReservation.note || ""}
               onChange={(e) =>
@@ -3206,14 +3217,14 @@ export function CalendarPage({
                   setEditingReservation(null);
                 }}
               >
-                Sil
+                {t("delete")}
               </button>
 
               <button
                 className="btn btn-cancel"
                 onClick={() => setEditingReservation(null)}
               >
-                İptal
+                {t("cancel")}
               </button>
 
               <button
@@ -3223,7 +3234,7 @@ export function CalendarPage({
                   setEditingReservation(null);
                 }}
               >
-                Kaydet
+                {t("save")}
               </button>
             </div>
           </div>
@@ -3262,6 +3273,65 @@ export function AdvancedSettingsModal({
     }));
   }
 
+  function normalizeImportedState(raw) {
+    if (!raw || typeof raw !== "object") {
+      throw new Error("Invalid file format");
+    }
+
+    return {
+      customers: Array.isArray(raw.customers) ? raw.customers : [],
+      jobs: Array.isArray(raw.jobs) ? raw.jobs : [],
+      payments: Array.isArray(raw.payments) ? raw.payments : [],
+      vaults: Array.isArray(raw.vaults) ? raw.vaults : [],
+      reservations: Array.isArray(raw.reservations) ? raw.reservations : [],
+
+      profile: {
+        ...(raw.profile || {}),
+        settings: {
+          ...(raw.profile?.settings || {}),
+        },
+      },
+
+      activeVaultId: raw.activeVaultId ?? null,
+
+      // always update timestamp
+      updatedAt: Date.now(),
+    };
+  }
+
+  function handleImportFile(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(reader.result);
+
+        const normalized = normalizeImportedState(parsed);
+
+        const ok = window.confirm(
+          t("import_confirm_replace") ||
+            "This will replace your current data. Continue?",
+        );
+
+        if (!ok) return;
+
+        // 🔥 SINGLE SOURCE OF TRUTH
+        setState(normalized);
+
+        alert(t("import_success") || "Import completed successfully.");
+        onClose();
+      } catch (err) {
+        console.error(err);
+        alert(t("import_failed") || "Import failed. Invalid file.");
+      }
+    };
+
+    reader.readAsText(file);
+  }
+
   function exportData() {
     const data = JSON.stringify(state, null, 2);
     const blob = new Blob([data], { type: "application/json" });
@@ -3278,12 +3348,12 @@ export function AdvancedSettingsModal({
   return (
     <ModalBase
       open={open}
-      title="Gelişmiş Ayarlar"
+      title={t("advanced_settings")}
       onClose={onClose}
       zIndex={2000}
     >
       <div className="settings-section">
-        <h4>Uygulama</h4>
+        <h4>{t("app_section")}</h4>
 
         <button
           className="settings-card"
@@ -3407,8 +3477,7 @@ export function AdvancedSettingsModal({
       </div>
 
       <div className="settings-section">
-        <h4>Güvenlik</h4>
-
+        <h4>{t("security_section")}</h4>
         <button
           className="settings-card"
           onClick={() => setChangePasswordOpen(true)}
@@ -3419,8 +3488,8 @@ export function AdvancedSettingsModal({
           </div>
 
           <div className="settings-content">
-            <h3>Şifre Değiştir</h3>
-            <p>Hesabınızın şifresini güncelleyin.</p>
+            <h3>{t("change_password")}</h3>
+            <p>{t("change_password_desc")}</p>
           </div>
 
           <i className="fa-solid fa-chevron-right arrow"></i>
@@ -3436,8 +3505,8 @@ export function AdvancedSettingsModal({
           </div>
 
           <div className="settings-content">
-            <h3>E-posta Değiştir</h3>
-            <p>Giriş yaptığınız e-posta adresini değiştirin.</p>
+            <h3>{t("change_email")}</h3>
+            <p>{t("change_email_desc")}</p>
           </div>
 
           <i className="fa-solid fa-chevron-right arrow"></i>
@@ -3445,21 +3514,46 @@ export function AdvancedSettingsModal({
       </div>
 
       <div className="settings-section">
-        <h4>Veri</h4>
+        <h4>{t("data_section")}</h4>
 
         <button className="settings-card" onClick={exportData} type="button">
           <div className="settings-icon blue">
             <i className="fa-solid fa-file-export"></i>
           </div>
-
           <div className="settings-content">
-            <h3>Verileri Dışa Aktar</h3>
-            <p>Tüm uygulama verilerini JSON olarak indir.</p>
+            <h3>{t("export_data")}</h3>
+            <p>{t("export_data_desc")}</p>
           </div>
 
           <i className="fa-solid fa-chevron-right arrow"></i>
         </button>
       </div>
+
+      <button
+        className="settings-card"
+        type="button"
+        onClick={() => document.getElementById("import-json-input").click()}
+      >
+        <div className="settings-icon green">
+          <i className="fa-solid fa-file-import"></i>
+        </div>
+
+        <div className="settings-content">
+          <h3>{t("import_data")}</h3>
+          <p>{t("import_data_desc")}</p>
+        </div>
+
+        <i className="fa-solid fa-chevron-right arrow"></i>
+      </button>
+
+      <input
+        id="import-json-input"
+        type="file"
+        accept="application/json"
+        style={{ display: "none" }}
+        onChange={handleImportFile}
+      />
+
       <ChangePasswordModal
         open={changePasswordOpen}
         onClose={() => setChangePasswordOpen(false)}
@@ -3480,6 +3574,7 @@ export function ChangePasswordModal({ open, onClose, auth }) {
   const [newPasswordRepeat, setNewPasswordRepeat] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const { t } = useLang();
 
   useEffect(() => {
     if (!open) {
@@ -3497,20 +3592,20 @@ export function ChangePasswordModal({ open, onClose, auth }) {
       setLoading(true);
 
       if (!currentPassword || !newPassword || !newPasswordRepeat) {
-        throw new Error("Tüm alanları doldurun.");
+        throw new Error(t("fill_all_fields"));
       }
 
       if (newPassword.length < 6) {
-        throw new Error("Yeni şifre en az 6 karakter olmalı.");
+        throw new Error(t("password_min_length"));
       }
 
       if (newPassword !== newPasswordRepeat) {
-        throw new Error("Yeni şifreler eşleşmiyor.");
+        throw new Error(t("passwords_not_match"));
       }
 
       const user = auth.currentUser;
       if (!user || !user.email) {
-        throw new Error("Oturum bulunamadı.");
+        throw new Error(t("session_not_found"));
       }
 
       const credential = EmailAuthProvider.credential(
@@ -3521,17 +3616,17 @@ export function ChangePasswordModal({ open, onClose, auth }) {
       await reauthenticateWithCredential(user, credential);
       await updatePassword(user, newPassword);
 
-      alert("Şifre başarıyla güncellendi ✅");
+      alert(alert(t("password_update_success")));
       onClose();
     } catch (err) {
       if (err.code === "auth/wrong-password") {
-        setError("Mevcut şifre yanlış.");
+        setError(t("wrong_password"));
       } else if (err.code === "auth/too-many-requests") {
-        setError("Çok fazla deneme yapıldı. Lütfen bekleyin.");
+        setError(t("too_many_requests"));
       } else if (err.code === "auth/requires-recent-login") {
-        setError("Güvenlik için tekrar giriş yapmanız gerekiyor.");
+        setError(t("recent_login_required"));
       } else {
-        setError(err.message || "Şifre değiştirilemedi.");
+        setError(err.message || t("password_update_failed"));
       }
     } finally {
       setLoading(false);
@@ -3543,12 +3638,12 @@ export function ChangePasswordModal({ open, onClose, auth }) {
   return (
     <ModalBase
       open={open}
-      title="Şifre Değiştir"
+      title={t("change_password_title")}
       onClose={onClose}
       zIndex={3000}
     >
       <div className="form-group">
-        <label>Mevcut Şifre</label>
+        <label>{t("current_password")}</label>
         <input
           type="password"
           value={currentPassword}
@@ -3557,7 +3652,7 @@ export function ChangePasswordModal({ open, onClose, auth }) {
       </div>
 
       <div className="form-group">
-        <label>Yeni Şifre</label>
+        <label>{t("new_password")}</label>
         <input
           type="password"
           value={newPassword}
@@ -3566,7 +3661,7 @@ export function ChangePasswordModal({ open, onClose, auth }) {
       </div>
 
       <div className="form-group">
-        <label>Yeni Şifre (Tekrar)</label>
+        <label>{t("new_password_repeat")}</label>
         <input
           type="password"
           value={newPasswordRepeat}
@@ -3582,11 +3677,11 @@ export function ChangePasswordModal({ open, onClose, auth }) {
 
       <div className="btn-row" style={{ marginTop: 14 }}>
         <button className="btn btn-cancel" onClick={onClose}>
-          İptal
+          {t("cancel")}
         </button>
 
         <button className="btn btn-save" disabled={loading} onClick={submit}>
-          {loading ? "Kaydediliyor..." : "Şifreyi Güncelle"}
+          {loading ? t("saving") : t("update_password")}
         </button>
       </div>
     </ModalBase>

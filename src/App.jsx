@@ -912,33 +912,6 @@ ${t("duplicate_customer_confirm")}
     }));
   }
 
-  // temp please delete it later
-  function cleanupJobPaymentsOnce() {
-    setState((s) => {
-      const before = s.payments?.length || 0;
-
-      const cleanedPayments = (s.payments || []).filter(
-        (p) => p.source !== "job",
-      );
-
-      const after = cleanedPayments.length;
-
-      console.log(
-        `🧹 ${t("job_payment_cleanup_log", { count: before - after })}`,
-      );
-
-      const nextState = {
-        ...s,
-        payments: cleanedPayments,
-      };
-
-      // 🔥 FORCE SAVE TO FIRESTORE
-      saveUserData(auth.currentUser.uid, nextState);
-
-      return nextState;
-    });
-  }
-
   /** Delete job */
   function deleteJob(jobId) {
     setState((s) => ({
@@ -956,7 +929,6 @@ ${t("duplicate_customer_confirm")}
         ),
       };
 
-      saveUserData(auth.currentUser.uid, next);
       return next;
     });
   }
@@ -970,7 +942,6 @@ ${t("duplicate_customer_confirm")}
         ),
       };
 
-      saveUserData(auth.currentUser.uid, next);
       return next;
     });
   }
@@ -1016,7 +987,6 @@ ${t("duplicate_customer_confirm")}
         payments: [...(s.payments || []), payment],
       };
 
-      saveUserData(auth.currentUser.uid, nextState);
       return nextState;
     });
   }
@@ -1342,7 +1312,6 @@ ${t("duplicate_customer_confirm")}
                 partsTotalOf={partsTotalOf}
                 jobTotalOf={jobTotalOf}
                 auth={auth}
-                saveUserData={saveUserData}
                 JobCard={JobCard}
               />
             )}
@@ -1375,7 +1344,6 @@ ${t("duplicate_customer_confirm")}
                       reservations: [...(s.reservations || []), reservation],
                     };
 
-                    saveUserData(auth.currentUser.uid, next);
                     return next;
                   });
                 }}
@@ -1708,7 +1676,6 @@ ${t("duplicate_customer_confirm")}
                     payments: nextPayments,
                   };
 
-                  saveUserData(auth.currentUser.uid, nextState);
                   return nextState;
                 });
               }

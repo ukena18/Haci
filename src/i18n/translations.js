@@ -773,6 +773,159 @@ export const translations = {
     "settings.jobs.title": "İş Takibini Etkinleştir",
     "settings.jobs.desc":
       "İş oluşturma, takip ve borçlandırma özelliklerini aç veya kapat.",
+
+    change_password_title: "Şifre Değiştir",
+    current_password: "Mevcut Şifre",
+    new_password: "Yeni Şifre",
+    new_password_repeat: "Yeni Şifre (Tekrar)",
+
+    fill_all_fields: "Tüm alanları doldurun.",
+    password_min_length: "Yeni şifre en az 6 karakter olmalı.",
+    passwords_not_match: "Yeni şifreler eşleşmiyor.",
+    session_not_found: "Oturum bulunamadı.",
+
+    password_update_success: "Şifre başarıyla güncellendi ✅",
+    password_update_failed: "Şifre değiştirilemedi.",
+
+    wrong_password: "Mevcut şifre yanlış.",
+    too_many_requests: "Çok fazla deneme yapıldı. Lütfen bekleyin.",
+    recent_login_required: "Güvenlik için tekrar giriş yapmanız gerekiyor.",
+
+    saving: "Kaydediliyor...",
+    update_password: "Şifreyi Güncelle",
+
+    advanced_settings: "Gelişmiş Ayarlar",
+
+    app_section: "Uygulama",
+    security_section: "Güvenlik",
+    data_section: "Veri",
+
+    change_password: "Şifre Değiştir",
+    change_password_desc: "Hesabınızın şifresini güncelleyin.",
+
+    change_email: "E-posta Değiştir",
+    change_email_desc: "Giriş yaptığınız e-posta adresini değiştirin.",
+
+    export_data: "Verileri Dışa Aktar",
+    export_data_desc: "Tüm uygulama verilerini JSON olarak indir.",
+
+    daily: "Günlük",
+    weekly: "Haftalık",
+    monthly: "Aylık",
+
+    time_not_entered: "Saat girilmedi",
+    fixed_price: "Sabit ücret",
+    scheduling_pending: "Zamanlama bekleniyor",
+    program: "Program",
+    no_records_for_date: "Bu tarih için kayıt yok.",
+    calendar: {
+      week_suffix: "Haftası",
+    },
+    no_records_for_period: "Bu dönem için kayıt yok.",
+
+    add_reservation_missing_customer:
+      "Rezervasyon eklemek için önce müşteri eklemelisiniz.",
+
+    new_reservation: "Yeni Rezervasyon",
+
+    select_customer: "Müşteri Seç",
+    search_customer: "Müşteri ara…",
+
+    no_results: "Sonuç bulunamadı",
+
+    date: "Tarih",
+    start_time: "Başlangıç",
+    end_time: "Bitiş",
+
+    reservation_note: "Rezervasyon notu",
+
+    discard: "Vazgeç",
+
+    edit_reservation: "Rezervasyonu Düzenle",
+    profile_settings: "Profil Ayarları",
+    name_or_title: "Ad / Ünvan",
+    your_name: "Adınız",
+
+    profile_updated: "Profil güncellendi ",
+    profile_update_failed: "Profil güncellenemedi",
+    collect_payment_title: "Tahsilat Al",
+    add_debt_title: "Borçlandır",
+
+    payment_method: "Ödeme Yöntemi",
+
+    description_note: "Açıklama / Not",
+    note_placeholder: "Örn: Avans, Parça ücreti",
+    clock_history: "Saat Giriş / Çıkış",
+    job_status: "Durum",
+    job_history: "İş Geçmişi",
+    no_records: "Kayıt yok.",
+    pdf: "PDF",
+    mail: "Mail",
+    whatsapp: "WA",
+    job: "İş",
+    days: "gün",
+    edit_payment: "Tahsilat Düzenle",
+    edit_debt: "Borç Düzenle",
+    due_days: "Ödeme Vadesi (gün)",
+    restore_payment_tracking: "Ödeme Takibini Geri Ekle",
+    payment_tracking_resume_info:
+      "Takip kaldığı yerden devam eder (günler sıfırlanmaz).",
+
+    select_customer_required: "Müşteri seçmelisiniz.",
+    edit_job: "İşi Düzenle",
+    add_job: "Yeni İş Ekle",
+    search_customer: "Müşteri ara…",
+    clear: "Temizle",
+    no_results: "Sonuç bulunamadı",
+    payment_due_date: "Ödeme Vadesi",
+    payment_due_info: "Ödeme seçilen tarihte vadesi dolacaktır.",
+    payment_tracking_disabled: "Bu iş ödeme takibine dahil edilmez.",
+    work_time_input: "Çalışma Zamanı Girişi",
+    start_stop: "Başlat / Bitir",
+    work_history_edit: "Çalışma Geçmişi (Düzelt)",
+    no_records_yet: "Henüz kayıt yok",
+    add_work_session: "Çalışma Ekle",
+    planned_job_duration: "Planlanan İş Süresi (Başlangıç - Bitiş)",
+    work_hours_range: "Çalışma Saatleri (Başlangıç - Bitiş)",
+    lunch_break_minutes: "Öğle Molası (dakika)",
+    break_auto_deduct_info: "Mola süresi toplam çalışmadan otomatik düşülür",
+    hourly_rate: "Saatlik Ücret",
+    used_parts: "Kullanılan Parçalar",
+    part_name_placeholder: "Parça Adı (örn: Filtre)",
+    quantity: "Adet",
+    unit_price: "Birim Fiyat",
+    delete_part: "Parçayı sil",
+    add_part: "Parça Ekle",
+    work_hours: "Çalışma Saati",
+    labor: "İşçilik",
+    working_days: "Çalışma Günü",
+    parts: "Parçalar",
+    total_amount: "Toplam Tutar",
+    note_optional: "Not (opsiyonel)",
+    delete_job_confirm: "Bu işi silmek istediğinize emin misiniz?",
+    close: "Kapat",
+    delete_confirmation: "Silme Onayı",
+    type_to_delete: "Silmek için",
+    delete_confirm_word: "SIL",
+    yes: "Evet",
+    no: "Hayır",
+    new_customer: "Yeni Müşteri",
+    edit_customer: "Müşteri Düzenle",
+    customer_id: "Müşteri ID",
+    customer_id_info: "Bu ID paylaşım linki için kullanılır:",
+    name: "Ad",
+    surname: "Soyad",
+    phone: "Telefon",
+    email: "E-posta",
+    address: "Adres",
+
+    name_surname_required: "Ad ve Soyad zorunludur.",
+    invalid_phone: "Lütfen geçerli bir telefon numarası girin.",
+    invalid_email: "Lütfen geçerli bir e-posta adresi girin.",
+    duplicate_customer_id: "Bu ID zaten var. Lütfen tekrar deneyin.",
+
+    delete_customer: "Müşteriyi Sil",
+    customer_portal: "Müşteri Portalı",
   },
 
   en: {
@@ -1337,6 +1490,156 @@ export const translations = {
     "settings.jobs.title": "Enable Job Tracking",
     "settings.jobs.desc":
       "Turn job creation, tracking, and billing features on or off.",
+
+    change_password_title: "Change Password",
+    current_password: "Current Password",
+    new_password: "New Password",
+    new_password_repeat: "New Password (Repeat)",
+
+    fill_all_fields: "Please fill in all fields.",
+    password_min_length: "The new password must be at least 6 characters.",
+    passwords_not_match: "The new passwords do not match.",
+    session_not_found: "Session not found.",
+
+    password_update_success: "Password updated successfully ✅",
+    password_update_failed: "Password could not be changed.",
+
+    wrong_password: "The current password is incorrect.",
+    too_many_requests: "Too many attempts. Please wait.",
+    recent_login_required: "For security reasons, please log in again.",
+
+    saving: "Saving...",
+    update_password: "Update Password",
+
+    advanced_settings: "Advanced Settings",
+
+    app_section: "Application",
+    security_section: "Security",
+    data_section: "Data",
+
+    change_password: "Change Password",
+    change_password_desc: "Update your account password.",
+
+    change_email: "Change Email",
+    change_email_desc: "Change the email address you use to sign in.",
+
+    export_data: "Export Data",
+    export_data_desc: "Download all application data as JSON.",
+    daily: "Daily",
+    weekly: "Weekly",
+    monthly: "Monthly",
+
+    time_not_entered: "Time not entered",
+    fixed_price: "Fixed price",
+    scheduling_pending: "Scheduling pending",
+    program: "Schedule",
+    no_records_for_date: "No records for this date.",
+    calendar: {
+      week_suffix: "week",
+    },
+    no_records_for_period: "No records for this period.",
+
+    add_reservation_missing_customer:
+      "You must add a customer before creating a reservation.",
+
+    new_reservation: "New Reservation",
+
+    select_customer: "Select Customer",
+    search_customer: "Search customer…",
+
+    no_results: "No results found",
+    date: "Date",
+    start_time: "Start",
+    end_time: "End",
+
+    reservation_note: "Reservation note",
+
+    discard: "Discard",
+
+    edit_reservation: "Edit Reservation",
+    profile_settings: "Profile Settings",
+    name_or_title: "Name / Title",
+    your_name: "Your name",
+
+    profile_updated: "Profile updated ",
+    profile_update_failed: "Profile update failed",
+    collect_payment_title: "Collect Payment",
+    add_debt_title: "Add Debt",
+
+    payment_method: "Payment Method",
+
+    description_note: "Description / Note",
+    note_placeholder: "e.g. Advance, parts cost",
+    clock_history: "Clock In / Out",
+    job_status: "Status",
+    edit_payment: "Edit Payment",
+    edit_debt: "Edit Debt",
+    due_days: "Payment Due (days)",
+    restore_payment_tracking: "Restore Payment Tracking",
+    payment_tracking_resume_info:
+      "Tracking continues from where it left off (days are not reset).",
+    select_customer_required: "You must select a customer.",
+    edit_job: "Edit Job",
+    add_job: "Add New Job",
+    search_customer: "Search customer…",
+    clear: "Clear",
+    no_results: "No results found",
+    payment_due_date: "Payment Due Date",
+    payment_due_info: "Payment will be due on the selected date.",
+    payment_tracking_disabled: "This job is excluded from payment tracking.",
+    work_time_input: "Work Time Input",
+    start_stop: "Start / Stop",
+    work_history_edit: "Work History (Edit)",
+    no_records_yet: "No records yet",
+    add_work_session: "Add Work Session",
+    planned_job_duration: "Planned Job Duration (Start - End)",
+    work_hours_range: "Work Hours (Start - End)",
+    lunch_break_minutes: "Lunch Break (minutes)",
+    break_auto_deduct_info:
+      "Break time is automatically deducted from total work time",
+    hourly_rate: "Hourly Rate",
+    used_parts: "Used Parts",
+    part_name_placeholder: "Part Name (e.g. Filter)",
+    quantity: "Quantity",
+    unit_price: "Unit Price",
+    delete_part: "Delete part",
+    add_part: "Add Part",
+    work_hours: "Work Hours",
+    labor: "Labor",
+    working_days: "Working Days",
+    parts: "Parts",
+    total_amount: "Total Amount",
+    note_optional: "Note (optional)",
+    delete_job_confirm: "Are you sure you want to delete this job?",
+    close: "Close",
+    delete_confirmation: "Delete Confirmation",
+    type_to_delete: "Type",
+    delete_confirm_word: "DELETE",
+    yes: "Yes",
+    no: "No",
+    new_customer: "New Customer",
+    edit_customer: "Edit Customer",
+    customer_id: "Customer ID",
+    customer_id_info: "This ID is used for the share link:",
+    name: "Name",
+    surname: "Surname",
+    phone: "Phone",
+    email: "Email",
+    address: "Address",
+
+    name_surname_required: "Name and surname are required.",
+    invalid_phone: "Please enter a valid phone number.",
+    invalid_email: "Please enter a valid email address.",
+    duplicate_customer_id: "This ID already exists. Please try again.",
+
+    delete_customer: "Delete Customer",
+
+    import_data: "Import Data",
+    import_data_desc: "Restore application data from a JSON file.",
+    import_confirm_replace: "This will replace all current data. Are you sure?",
+    import_success: "Data imported successfully.",
+    import_failed: "Invalid or corrupted file.",
+    customer_portal: "Customer Portal",
   },
 
   de: {
@@ -1912,5 +2215,155 @@ export const translations = {
     "settings.jobs.title": "Auftragsverfolgung aktivieren",
     "settings.jobs.desc":
       "Erstellen, Verfolgen und Abrechnen von Aufträgen ein- oder ausschalten.",
+
+    change_password_title: "Passwort ändern",
+    current_password: "Aktuelles Passwort",
+    new_password: "Neues Passwort",
+    new_password_repeat: "Neues Passwort (Wiederholen)",
+
+    fill_all_fields: "Bitte alle Felder ausfüllen.",
+    password_min_length:
+      "Das neue Passwort muss mindestens 6 Zeichen lang sein.",
+    passwords_not_match: "Die neuen Passwörter stimmen nicht überein.",
+    session_not_found: "Sitzung nicht gefunden.",
+
+    password_update_success: "Passwort erfolgreich aktualisiert ✅",
+    password_update_failed: "Passwort konnte nicht geändert werden.",
+
+    wrong_password: "Das aktuelle Passwort ist falsch.",
+    too_many_requests: "Zu viele Versuche. Bitte warten.",
+    recent_login_required: "Aus Sicherheitsgründen bitte erneut anmelden.",
+
+    saving: "Wird gespeichert...",
+    update_password: "Passwort aktualisieren",
+
+    advanced_settings: "Erweiterte Einstellungen",
+
+    app_section: "Anwendung",
+    security_section: "Sicherheit",
+    data_section: "Daten",
+
+    change_password: "Passwort ändern",
+    change_password_desc: "Aktualisieren Sie Ihr Kontopasswort.",
+
+    change_email: "E-Mail ändern",
+    change_email_desc:
+      "Ändern Sie die für die Anmeldung verwendete E-Mail-Adresse.",
+
+    export_data: "Daten exportieren",
+    export_data_desc: "Alle App-Daten als JSON herunterladen.",
+    daily: "Täglich",
+    weekly: "Wöchentlich",
+    monthly: "Monatlich",
+
+    time_not_entered: "Zeit nicht eingegeben",
+    fixed_price: "Festpreis",
+    scheduling_pending: "Zeitplanung ausstehend",
+    program: "Planung",
+    no_records_for_date: "Keine Einträge für dieses Datum.",
+    calendar: {
+      week_suffix: "Woche",
+    },
+
+    no_records_for_period: "Keine Einträge für diesen Zeitraum.",
+
+    add_reservation_missing_customer:
+      "Bitte zuerst einen Kunden anlegen, um eine Reservierung zu erstellen.",
+
+    new_reservation: "Neue Reservierung",
+
+    select_customer: "Kunde auswählen",
+    search_customer: "Kunde suchen…",
+
+    no_results: "Keine Ergebnisse gefunden",
+
+    date: "Datum",
+    start_time: "Beginn",
+    end_time: "Ende",
+
+    reservation_note: "Reservierungsnotiz",
+
+    discard: "Verwerfen",
+
+    edit_reservation: "Reservierung bearbeiten",
+    profile_settings: "Profileinstellungen",
+    name_or_title: "Name / Titel",
+    your_name: "Ihr Name",
+
+    profile_updated: "Profil aktualisiert",
+    profile_update_failed: "Profil konnte nicht aktualisiert werden",
+    collect_payment_title: "Zahlung erfassen",
+    add_debt_title: "Schuld hinzufügen",
+
+    payment_method: "Zahlungsmethode",
+
+    description_note: "Beschreibung / Notiz",
+    note_placeholder: "z. B. Anzahlung, Teilekosten",
+    clock_history: "Ein-/Ausstempeln",
+    job_status: "Status",
+    edit_payment: "Zahlung bearbeiten",
+    edit_debt: "Schuld bearbeiten",
+    due_days: "Zahlungsfrist (Tage)",
+    restore_payment_tracking: "Zahlungsverfolgung wieder aktivieren",
+    payment_tracking_resume_info:
+      "Die Verfolgung wird fortgesetzt (Tage werden nicht zurückgesetzt).",
+    select_customer_required: "Bitte wählen Sie einen Kunden aus.",
+    edit_job: "Auftrag bearbeiten",
+    add_job: "Neuen Auftrag hinzufügen",
+    search_customer: "Kunde suchen…",
+    clear: "Löschen",
+    no_results: "Keine Ergebnisse gefunden",
+    payment_due_date: "Fälligkeitsdatum",
+    payment_due_info: "Die Zahlung ist am ausgewählten Datum fällig.",
+    payment_tracking_disabled: "Dieser Auftrag wird nicht überwacht.",
+    work_time_input: "Arbeitszeiterfassung",
+    start_stop: "Start / Stopp",
+    work_history_edit: "Arbeitsverlauf (Bearbeiten)",
+    no_records_yet: "Noch keine Einträge",
+    add_work_session: "Arbeitszeit hinzufügen",
+    planned_job_duration: "Geplante Arbeitsdauer (Start - Ende)",
+    work_hours_range: "Arbeitszeiten (Start - Ende)",
+    lunch_break_minutes: "Mittagspause (Minuten)",
+    break_auto_deduct_info:
+      "Die Pausenzeit wird automatisch von der Arbeitszeit abgezogen",
+
+    hourly_rate: "Stundensatz",
+    used_parts: "Verwendete Teile",
+    part_name_placeholder: "Teilename (z. B. Filter)",
+    quantity: "Menge",
+    unit_price: "Stückpreis",
+    delete_part: "Teil löschen",
+    add_part: "Teil hinzufügen",
+    work_hours: "Arbeitsstunden",
+    labor: "Arbeitskosten",
+    working_days: "Arbeitstage",
+    parts: "Teile",
+    total_amount: "Gesamtbetrag",
+    note_optional: "Notiz (optional)",
+    delete_job_confirm: "Möchten Sie diesen Auftrag wirklich löschen?",
+    close: "Schließen",
+    delete_confirmation: "Löschbestätigung",
+    type_to_delete: "Zum Löschen eingeben",
+    delete_confirm_word: "LÖSCHEN",
+    yes: "Ja",
+    no: "Nein",
+
+    new_customer: "Neuer Kunde",
+    edit_customer: "Kunde bearbeiten",
+    customer_id: "Kunden-ID",
+    customer_id_info: "Diese ID wird für den Freigabelink verwendet:",
+    name: "Vorname",
+    surname: "Nachname",
+    phone: "Telefon",
+    email: "E-Mail",
+    address: "Adresse",
+
+    name_surname_required: "Vor- und Nachname sind erforderlich.",
+    invalid_phone: "Bitte geben Sie eine gültige Telefonnummer ein.",
+    invalid_email: "Bitte geben Sie eine gültige E-Mail-Adresse ein.",
+    duplicate_customer_id:
+      "Diese ID existiert bereits. Bitte erneut versuchen.",
+
+    delete_customer: "Kunden löschen",
   },
 };

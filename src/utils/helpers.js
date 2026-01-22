@@ -19,6 +19,18 @@ export function moveToNextBusinessDay(date) {
   return d;
 }
 
+/**
+ * Resolve transaction currency safely.
+ *
+ * RULE:
+ * - If transaction has currency → use it
+ * - Else → fallback to customer currency
+ * - Else → null (no symbol)
+ */
+export function resolveCurrency(transaction, customer) {
+  return transaction?.currency ?? customer?.currency ?? null;
+}
+
 export function addDaysSkippingWeekend(startDate, days) {
   const d = new Date(startDate);
   d.setDate(d.getDate() + days);
@@ -104,6 +116,15 @@ export function money(v, currency) {
 
   const symbol = symbols[currency] || currency;
   return `${n.toFixed(2)} ${symbol}`;
+}
+
+/**
+ * Format money for a transaction that may not have currency yet.
+ * (e.g. old debts before first payment)
+ */
+export function moneyForTransaction(amount, transaction, customer) {
+  const currency = resolveCurrency(transaction, customer);
+  return money(amount, currency);
 }
 
 /** Calculate hours from "HH:MM" start/end (simple same-day logic) */
