@@ -3448,32 +3448,44 @@ export function AdvancedSettingsModal({
         </button>
 
         {/* LANGUAGE */}
-        <div className="settings-card" style={{ cursor: "default" }}>
+        <button
+          className="settings-card"
+          type="button"
+          onClick={() => {
+            // optional: open language selector programmatically if you want
+            // document.getElementById("language-select").focus();
+          }}
+        >
+          {/* LEFT ICON */}
           <div className="settings-icon purple">
             <i className="fa-solid fa-language"></i>
           </div>
 
+          {/* CENTER CONTENT */}
           <div className="settings-content">
             <h3>{t("settings.language.title")}</h3>
             <p>{t("settings.language.desc")}</p>
           </div>
 
-          <div className="settings-card-right">
+          {/* RIGHT CONTROL */}
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ display: "flex", alignItems: "center" }}
+          >
             <div className="language-select-wrapper compact">
               <select
+                id="language-select"
                 value={lang}
                 onChange={(e) => changeLanguage(e.target.value)}
                 className="language-select compact"
               >
-                <option value="tr"> Türkçe</option>
-                <option value="en"> English</option>
-                <option value="de"> Deutsch</option>
+                <option value="tr">Türkçe</option>
+                <option value="en">English</option>
+                <option value="de">Deutsch</option>
               </select>
-
-              <i className="fa-solid fa-chevron-down select-arrow"></i>
             </div>
           </div>
-        </div>
+        </button>
       </div>
 
       <div className="settings-section">

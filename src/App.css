@@ -1534,10 +1534,6 @@ input[type="date"] {
   color: #6b7280;
 }
 
-.settings-card .arrow {
-  color: #9ca3af;
-}
-
 /* =========================
    Admin Card (Settings)
 ========================= */
@@ -1739,7 +1735,7 @@ input[type="date"] {
   gap: 12px;
 
   width: 100%;
-  padding: 14px;
+  padding: 10px;
   margin-bottom: 10px;
 
   background: #ffffff;
@@ -2245,16 +2241,6 @@ input[type="date"] {
 .language-select.compact {
   width: 100%;
   white-space: nowrap;
-}
-
-/* =========================
-   Settings card right align
-========================= */
-.settings-card-right {
-  flex-shrink: 0; /* ⛔ do not push layout */
-  max-width: 140px; /* 🔒 hard cap */
-  display: flex;
-  align-items: center;
 }
 
 /* ============================================================

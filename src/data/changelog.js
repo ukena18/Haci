@@ -1,5 +1,105 @@
 export const CHANGELOG = [
   {
+    version: "1.3.2",
+    title: {
+      en: "Sharing, Data Tools, Language UI & Stability Improvements",
+      tr: "Paylaşım, Veri Araçları, Dil Arayüzü ve Kararlılık İyileştirmeleri",
+    },
+    sections: [
+      {
+        label: {
+          en: "Sharing, Portal & Printing",
+          tr: "Paylaşım, Portal ve Yazdırma",
+        },
+        items: {
+          en: [
+            "Vault print view added for detailed Vault reporting",
+            "When clicking Mail or WhatsApp, the Customer Portal link is now included automatically",
+            "Customer Portal link is shared consistently across all sharing methods",
+          ],
+          tr: [
+            "Detaylı Kasa raporları için Kasa Yazdırma görünümü eklendi",
+            "Mail veya WhatsApp butonuna basıldığında Müşteri Portalı linki otomatik olarak gönderilir",
+            "Müşteri Portalı linki tüm paylaşım yöntemlerinde tutarlı şekilde gönderilir",
+          ],
+        },
+      },
+
+      {
+        label: {
+          en: "Language & UI Adjustments",
+          tr: "Dil ve Arayüz Düzenlemeleri",
+        },
+        items: {
+          en: [
+            "Language toggle alignment issue fixed in Advanced Settings",
+            "Introduced a unified Language Toggle modal for English, German, and Turkish",
+            "Language selection behavior standardized across the application",
+          ],
+          tr: [
+            "Gelişmiş Ayarlar bölümündeki dil butonunun hizalama sorunu giderildi",
+            "İngilizce, Almanca ve Türkçe için birleşik Dil Değiştirme modalı eklendi",
+            "Dil seçimi davranışı uygulama genelinde standart hale getirildi",
+          ],
+        },
+      },
+
+      {
+        label: {
+          en: "Data Tools & Reliability",
+          tr: "Veri Araçları ve Güvenilirlik",
+        },
+        items: {
+          en: [
+            "Data Export feature added for backing up user data",
+            "Data Import feature added for restoring exported data",
+            "Verified export / import integrity across customers, jobs, payments, and vaults",
+          ],
+          tr: [
+            "Kullanıcı verilerini yedeklemek için Veri Dışa Aktarma özelliği eklendi",
+            "Dışa aktarılan verileri geri yüklemek için Veri İçe Aktarma özelliği eklendi",
+            "Müşteriler, işler, tahsilatlar ve kasalar için veri bütünlüğü doğrulandı",
+          ],
+        },
+      },
+
+      {
+        label: {
+          en: "Stability, Code Quality & Automation",
+          tr: "Kararlılık, Kod Kalitesi ve Otomasyon",
+        },
+        items: {
+          en: [
+            "Codebase reviewed using AI-assisted analysis to fix common logic and state errors",
+            "Improved overall application stability and reduced edge-case failures",
+          ],
+          tr: [
+            "Yaygın mantık ve state hatalarını düzeltmek için kod tabanı AI destekli analizden geçirildi",
+            "Uygulama genelinde kararlılık artırıldı ve kenar durum hataları azaltıldı",
+          ],
+        },
+      },
+
+      {
+        label: {
+          en: "Authentication & Backend Migration",
+          tr: "Kimlik Doğrulama ve Backend Geçişi",
+        },
+        items: {
+          en: [
+            "Email change flow issues in Firebase identified and isolated",
+            "Email change functionality prepared for migration to Express.js backend",
+          ],
+          tr: [
+            "Firebase üzerindeki e-posta değiştirme sorunları tespit edildi ve izole edildi",
+            "E-posta değiştirme işlemi Express.js backend altyapısına taşınmak üzere hazırlandı",
+          ],
+        },
+      },
+    ],
+  },
+
+  {
     version: "1.3.1",
     title: {
       en: "Job Creation UX, Due Date Logic & Input Validation Improvements",

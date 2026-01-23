@@ -926,6 +926,8 @@ export const translations = {
 
     delete_customer: "Müşteriyi Sil",
     customer_portal: "Müşteri Portalı",
+
+    payment_default_note: "  ",
   },
 
   en: {
@@ -1640,6 +1642,8 @@ export const translations = {
     import_success: "Data imported successfully.",
     import_failed: "Invalid or corrupted file.",
     customer_portal: "Customer Portal",
+
+    payment_default_note: "  ",
   },
 
   de: {
@@ -2365,5 +2369,7 @@ export const translations = {
       "Diese ID existiert bereits. Bitte erneut versuchen.",
 
     delete_customer: "Kunden löschen",
+
+    payment_default_note: "  ",
   },
 };
