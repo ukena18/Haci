@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
@@ -17,8 +17,7 @@ import {
 } from "../utils/helpers";
 
 export function HomePage({
-  // ===== values =====
-  currency,
+  defaultCurrency,
   financialSummary,
   paymentWatchList,
   customersById,
@@ -27,12 +26,10 @@ export function HomePage({
   completedJobs,
   openCustomerFolders,
 
-  // ===== UI state =====
   paymentOpen,
   activeOpen,
   completedOpen,
 
-  // ===== setters / handlers =====
   setPaymentOpen,
   setActiveOpen,
   setCompletedOpen,
@@ -46,123 +43,210 @@ export function HomePage({
   setJobModalOpen,
   setConfirm,
 
-  // ===== helpers =====
-  money,
-  calcHours,
-  toNum,
-  partsTotalOf,
-  jobTotalOf,
-
-  // ===== persistence/auth =====
-  auth,
-  saveUserData,
-
-  // ===== components =====
   JobCard,
 }) {
   const { t } = useLang();
+  const [summaryCurrency, setSummaryCurrency] = useState("ALL");
+
+  const safePaymentWatchList = Array.isArray(paymentWatchList)
+    ? paymentWatchList
+    : [];
+
+  const availableCurrencies = React.useMemo(() => {
+    if (!customersById || customersById.size === 0) return [];
+
+    return Array.from(
+      new Set(
+        Array.from(customersById.values())
+          .map((c) => c?.currency)
+          .filter(Boolean),
+      ),
+    );
+  }, [customersById]);
+
+  function matchesCurrency(itemCurrency) {
+    if (summaryCurrency === "ALL") return true;
+    return itemCurrency === summaryCurrency;
+  }
+
+  const dueStats = useMemo(() => {
+    const byCurrency = {};
+
+    function ensure(cur) {
+      if (!byCurrency[cur])
+        byCurrency[cur] = { overdue: 0, upcoming: 0, total: 0 };
+      return byCurrency[cur];
+    }
+
+    (paymentWatchList || []).forEach((item) => {
+      const customer = customersById.get(item.ref.customerId);
+      const cur = customer?.currency || defaultCurrency;
+
+      // currency filter
+      if (summaryCurrency !== "ALL" && cur !== summaryCurrency) return;
+
+      const amount =
+        item.kind === "job" ? jobTotalOf(item.ref) : toNum(item.ref.amount);
+
+      const bucket = ensure(cur);
+
+      if (item.daysLeft <= 0) bucket.overdue += amount;
+      else bucket.upcoming += amount;
+
+      bucket.total += amount;
+    });
+
+    return byCurrency;
+  }, [paymentWatchList, customersById, summaryCurrency, defaultCurrency]);
+
+  const filteredSummary =
+    summaryCurrency === "ALL"
+      ? financialSummary
+      : {
+          totalDebt:
+            financialSummary.byCurrency?.[summaryCurrency]?.totalDebt || 0,
+          totalPayment:
+            financialSummary.byCurrency?.[summaryCurrency]?.totalPayment || 0,
+          net:
+            (financialSummary.byCurrency?.[summaryCurrency]?.totalPayment ||
+              0) -
+            (financialSummary.byCurrency?.[summaryCurrency]?.totalDebt || 0),
+        };
+
+  const summaryLines = useMemo(() => {
+    const entries = Object.entries(financialSummary?.byCurrency || {});
+    // keep stable order
+    entries.sort(([a], [b]) => a.localeCompare(b));
+    return entries;
+  }, [financialSummary]);
 
   return (
     <div id="page-home">
-      {/* FINANCIAL SUMMARY */}
-      <div className="card" style={{ marginBottom: 16 }}>
-        {/* NUMBERS */}
-        <div
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          marginBottom: 10,
+        }}
+      >
+        <select
+          value={summaryCurrency}
+          onChange={(e) => setSummaryCurrency(e.target.value)}
           style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 12,
-            marginBottom: 14,
-            fontSize: 12,
+            padding: "6px 10px",
+            borderRadius: 8,
+            fontWeight: 600,
+            fontSize: 13,
           }}
         >
-          <div
-            style={{
-              padding: 14,
-              borderRadius: 12,
-              background: "#fef2f2",
-              textAlign: "center",
-            }}
-          >
-            {/* Total debt */}
-            <div
-              style={{
-                color: "#7f1d1d",
-                fontSize: 12,
-                marginBottom: 4,
-              }}
-            >
-              {t("total_debt")}
-            </div>
-            <div
-              style={{
-                fontWeight: 700,
-                color: "#dc2626",
-                fontSize: 16,
-              }}
-            >
-              {money(financialSummary.totalDebt, currency)}
+          <option value="ALL">{t("all_currencies")}</option>
+          {availableCurrencies.length > 0 &&
+            availableCurrencies.map((cur) => (
+              <option key={cur} value={cur}>
+                {cur}
+              </option>
+            ))}
+        </select>
+      </div>
+
+      <div className="card fin-summary">
+        {/* FINANCIAL SUMMARY */}
+
+        <div className="fin-summary-grid">
+          {/* TOTAL DEBT */}
+          <div className="fin-card debt">
+            <div className="label">{t("total_debt")}</div>
+            <div className="value">
+              {summaryCurrency === "ALL"
+                ? summaryLines.length
+                  ? summaryLines.map(([cur, b]) => (
+                      <div key={cur}>{money(b.totalDebt, cur)}</div>
+                    ))
+                  : money(0, defaultCurrency)
+                : money(filteredSummary.totalDebt, summaryCurrency)}
             </div>
           </div>
 
-          {/* Total payment */}
-          <div
-            style={{
-              padding: 14,
-              borderRadius: 12,
-              background: "#f0fdf4",
-              textAlign: "center",
-            }}
-          >
-            <div
-              style={{
-                color: "#166534",
-                fontSize: 12,
-                marginBottom: 4,
-              }}
-            >
-              {t("total_payment")}
+          {/* TOTAL PAYMENT */}
+          <div className="fin-card payment">
+            <div className="label">{t("total_payment")}</div>
+            <div className="value">
+              {summaryCurrency === "ALL"
+                ? summaryLines.length
+                  ? summaryLines.map(([cur, b]) => (
+                      <div key={cur}>{money(b.totalPayment, cur)}</div>
+                    ))
+                  : money(0, defaultCurrency)
+                : money(filteredSummary.totalPayment, summaryCurrency)}
             </div>
-            <div
-              style={{
-                fontWeight: 700,
-                color: "#16a34a",
-                fontSize: 16,
-              }}
-            >
-              {money(financialSummary.totalPayment, currency)}
+          </div>
+
+          {/* NET STATUS */}
+          <div
+            className={`fin-card net ${
+              filteredSummary.net < 0 ? "negative" : "positive"
+            }`}
+          >
+            <div className="label">{t("net_status")}</div>
+            <div className="value">
+              {summaryCurrency === "ALL"
+                ? summaryLines.length
+                  ? summaryLines.map(([cur, b]) => (
+                      <div key={cur}>{money(b.net, cur)}</div>
+                    ))
+                  : money(0, defaultCurrency)
+                : money(filteredSummary.net, summaryCurrency)}
             </div>
           </div>
         </div>
 
-        {/* NET */}
-        <div
-          style={{
-            marginTop: 8,
-            padding: 14,
-            borderRadius: 12,
-            background: financialSummary.net < 0 ? "#fef2f2" : "#f0fdf4",
-            textAlign: "center",
-          }}
-        >
-          <div
-            style={{
-              fontSize: 12,
-              marginBottom: 4,
-              color: financialSummary.net < 0 ? "#7f1d1d" : "#166534",
-            }}
-          >
-            {t("net_status")}
-          </div>
+        {/* DUE MONITOR */}
+        <div className="due-section">
+          <div className="due-monitor-grid">
+            {/* OVERDUE */}
+            <div className="due-card overdue">
+              <div className="label">{t("overdue_amount")}</div>
+              <div className="value">
+                {summaryCurrency === "ALL"
+                  ? Object.entries(dueStats).map(([cur, b]) => (
+                      <div key={cur}>{money(b.overdue, cur)}</div>
+                    ))
+                  : money(
+                      dueStats?.[summaryCurrency]?.overdue || 0,
+                      summaryCurrency,
+                    )}
+              </div>
+            </div>
 
-          <div
-            style={{
-              fontWeight: 700,
-              fontSize: 16,
-              color: financialSummary.net < 0 ? "#dc2626" : "#16a34a",
-            }}
-          >
-            {money(financialSummary.net, currency)}
+            {/* UPCOMING */}
+            <div className="due-card upcoming">
+              <div className="label">{t("upcoming_due")}</div>
+              <div className="value">
+                {summaryCurrency === "ALL"
+                  ? Object.entries(dueStats).map(([cur, b]) => (
+                      <div key={cur}>{money(b.upcoming, cur)}</div>
+                    ))
+                  : money(
+                      dueStats?.[summaryCurrency]?.upcoming || 0,
+                      summaryCurrency,
+                    )}
+              </div>
+            </div>
+
+            {/* TOTAL */}
+            <div className="due-card total">
+              <div className="label">{t("total_due_exposure")}</div>
+              <div className="value">
+                {summaryCurrency === "ALL"
+                  ? Object.entries(dueStats).map(([cur, b]) => (
+                      <div key={cur}>{money(b.total, cur)}</div>
+                    ))
+                  : money(
+                      dueStats?.[summaryCurrency]?.total || 0,
+                      summaryCurrency,
+                    )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -175,7 +259,7 @@ export function HomePage({
           >
             <strong>
               <i className="fa-solid fa-bell"></i> {t("payment_tracking")} (
-              {paymentWatchList.length})
+              {safePaymentWatchList.length})
             </strong>
             <i
               className={`fa-solid fa-chevron-${
@@ -186,12 +270,12 @@ export function HomePage({
         </div>
 
         {paymentOpen &&
-          (paymentWatchList.length === 0 ? (
+          (safePaymentWatchList.length === 0 ? (
             <div className="card" style={{ fontSize: 12, color: "#666" }}>
               {t("no_tracked_jobs")}
             </div>
           ) : (
-            paymentWatchList.map((item) => {
+            safePaymentWatchList.map((item) => {
               const { kind, ref, daysLeft, dueDate } = item;
 
               // =====================
@@ -281,7 +365,7 @@ export function HomePage({
                         {t("remove_from_tracking")}
                       </button>
 
-                      {money(jobTotalOf(job), currency)}
+                      {money(jobTotalOf(job), c.currency || defaultCurrency)}
                     </div>
                   </div>
                 );
@@ -358,7 +442,10 @@ export function HomePage({
                         {t("remove_from_tracking")}
                       </button>
 
-                      {money(debt.amount, debt.currency || currency)}
+                      {money(
+                        debt.amount,
+                        debt.currency || c.currency || defaultCurrency,
+                      )}
                     </div>
                   </div>
                 );
@@ -409,7 +496,7 @@ export function HomePage({
                 const customer = customersById.get(customerId);
                 const isOpen = openCustomerFolders[customerId] ?? false;
 
-                const customerCurrency = customer?.currency || currency;
+                const customerCurrency = customer?.currency || defaultCurrency;
 
                 const totalAmount = jobs.reduce(
                   (sum, j) => sum + jobTotalOf(j),
@@ -463,7 +550,7 @@ export function HomePage({
                             toggleJobOpen={toggleJobOpen}
                             clockIn={clockIn}
                             clockOut={clockOut}
-                            currency={currency}
+                            currency={customerCurrency}
                             markJobComplete={markJobComplete}
                             onOpenActions={(jobId) => {
                               setEditingJobId(jobId);
@@ -535,7 +622,7 @@ export function HomePage({
                   setJobModalOpen={setJobModalOpen}
                   setConfirm={setConfirm}
                   markJobComplete={markJobComplete}
-                  currency={currency}
+                  currency={job.currency || defaultCurrency}
                   onOpenActions={(jobId) => {
                     setEditingJobId(jobId);
                     setJobModalOpen(true);
@@ -822,6 +909,7 @@ export function PublicCustomerSharePage() {
   const printRef = useRef(null);
 
   const [searchParams] = useSearchParams();
+
   const autoPrint = searchParams.get("print") === "1";
   useEffect(() => {
     if (!autoPrint) return;
@@ -866,12 +954,45 @@ export function PublicCustomerSharePage() {
   const jobs = snap.jobs || [];
   const payments = (snap.payments || []).filter((p) => p.source !== "job");
 
-  const currency = snap.currency || "TRY";
-  const balance = computeCustomerBalance(customer.id, jobs, payments);
+  const fromDate = searchParams.get("from");
+  const toDate = searchParams.get("to");
 
-  const totalPayment = payments
+  function isInRange(dateStr) {
+    if (!dateStr) return false;
+
+    const d = new Date(dateStr);
+    if (fromDate && d < new Date(fromDate)) return false;
+    if (toDate && d > new Date(toDate)) return false;
+
+    return true;
+  }
+
+  const filteredJobs =
+    fromDate || toDate ? jobs.filter((j) => isInRange(j.date)) : jobs;
+
+  const filteredPayments =
+    fromDate || toDate ? payments.filter((p) => isInRange(p.date)) : payments;
+
+  const currency = snap.currency || "TRY";
+  const paymentsPlusTotal = filteredPayments
     .filter((p) => p.type === "payment")
     .reduce((sum, p) => sum + toNum(p.amount), 0);
+
+  const paymentsMinusTotal = filteredPayments
+    .filter((p) => p.type === "debt")
+    .reduce((sum, p) => sum + toNum(p.amount), 0);
+
+  const paidJobsTotal = filteredJobs
+    .filter((j) => j.isPaid)
+    .reduce((sum, j) => sum + jobTotalOf(j), 0);
+
+  const unpaidJobsTotal = filteredJobs
+    .filter((j) => !j.isCompleted || (j.isCompleted && !j.isPaid))
+    .reduce((sum, j) => sum + jobTotalOf(j), 0);
+
+  const totalPayment = paymentsPlusTotal + paidJobsTotal;
+  const totalDebt = paymentsMinusTotal + unpaidJobsTotal;
+  const balance = totalPayment - totalDebt;
 
   function jobLaborTotal(job) {
     if (job.timeMode === "fixed") return toNum(job.fixedPrice);
@@ -886,21 +1007,15 @@ export function PublicCustomerSharePage() {
     return hours * toNum(job.rate);
   }
 
-  const totalDebt =
-    payments
-      .filter((p) => p.type === "debt")
-      .reduce((sum, p) => sum + toNum(p.amount), 0) +
-    jobs.reduce((sum, j) => sum + jobTotalOf(j), 0);
-
   // ✅ MIX jobs + payments into ONE historic timeline
   const unifiedHistory = [
-    ...payments.map((p) => ({
+    ...filteredPayments.map((p) => ({
       kind: "payment",
       id: `p_${p.id}`,
       sortKey: p.createdAt || new Date(p.date || 0).getTime() || 0,
       data: p,
     })),
-    ...jobs.map((j) => ({
+    ...filteredJobs.map((j) => ({
       kind: "job",
       id: `j_${j.id}`,
       sortKey: j.createdAt || new Date(j.date || 0).getTime() || 0,
@@ -1239,7 +1354,7 @@ export function PublicCustomerSharePage() {
         </div>
 
         {/* JOBS */}
-        {jobs.map((job, idx) => {
+        {filteredJobs.map((job, idx) => {
           const hours = job.timeMode === "fixed" ? null : clockHoursOf(job);
 
           const labor =

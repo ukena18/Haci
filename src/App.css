@@ -6,6 +6,7 @@
 /* ===== App layout wrapper (web fix) ===== */
 .app-shell {
   height: 100dvh; /* 🔥 dynamic viewport */
+  min-height: 100dvh; /* 🔥 ADD */
   background: #f4f6fb;
   display: flex;
   justify-content: center;
@@ -14,6 +15,8 @@
 .app-frame {
   width: 100%;
   height: 100%;
+  min-height: 100%;
+  height: auto; /* 🔥 */
   background: #f4f6fb;
   position: relative;
   max-width: 100%;
@@ -75,9 +78,12 @@
 ========================= */
 .container {
   flex: 1;
+  overflow-y: auto; /* 🔥 ADD */
+
   overflow-x: hidden;
   padding-top: 0px; /* header height */
   padding-bottom: 84px; /* nav height */
+  min-height: 0; /* 🔥 CRITICAL for flex children */
 }
 
 /* =========================
@@ -352,9 +358,13 @@
 
 .primary-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
   gap: 10px;
   margin-bottom: 14px;
+
+  /* 🔥 adaptive layout */
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  justify-content: center;
 }
 
 .btn-primary {
@@ -2291,7 +2301,9 @@ input[type="date"] {
 html,
 body {
   height: 100%;
-  overscroll-behavior: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* 🔒 KILLS the right-side scrollbar */
 }
 
 body {
@@ -2916,4 +2928,300 @@ i.fa-chevron-right i.fa-chevron-down {
 
 .switch input:checked + .slider:before {
   transform: translateX(20px);
+}
+
+/* =========================
+   Financial Summary (Home)
+========================= */
+
+.fin-summary {
+  margin-bottom: 16px;
+}
+
+/* 3 cards in one row */
+.fin-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+/* Base card */
+.fin-card {
+  padding: 14px;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.fin-card .label {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.fin-card .value {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+/* Debt */
+.fin-card.debt {
+  background: #fef2f2;
+}
+
+.fin-card.debt .label {
+  color: #7f1d1d;
+}
+
+.fin-card.debt .value {
+  color: #dc2626;
+}
+
+/* Payment */
+.fin-card.payment {
+  background: #f0fdf4;
+}
+
+.fin-card.payment .label {
+  color: #166534;
+}
+
+.fin-card.payment .value {
+  color: #16a34a;
+}
+
+/* Net */
+.fin-card.net.positive {
+  background: #f0fdf4;
+}
+
+.fin-card.net.positive .label {
+  color: #166534;
+}
+
+.fin-card.net.positive .value {
+  color: #16a34a;
+}
+
+.fin-card.net.negative {
+  background: #fef2f2;
+}
+
+.fin-card.net.negative .label {
+  color: #7f1d1d;
+}
+
+.fin-card.net.negative .value {
+  color: #dc2626;
+}
+
+/* 📱 Mobile fallback */
+@media (max-width: 420px) {
+  .fin-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =========================
+   Due Monitor (Dashboard)
+========================= */
+
+.due-monitor {
+  margin-bottom: 16px;
+}
+
+.due-monitor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 12px;
+}
+
+/* Base card */
+.due-card {
+  border-radius: 12px;
+  padding: 14px;
+  text-align: center;
+}
+
+.due-card .label {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.due-card .value {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+/* Overdue */
+.due-card.overdue {
+  background: linear-gradient(180deg, #fef2f2, #fee2e2);
+}
+.due-card.overdue .label {
+  color: #7f1d1d;
+}
+
+.due-card.overdue .value {
+  color: #dc2626;
+}
+
+.due-card.upcoming {
+  background: linear-gradient(180deg, #fffbeb, #fef3c7);
+}
+
+.due-card.upcoming .label {
+  color: #92400e;
+}
+
+.due-card.upcoming .value {
+  color: #b45309;
+}
+
+/* Total exposure */
+.due-card.total {
+  background: linear-gradient(180deg, #eff6ff, #e0e7ff);
+  border: 1px solid #c7d2fe;
+}
+
+.due-card.total .label {
+  color: #1e40af;
+}
+
+.due-card.total .value {
+  color: #2563eb;
+  font-weight: 900;
+}
+
+/* =========================
+   GLOBAL MODAL OVERLAY FIX
+========================= */
+
+/* Modal backdrop */
+.modal,
+.payment-backdrop,
+.edit-modal-overlay {
+  position: fixed !important;
+  inset: 0 !important; /* top:0 right:0 bottom:0 left:0 */
+  width: 100vw;
+  height: 100dvh;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(2px);
+
+  z-index: 9999;
+}
+
+/* Modal content box */
+.modal-content,
+.payment-modal,
+.edit-modal {
+  max-height: 90dvh;
+  width: 100%;
+  max-width: 520px;
+
+  background: #fff;
+  border-radius: 16px;
+  padding: 16px;
+
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.25);
+}
+
+/* Prevent background scroll when modal is open */
+body.modal-open {
+  overflow: hidden;
+  height: 100vh;
+}
+
+/* =========================
+   FULLSCREEN MODAL (MOBILE)
+========================= */
+@media (max-width: 640px) {
+  .modal,
+  .payment-backdrop,
+  .edit-modal-overlay {
+    align-items: stretch; /* 🔥 fill vertically */
+    justify-content: stretch;
+  }
+
+  .modal-content,
+  .payment-modal,
+  .edit-modal {
+    width: 100vw;
+    height: 100dvh;
+
+    max-width: none;
+    max-height: none;
+
+    border-radius: 0; /* 🔥 edge-to-edge */
+    padding: 16px;
+
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* =========================
+   Home Dashboard Polish
+========================= */
+
+/* Space between summary & due */
+.fin-summary {
+  margin-bottom: 20px;
+}
+
+/* Soft container for due cards */
+.due-section {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed #e5e7eb;
+}
+
+/* Improve grid spacing */
+.fin-summary-grid,
+.due-monitor-grid {
+  gap: 14px;
+}
+
+/* Make cards breathe */
+.fin-card,
+.due-card {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+/* Subtle hover (desktop only) */
+@media (hover: hover) {
+  .fin-card:hover,
+  .due-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.08);
+  }
+}
+
+.fin-card .label,
+.due-card .label {
+  letter-spacing: 0.02em;
+  opacity: 0.85;
+}
+
+.fin-card .value,
+.due-card .value {
+  margin-top: 4px;
+}
+
+@media (max-width: 420px) {
+  .fin-summary-grid,
+  .due-monitor-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
 }

@@ -10,6 +10,7 @@ import {
   partsTotalOf,
   calcHoursWithBreak, // ✅ ADD THIS
   formatDateByLang,
+  moneyForTransaction,
 } from "../utils/helpers";
 
 import {
@@ -118,7 +119,7 @@ export function ConfirmModal({ open, message, onYes, onNo, requireText }) {
     if (!open) setTyped("");
   }, [open]);
 
-  const canConfirm = !requireText || t("delete_confirm_word");
+  const canConfirm = !requireText || typed === t("delete_confirm_word");
 
   return (
     <ModalBase
@@ -1364,7 +1365,7 @@ export function CustomerDetailModal({
         const sign = p.type === "payment" ? "+" : "-";
 
         text += `${formatDateByLang(p.date, lang)} | ${typeLabel}\n`;
-        text += `${t("amount")}: ${sign}${money(p.amount, p.currency)}\n`;
+        text += `${t("amount")}: ${sign}${moneyForTransaction(p.amount, p, customer)}\n`;
         text += `${t("vault")}: ${vaultNameOf(p.vaultId)}\n`;
         text += `${t("method_label")}: ${
           PAYMENT_METHOD_LABEL_TR[p.method] || t("unknown")
@@ -1722,7 +1723,7 @@ export function CustomerDetailModal({
                 </button>
 
                 {onAddJob && (
-                  <button className="btn btn-save" onClick={onAddJob}>
+                  <button className="btn-primary blue" onClick={onAddJob}>
                     {t("add_job")}
                   </button>
                 )}
@@ -1750,6 +1751,38 @@ export function CustomerDetailModal({
           <div className="history-card">
             <div className="history-header">
               <h4>{t("job_history")}</h4>
+              <button
+                disabled={!fromDate && !toDate}
+                onClick={async () => {
+                  if (!customer) return;
+
+                  await publishCustomerSnapshot(customer.id, {
+                    customer: {
+                      id: customer.id,
+                      name: customer.name,
+                      surname: customer.surname,
+                      phone: customer.phone,
+                      email: customer.email,
+                      address: customer.address,
+                    },
+                    jobs,
+                    payments,
+                    currency: customer.currency,
+                  });
+
+                  const params = new URLSearchParams();
+                  if (fromDate) params.set("from", fromDate);
+                  if (toDate) params.set("to", toDate);
+                  params.set("print", "1");
+
+                  window.open(
+                    `/customer/${customer.id}?${params.toString()}`,
+                    "_blank",
+                  );
+                }}
+              >
+                <i className="fa-solid fa-filter"></i> {t("print_date_range")}
+              </button>
 
               <div style={{ display: "flex", gap: 6 }}>
                 <input
@@ -1862,7 +1895,7 @@ export function CustomerDetailModal({
                         }}
                       >
                         {isPayment ? "+" : "-"}
-                        {money(p.amount, p.currency)}
+                        {moneyForTransaction(p.amount, p, customer)}
                       </div>
                     </div>
                   );
@@ -1937,7 +1970,7 @@ export function CustomerDetailModal({
                         fontSize: 12,
                       }}
                     >
-                      -{money(total, displayCurrency)}
+                      -{moneyForTransaction(total, j, customer)}
                     </div>
                   </div>
                 );
@@ -3628,7 +3661,8 @@ export function ChangePasswordModal({ open, onClose, auth }) {
       await reauthenticateWithCredential(user, credential);
       await updatePassword(user, newPassword);
 
-      alert(alert(t("password_update_success")));
+      alert(t("password_update_success"));
+
       onClose();
     } catch (err) {
       if (err.code === "auth/wrong-password") {

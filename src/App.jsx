@@ -546,7 +546,10 @@ function MainApp({ state, setState, user }) {
     setPaymentModalOpen(true);
   }
 
-  const currency = null; // ❌ do NOT force currency
+  const currency = null; // do not force currency
+
+  const defaultCurrency =
+    state.currency || state.profile?.settings?.defaultCurrency || "TRY";
 
   const showCalendar = state.profile?.settings?.showCalendar !== false;
   // ✅ JOB FEATURE FLAG (GLOBAL)
@@ -626,28 +629,77 @@ function MainApp({ state, setState, user }) {
   const completedJobs = filteredJobs.filter((j) => j.isCompleted && !j.isPaid);
 
   const financialSummary = useMemo(() => {
-    let totalDebt = 0;
-    let totalPayment = 0;
+    const byCurrency = {};
 
-    // Payments
+    function ensure(cur) {
+      if (!byCurrency[cur]) {
+        byCurrency[cur] = {
+          totalDebt: 0,
+          totalPayment: 0,
+          net: 0,
+        };
+      }
+      return byCurrency[cur];
+    }
+
+    // =====================
+    // PAYMENTS
+    // =====================
     (state.payments || []).forEach((p) => {
-      if (p.type === "payment") totalPayment += toNum(p.amount);
-      if (p.type === "debt") totalDebt += toNum(p.amount);
-    });
+      const customer = state.customers.find((c) => c.id === p.customerId);
+      const cur = p.currency || customer?.currency;
+      if (!cur) return;
 
-    // Jobs
-    (state.jobs || []).forEach((job) => {
-      if (!job.isPaid) {
-        totalDebt += jobTotalOf(job);
+      const bucket = ensure(cur);
+
+      if (p.type === "payment") {
+        bucket.totalPayment += toNum(p.amount);
+        bucket.net += toNum(p.amount);
+      }
+
+      if (p.type === "debt") {
+        bucket.totalDebt += toNum(p.amount);
+        bucket.net -= toNum(p.amount);
       }
     });
+
+    // =====================
+    // COMPLETED UNPAID JOBS
+    // =====================
+    (state.jobs || []).forEach((job) => {
+      if (!job.isCompleted || job.isPaid) return;
+
+      const customer = state.customers.find((c) => c.id === job.customerId);
+      const cur = customer?.currency;
+      if (!cur) return;
+
+      const amount = jobTotalOf(job);
+      const bucket = ensure(cur);
+
+      bucket.totalDebt += amount;
+      bucket.net -= amount;
+    });
+
+    // =====================
+    // GLOBAL TOTALS (ALL)
+    // =====================
+    const totalDebt = Object.values(byCurrency).reduce(
+      (s, b) => s + b.totalDebt,
+      0,
+    );
+
+    const totalPayment = Object.values(byCurrency).reduce(
+      (s, b) => s + b.totalPayment,
+      0,
+    );
 
     return {
       totalDebt,
       totalPayment,
       net: totalPayment - totalDebt,
+      byCurrency,
     };
-  }, [state.jobs, state.payments]);
+  }, [state.jobs, state.payments, state.customers]);
 
   const unpaidCompletedJobs = filteredJobs.filter(
     (j) => j.isCompleted && !j.isPaid,
@@ -993,6 +1045,7 @@ ${t("duplicate_customer_confirm")}
 
   function addDebt(customerId, amount, note, date) {
     const amt = toNum(amount);
+
     if (amt <= 0) return;
 
     setState((s) => {
@@ -1282,6 +1335,7 @@ ${t("duplicate_customer_confirm")}
             {/* HOME PAGE */}
             {page === "home" && (
               <HomePage
+                defaultCurrency={defaultCurrency}
                 financialSummary={financialSummary}
                 paymentWatchList={paymentWatchList}
                 customersById={customersById}
@@ -1306,11 +1360,6 @@ ${t("duplicate_customer_confirm")}
                 setEditingJobId={setEditingJobId}
                 setJobModalOpen={setJobModalOpen}
                 setConfirm={setConfirm}
-                money={money}
-                calcHours={calcHours}
-                toNum={toNum}
-                partsTotalOf={partsTotalOf}
-                jobTotalOf={jobTotalOf}
                 auth={auth}
                 JobCard={JobCard}
               />

@@ -928,6 +928,19 @@ export const translations = {
     customer_portal: "Müşteri Portalı",
 
     payment_default_note: "  ",
+    // =====================
+    // HOME / FINANCIAL SUMMARY
+    // =====================
+    total_debt: "Toplam Borç",
+    total_payment: "Toplam Tahsilat",
+    net_status: "Net Durum",
+    // =====================
+    // PAYMENT DUE SUMMARY
+    // =====================
+    overdue_amount: "Vadesi Geçmiş",
+    upcoming_due: "Vadesi Gelecek",
+    total_due_exposure: "Net Durum",
+    debt_default_note: "Borç",
   },
 
   en: {
@@ -1644,6 +1657,19 @@ export const translations = {
     customer_portal: "Customer Portal",
 
     payment_default_note: "  ",
+    // =====================
+    // HOME / FINANCIAL SUMMARY
+    // =====================
+    total_debt: "Total Debt",
+    total_payment: "Total Payment",
+    net_status: "Net Balance",
+    // =====================
+    // PAYMENT DUE SUMMARY
+    // =====================
+    overdue_amount: "Overdue Amount",
+    upcoming_due: "Upcoming Due",
+    total_due_exposure: "Total Due Exposure",
+    debt_default_note: "Debt",
   },
 
   de: {
@@ -2371,5 +2397,18 @@ export const translations = {
     delete_customer: "Kunden löschen",
 
     payment_default_note: "  ",
+    // =====================
+    // HOME / FINANCIAL SUMMARY
+    // =====================
+    total_debt: "Gesamtschulden",
+    total_payment: "Gesamteinnahmen",
+    net_status: "Nettostand",
+
+    // =====================
+    // PAYMENT DUE SUMMARY
+    // =====================
+    overdue_amount: "Überfälliger Betrag",
+    upcoming_due: "Bevorstehende Fälligkeit",
+    total_due_exposure: "Gesamtes Fälligkeitsrisiko",
   },
 };

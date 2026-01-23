@@ -1,5 +1,135 @@
 export const CHANGELOG = [
   {
+    version: "1.3.3",
+    title: {
+      en: "Financial Logic Fixes, Due Tracking Dashboard & Mobile UX Improvements",
+      tr: "Finansal Mantık Düzeltmeleri, Vade Takibi Dashboard ve Mobil UX İyileştirmeleri",
+    },
+    sections: [
+      {
+        label: {
+          en: "Financial Logic & Calculations",
+          tr: "Finansal Mantık ve Hesaplamalar",
+        },
+        items: {
+          en: [
+            "Fixed all calculation logic for Total Debt, Total Payments, and Total Balance",
+            "Corrected Payment Due logic for past due, upcoming due, and total due amounts",
+            "Completed Jobs now correctly display the last 10 confirmed transactions",
+            "Ensured financial summaries always reflect accurate and up-to-date data",
+          ],
+          tr: [
+            "Toplam Borç, Toplam Tahsilat ve Toplam Bakiye hesaplama mantıkları düzeltildi",
+            "Geçmiş vade, yaklaşan vade ve toplam vade tutarları için hesaplama hataları giderildi",
+            "Tamamlanan işler artık son 10 onaylanmış işlemi doğru şekilde gösterir",
+            "Finansal özetlerin her zaman güncel ve doğru verileri yansıtması sağlandı",
+          ],
+        },
+      },
+
+      {
+        label: {
+          en: "Due Tracking & Dashboard",
+          tr: "Vade Takibi ve Dashboard",
+        },
+        items: {
+          en: [
+            "Due Tracking (Vade Takibi) added directly to the Dashboard",
+            "Improved visual consistency between Due Watch and Financial Summary",
+            "Refined color scheme for clearer due status visibility",
+          ],
+          tr: [
+            "Vade Takibi dashboard ekranına eklendi",
+            "Vade Takibi ile Finansal Özet arasındaki görsel uyum iyileştirildi",
+            "Vade durumlarını daha net göstermek için renkler düzenlendi",
+          ],
+        },
+      },
+
+      {
+        label: {
+          en: "Multi-Currency Safety & Debt Flow",
+          tr: "Çoklu Para Birimi Güvenliği ve Borç Akışı",
+        },
+        items: {
+          en: [
+            "Strengthened multi-currency rules to prevent currency mixing",
+            "Jobs, debts, and payments now strictly respect their assigned currency",
+            "Initial debt creation can exist without currency until first payment",
+            "Currency is automatically assigned from system rules on first payment",
+          ],
+          tr: [
+            "Farklı para birimlerinin karışmasını önlemek için çoklu para birimi kuralları güçlendirildi",
+            "İşler, borçlar ve tahsilatlar kendi para birimine sıkı şekilde bağlıdır",
+            "İlk borçlandırma işleminde para birimi zorunlu değildir",
+            "İlk tahsilat ile birlikte para birimi sistemden otomatik atanır",
+          ],
+        },
+      },
+
+      {
+        label: {
+          en: "Transaction History & Printing",
+          tr: "İşlem Geçmişi ve Yazdırma",
+        },
+        items: {
+          en: [
+            "Transaction History now supports filtering",
+            "Added print option for Transaction History",
+            "Users can print only last month’s transactions",
+          ],
+          tr: [
+            "İşlem Geçmişi için filtreleme desteği eklendi",
+            "İşlem Geçmişi yazdırma özelliği eklendi",
+            "Sadece geçen aya ait işlemler yazdırılabilir",
+          ],
+        },
+      },
+
+      {
+        label: {
+          en: "Invoices & Customer Presentation",
+          tr: "Faturalar ve Müşteri Sunumu",
+        },
+        items: {
+          en: [
+            "Invoice print layout redesigned to be simple and professional",
+            "Removed unnecessary decorative elements from invoice design",
+            "Parts and Labor are now shown together in a clear layout",
+            "Improved customer-facing public invoice appearance",
+          ],
+          tr: [
+            "Fatura yazdırma tasarımı daha sade ve profesyonel hale getirildi",
+            "Fatura tasarımındaki gereksiz süslemeler kaldırıldı",
+            "Parça ve işçilik bilgileri birlikte ve net şekilde gösterilir",
+            "Müşteriye açık fatura görünümü iyileştirildi",
+          ],
+        },
+      },
+
+      {
+        label: {
+          en: "Mobile UX & Layout Cleanup",
+          tr: "Mobil UX ve Yerleşim Düzenlemeleri",
+        },
+        items: {
+          en: [
+            "All modals now open in full-screen mode on mobile devices",
+            "Reduced multiple scroll areas into a single unified scroll",
+            "Primary UI color standardized to blue",
+            "When New Job button is disabled, Debt and Payment actions are centered automatically",
+          ],
+          tr: [
+            "Mobil cihazlarda tüm modallar tam ekran olacak şekilde düzenlendi",
+            "Çift scroll yapısı kaldırılarak tek scroll kullanımına geçildi",
+            "Ana arayüz rengi mavi olarak standartlaştırıldı",
+            "Yeni İş butonu kapalıyken Borç ve Tahsilat alanları otomatik ortalanır",
+          ],
+        },
+      },
+    ],
+  },
+  {
     version: "1.3.2",
     title: {
       en: "Sharing, Data Tools, Language UI & Stability Improvements",
