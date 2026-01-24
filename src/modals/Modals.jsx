@@ -89,16 +89,6 @@ export function ModalBase({
           style={{ display: "flex", justifyContent: "space-between", gap: 10 }}
         >
           <h3 style={{ margin: 0 }}>{title}</h3>
-          <button
-            className="btn btn-cancel"
-            onClick={(e) => {
-              e.stopPropagation(); // ✅ also prevents bubbling
-              onClose();
-            }}
-            style={{ flex: "unset" }}
-          >
-            {t("close")}
-          </button>
         </div>
 
         <div style={{ marginTop: 14 }}>{children}</div>
@@ -179,15 +169,17 @@ export function CustomerModal({
     ? customers.find((c) => c.id === editingCustomerId)
     : null;
 
-  const [draft, setDraft] = useState(makeEmptyCustomer());
+  const [draft, setDraft] = useState(() => makeEmptyCustomer());
 
   useEffect(() => {
     if (!open) return;
 
-    // If editing, load existing; else create new
-    if (editing) setDraft({ ...editing });
-    else setDraft(makeEmptyCustomer());
-  }, [open, editingCustomerId]); // eslint-disable-line
+    if (editing) {
+      setDraft({ ...editing }); // ✏️ EDIT MODE
+    } else {
+      setDraft(makeEmptyCustomer()); // ➕ ADD MODE (RESET)
+    }
+  }, [open, editing]);
 
   function setField(k, v) {
     setDraft((d) => ({ ...d, [k]: v }));
@@ -277,8 +269,13 @@ export function CustomerModal({
           placeholder="+90 5xx xxx xx xx"
           value={draft.phone}
           onChange={(e) => {
-            const v = e.target.value.replace(/[^\d+\s()-]/g, "");
-            setField("phone", v);
+            const raw = e.target.value;
+
+            // 1️⃣ allow typing symbols
+            const cleaned = raw.replace(/[^\d+]/g, "");
+
+            // 2️⃣ REMOVE ALL SPACES automatically
+            setField("phone", cleaned);
           }}
         />
       </div>
@@ -289,7 +286,18 @@ export function CustomerModal({
           type="email"
           placeholder="example@email.com"
           value={draft.email}
-          onChange={(e) => setField("email", e.target.value.trim())}
+          onChange={(e) => {
+            const raw = e.target.value;
+
+            // 1️⃣ force lowercase
+            const lower = raw.toLowerCase();
+
+            // 2️⃣ allow ONLY American ASCII email characters
+            // letters a-z, numbers 0-9, @ . _ - +
+            const cleaned = lower.replace(/[^a-z0-9@._+-]/g, "");
+
+            setField("email", cleaned);
+          }}
           required
         />
       </div>
@@ -1064,17 +1072,14 @@ export function JobModal({
             step="0.01"
             value={draft.fixedPrice ?? ""}
             placeholder="Sabit Ücret"
+            onWheel={(e) => e.currentTarget.blur()}
             onKeyDown={(e) => {
-              if (e.key === "-" || e.key === "e" || e.key === "E") {
+              if (e.key === "-" || e.key === "e" || e.key === "E")
                 e.preventDefault();
-              }
             }}
             onChange={(e) => {
               const v = e.target.value;
-              if (v === "") {
-                setField("fixedPrice", "");
-                return;
-              }
+              if (v === "") return setField("fixedPrice", "");
               setField("fixedPrice", Math.max(0, Number(v)));
             }}
           />
@@ -2380,10 +2385,8 @@ export function ProfileModal({ open, onClose, user, profile, setState }) {
         },
       }));
 
-      alert(t("profile_updated"));
       onClose();
     } catch (err) {
-      alert(t("profile_update_failed"));
       console.error(err);
     }
   }
@@ -2663,7 +2666,7 @@ export function CalendarPage({
   ============================= */
 
   return (
-    <div className="container">
+    <div id="page-calendar">
       {/* VIEW SWITCH */}
       <div className="view-switcher">
         {[
@@ -2974,20 +2977,25 @@ export function CalendarPage({
         </>
       )}
       <button
-        className=" fab reservation-fab"
+        className="fab reservation-fab"
         onClick={() => {
           if (!customers || customers.length === 0) {
             alert(t("add_reservation_missing_customer"));
             return;
           }
 
+          // 🔥 RESET EVERYTHING — NO PREFILL
+          setReservationCustomerSearch("");
+          setReservationCustomerDropdownOpen(false);
+
           setReservationForm({
-            customerId: customers[0]?.id || "",
+            customerId: "", // ✅ EMPTY ON PURPOSE
             date: selectedDate,
             start: "",
             end: "",
             note: "",
           });
+
           setReservationModalOpen(true);
         }}
       >

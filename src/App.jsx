@@ -546,20 +546,20 @@ function MainApp({ state, setState, user }) {
     setPaymentModalOpen(true);
   }
 
-  const currency = null; // do not force currency
-
-  const defaultCurrency =
-    state.currency || state.profile?.settings?.defaultCurrency || "TRY";
-
-  const showCalendar = state.profile?.settings?.showCalendar !== false;
-  // ✅ JOB FEATURE FLAG (GLOBAL)
-  const enableJobs = state.profile?.settings?.enableJobs !== false;
-
   const activeVault = useMemo(() => {
     return (
       (state?.vaults || []).find((k) => k.id === state?.activeVaultId) || null
     );
   }, [state?.vaults, state?.activeVaultId]);
+
+  const currency = null; // do not force currency
+
+  const defaultCurrency =
+    activeVault?.currency || state.profile?.settings?.defaultCurrency || "TRY";
+
+  const showCalendar = state.profile?.settings?.showCalendar !== false;
+  // ✅ JOB FEATURE FLAG (GLOBAL)
+  const enableJobs = state.profile?.settings?.enableJobs !== false;
 
   // vault DELETE CONFIRM STATE
   const [vaultDeleteConfirm, setVaultDeleteConfirm] = useState({
@@ -575,12 +575,11 @@ function MainApp({ state, setState, user }) {
   const [editingVaultName, setEditingVaultName] = useState("");
 
   // STEP 2: folder open / close state
-  const [activeOpen, setActiveOpen] = useState(true);
+  const [activeOpen, setActiveOpen] = useState(false); // ⬅ collapsed by default
   const [completedOpen, setCompletedOpen] = useState(false);
 
   // 30-day payment tracking folder
-  const [paymentOpen, setPaymentOpen] = useState(true);
-
+  const [paymentOpen, setPaymentOpen] = useState(false); // ⬅ collapsed by default
   // Editing entities
   const [editingJobId, setEditingJobId] = useState(null);
   const [editingCustId, setEditingCustId] = useState(null);
@@ -1263,7 +1262,8 @@ ${t("duplicate_customer_confirm")}
       setJobFixedCustomerId(null);
       setJobModalOpen(true);
     } else if (page === "customers") {
-      setCustModalOpen(true);
+      setEditingCustId(null); // 🔥 RESET EDIT MODE
+      setCustModalOpen(true); // ➕ OPEN ADD CUSTOMER
     }
   }
 

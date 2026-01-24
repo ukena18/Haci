@@ -24,12 +24,10 @@
   display: flex; /* ✅ ADD */
   flex-direction: column; /* ✅ ADD */
 }
-
 @media (min-width: 600px) {
   .app-frame {
-    margin: 20px 0;
-    border-radius: 16px;
-
+    margin: 0; /* ❌ remove top gap */
+    border-radius: 0px;
     box-shadow:
       0 0 0 1px rgba(0, 0, 0, 0.04),
       0 20px 60px rgba(0, 0, 0, 0.15);
@@ -39,8 +37,8 @@
 /* Tablet & desktop app sizing */
 @media (min-width: 640px) {
   .app-frame {
-    margin: 24px 0;
-    border-radius: 18px;
+    margin: 0px 0;
+    border-radius: 0px;
     box-shadow:
       0 0 0 1px rgba(0, 0, 0, 0.04),
       0 24px 70px rgba(0, 0, 0, 0.18);
@@ -855,8 +853,8 @@
     max-width: 840px; /* same as app-frame */
     width: 100%;
 
-    border-bottom-left-radius: 18px;
-    border-bottom-right-radius: 18px;
+    border-bottom-left-radius: 0px;
+    border-bottom-right-radius: 0px;
   }
 }
 
@@ -1270,7 +1268,7 @@
 .calendar-day {
   min-height: 36px;
   padding: 6px 4px;
-  border-radius: 12px;
+  border-radius: 0px;
   background: #f8fafc;
   cursor: pointer;
   text-align: center;
@@ -1503,7 +1501,7 @@ input[type="date"] {
 
 .settings-grid {
   display: grid;
-  gap: 12px;
+  gap: 8px; /* 👈 MATCH customer/job card spacing */
 }
 
 .settings-card:hover {
@@ -1746,7 +1744,6 @@ input[type="date"] {
 
   width: 100%;
   padding: 10px;
-  margin-bottom: 10px;
 
   background: #ffffff;
   border-radius: 14px;
@@ -3124,7 +3121,7 @@ i.fa-chevron-right i.fa-chevron-down {
   max-width: 520px;
 
   background: #fff;
-  border-radius: 16px;
+  border-radius: 15px;
   padding: 16px;
 
   overflow-y: auto;
@@ -3159,7 +3156,7 @@ body.modal-open {
     max-width: none;
     max-height: none;
 
-    border-radius: 0; /* 🔥 edge-to-edge */
+    border-radius: 15px; /* 🔥 edge-to-edge */
     padding: 16px;
 
     overflow-y: auto;
@@ -3221,7 +3218,50 @@ body.modal-open {
 @media (max-width: 420px) {
   .fin-summary-grid,
   .due-monitor-grid {
-    grid-template-columns: 1fr;
-    gap: 10px;
+    grid-template-columns: repeat(3, 1fr); /* ✅ keep 3 columns */
+    gap: 8px; /* slightly tighter for phones */
   }
+
+  .fin-card,
+  .due-card {
+    padding: 10px; /* smaller padding so it fits nicely */
+  }
+
+  .fin-card .label,
+  .due-card .label {
+    font-size: 11px;
+  }
+
+  .fin-card .value,
+  .due-card .value {
+    font-size: 14px;
+  }
+}
+
+#customer-list {
+  padding: 0 12px; /* 👈 LEFT & RIGHT GAP */
+}
+
+/* =========================
+   PAGE HORIZONTAL PADDING
+   (Home + Calendar consistency)
+========================= */
+
+#page-home,
+#page-calendar {
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+/* remove number spinners (chrome, edge, safari) */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* remove number spinners (firefox) */
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
 }

@@ -46,7 +46,7 @@ export function HomePage({
   JobCard,
 }) {
   const { t } = useLang();
-  const [summaryCurrency, setSummaryCurrency] = useState("ALL");
+  const [summaryCurrency, setSummaryCurrency] = useState(defaultCurrency);
 
   const safePaymentWatchList = Array.isArray(paymentWatchList)
     ? paymentWatchList
@@ -64,10 +64,11 @@ export function HomePage({
     );
   }, [customersById]);
 
-  function matchesCurrency(itemCurrency) {
-    if (summaryCurrency === "ALL") return true;
-    return itemCurrency === summaryCurrency;
-  }
+  useEffect(() => {
+    if (defaultCurrency) {
+      setSummaryCurrency(defaultCurrency);
+    }
+  }, [defaultCurrency]);
 
   const dueStats = useMemo(() => {
     const byCurrency = {};
@@ -83,7 +84,7 @@ export function HomePage({
       const cur = customer?.currency || defaultCurrency;
 
       // currency filter
-      if (summaryCurrency !== "ALL" && cur !== summaryCurrency) return;
+      if (cur !== summaryCurrency) return;
 
       const amount =
         item.kind === "job" ? jobTotalOf(item.ref) : toNum(item.ref.amount);
@@ -99,19 +100,14 @@ export function HomePage({
     return byCurrency;
   }, [paymentWatchList, customersById, summaryCurrency, defaultCurrency]);
 
-  const filteredSummary =
-    summaryCurrency === "ALL"
-      ? financialSummary
-      : {
-          totalDebt:
-            financialSummary.byCurrency?.[summaryCurrency]?.totalDebt || 0,
-          totalPayment:
-            financialSummary.byCurrency?.[summaryCurrency]?.totalPayment || 0,
-          net:
-            (financialSummary.byCurrency?.[summaryCurrency]?.totalPayment ||
-              0) -
-            (financialSummary.byCurrency?.[summaryCurrency]?.totalDebt || 0),
-        };
+  const filteredSummary = {
+    totalDebt: financialSummary.byCurrency?.[summaryCurrency]?.totalDebt || 0,
+    totalPayment:
+      financialSummary.byCurrency?.[summaryCurrency]?.totalPayment || 0,
+    net:
+      (financialSummary.byCurrency?.[summaryCurrency]?.totalPayment || 0) -
+      (financialSummary.byCurrency?.[summaryCurrency]?.totalDebt || 0),
+  };
 
   const summaryLines = useMemo(() => {
     const entries = Object.entries(financialSummary?.byCurrency || {});
@@ -132,20 +128,12 @@ export function HomePage({
         <select
           value={summaryCurrency}
           onChange={(e) => setSummaryCurrency(e.target.value)}
-          style={{
-            padding: "6px 10px",
-            borderRadius: 8,
-            fontWeight: 600,
-            fontSize: 13,
-          }}
         >
-          <option value="ALL">{t("all_currencies")}</option>
-          {availableCurrencies.length > 0 &&
-            availableCurrencies.map((cur) => (
-              <option key={cur} value={cur}>
-                {cur}
-              </option>
-            ))}
+          {availableCurrencies.map((cur) => (
+            <option key={cur} value={cur}>
+              {cur}
+            </option>
+          ))}
         </select>
       </div>
 
@@ -157,13 +145,7 @@ export function HomePage({
           <div className="fin-card debt">
             <div className="label">{t("total_debt")}</div>
             <div className="value">
-              {summaryCurrency === "ALL"
-                ? summaryLines.length
-                  ? summaryLines.map(([cur, b]) => (
-                      <div key={cur}>{money(b.totalDebt, cur)}</div>
-                    ))
-                  : money(0, defaultCurrency)
-                : money(filteredSummary.totalDebt, summaryCurrency)}
+              - {money(filteredSummary.totalDebt, summaryCurrency)}
             </div>
           </div>
 
@@ -207,6 +189,7 @@ export function HomePage({
             <div className="due-card overdue">
               <div className="label">{t("overdue_amount")}</div>
               <div className="value">
+                -{" "}
                 {summaryCurrency === "ALL"
                   ? Object.entries(dueStats).map(([cur, b]) => (
                       <div key={cur}>{money(b.overdue, cur)}</div>
@@ -222,6 +205,7 @@ export function HomePage({
             <div className="due-card upcoming">
               <div className="label">{t("upcoming_due")}</div>
               <div className="value">
+                -{" "}
                 {summaryCurrency === "ALL"
                   ? Object.entries(dueStats).map(([cur, b]) => (
                       <div key={cur}>{money(b.upcoming, cur)}</div>
@@ -237,6 +221,7 @@ export function HomePage({
             <div className="due-card total">
               <div className="label">{t("total_due_exposure")}</div>
               <div className="value">
+                -{" "}
                 {summaryCurrency === "ALL"
                   ? Object.entries(dueStats).map(([cur, b]) => (
                       <div key={cur}>{money(b.total, cur)}</div>
@@ -777,8 +762,6 @@ export function SettingsPage({
 
   return (
     <div className="settings-dashboard">
-      <h2 className="settings-title">{t("settings.title")}</h2>
-
       {/* ADMIN HEADER */}
       <div className="settings-admin-card">
         <div className="admin-left">

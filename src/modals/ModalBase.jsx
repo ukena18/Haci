@@ -24,15 +24,6 @@ export function ModalBase({
           style={{ display: "flex", justifyContent: "space-between", gap: 10 }}
         >
           <h3 style={{ margin: 0 }}>{title}</h3>
-          <button
-            className="btn btn-cancel"
-            onClick={(e) => {
-              e.stopPropagation();
-              onClose();
-            }}
-          >
-            Kapat
-          </button>
         </div>
 
         <div style={{ marginTop: 14 }}>{children}</div>
