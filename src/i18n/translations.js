@@ -134,7 +134,7 @@ export const translations = {
     // =====================
     vaults: "Kasalar",
     vault_active: "AKTİF",
-    add_new_vault: "+ Yeni Kasa Ekle",
+    add_new_vault: "+ Yeni Kasa ",
     new_vault_name_prefix: "Yeni Kasa",
     vault_delete_title: "Kasa Silme Onayı",
     vault_delete_warning: "⚠️ Bu kasa kalıcı olarak silinecek.",
@@ -300,7 +300,7 @@ export const translations = {
     // =====================
     // HISTORY
     // =====================
-    transaction_history: "📜 İşlem Geçmişi",
+    transaction_history: " İşlem Geçmişi",
     no_records: "Kayıt yok.",
 
     // =====================
@@ -378,7 +378,7 @@ export const translations = {
     // JOB MODAL
     // =====================
     edit_job: "İşi Düzenle",
-    new_job: "Yeni İş Ekle",
+    new_job: "Yeni İş",
 
     select_customer: "Müşteri Seç",
     search_customer: "Müşteri ara…",
@@ -941,6 +941,7 @@ export const translations = {
     upcoming_due: "Vadesi Gelecek",
     total_due_exposure: "Net Durum",
     debt_default_note: "Borç",
+    "public.usedParts": "Kullanılan Parçalar",
   },
 
   en: {

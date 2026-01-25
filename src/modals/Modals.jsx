@@ -86,9 +86,31 @@ export function ModalBase({
         onClick={(e) => e.stopPropagation()} // ✅ stop inside clicks
       >
         <div
-          style={{ display: "flex", justifyContent: "space-between", gap: 10 }}
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 10,
+          }}
         >
           <h3 style={{ margin: 0 }}>{title}</h3>
+
+          {/* ❌ CLOSE BUTTON */}
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            style={{
+              background: "transparent",
+              border: "none",
+              fontSize: 20,
+              cursor: "pointer",
+              lineHeight: 1,
+              padding: 4,
+              color: "#6b7280",
+            }}
+          >
+            ✕
+          </button>
         </div>
 
         <div style={{ marginTop: 14 }}>{children}</div>
@@ -1438,6 +1460,18 @@ export function CustomerDetailModal({
     window.open(`https://wa.me/${phone}?text=${text}`, "_blank");
   }
 
+  // 🔒 ALL customer payments (NO DATE FILTER)
+  const allCustomerPayments = useMemo(() => {
+    if (!customer) return [];
+    return (payments || []).filter((p) => p.customerId === customer.id);
+  }, [payments, customer]);
+
+  // 🔒 ALL customer jobs (NO DATE FILTER)
+  const allCustomerJobs = useMemo(() => {
+    if (!customer) return [];
+    return jobs.filter((j) => j.customerId === customer.id);
+  }, [jobs, customer]);
+
   const customerJobs = useMemo(() => {
     if (!customer) return [];
 
@@ -1515,50 +1549,33 @@ export function CustomerDetailModal({
     setEditTx(null);
   }
 
-  // ✅ plus transactions (Payment button)
+  // ✅ PLUS (payments)
   const paymentsPlusTotal = useMemo(() => {
-    return customerPayments
+    return allCustomerPayments
       .filter((p) => p.type === "payment")
       .reduce((sum, p) => sum + toNum(p.amount), 0);
-  }, [customerPayments]);
+  }, [allCustomerPayments]);
 
-  // ✅ minus transactions (borç button)
+  // ✅ MINUS (debts)
   const paymentsMinusTotal = useMemo(() => {
-    return customerPayments
+    return allCustomerPayments
       .filter((p) => p.type === "debt")
       .reduce((sum, p) => sum + toNum(p.amount), 0);
-  }, [customerPayments]);
+  }, [allCustomerPayments]);
 
-  // ✅ jobs totals split by paid/unpaid
+  // ✅ PAID JOBS
   const paidJobsTotal = useMemo(() => {
-    if (!customer) return 0;
-    return jobs
-      .filter((j) => j.customerId === customer.id && j.isPaid)
+    return allCustomerJobs
+      .filter((j) => j.isPaid)
       .reduce((sum, j) => sum + jobTotalOf(j), 0);
-  }, [jobs, customer]);
+  }, [allCustomerJobs]);
 
-  /**
-   * UNCOLLECTED JOB VALUE
-   *
-   * Includes:
-   * - Active jobs (not completed yet)
-   * - Completed but unpaid jobs
-   *
-   * Excludes:
-   * - Paid jobs
-   */
+  // ✅ UNPAID JOBS (active + completed unpaid)
   const unpaidJobsTotal = useMemo(() => {
-    if (!customer) return 0;
-
-    return jobs
-      .filter(
-        (j) =>
-          j.customerId === customer.id &&
-          (!j.isCompleted || // ACTIVE JOBS
-            (j.isCompleted && !j.isPaid)), // COMPLETED BUT UNPAID
-      )
+    return allCustomerJobs
+      .filter((j) => !j.isCompleted || (j.isCompleted && !j.isPaid))
       .reduce((sum, j) => sum + jobTotalOf(j), 0);
-  }, [jobs, customer]);
+  }, [allCustomerJobs]);
 
   const totalPayment = paymentsPlusTotal + paidJobsTotal;
 
@@ -1568,7 +1585,6 @@ export function CustomerDetailModal({
   async function shareAsPDF() {
     if (!customer) return;
 
-    // Ensure snapshot exists (you already do this)
     await publishCustomerSnapshot(customer.id, {
       customer: {
         id: customer.id,
@@ -1583,8 +1599,21 @@ export function CustomerDetailModal({
       currency: customer.currency,
     });
 
-    // 🔥 open portal WITH print flag
-    window.open(`/customer/${customer.id}?print=1`, "_blank");
+    const params = new URLSearchParams();
+
+    // ✅ If user selected a date range → include it
+    if (fromDate) params.set("from", fromDate);
+    if (toDate) params.set("to", toDate);
+
+    // always print
+    params.set("print", "1");
+
+    const query = params.toString();
+    const url = query
+      ? `/customer/${customer.id}?${query}`
+      : `/customer/${customer.id}?print=1`;
+
+    window.open(url, "_blank");
   }
 
   if (!open) return null;
@@ -1756,38 +1785,6 @@ export function CustomerDetailModal({
           <div className="history-card">
             <div className="history-header">
               <h4>{t("job_history")}</h4>
-              <button
-                disabled={!fromDate && !toDate}
-                onClick={async () => {
-                  if (!customer) return;
-
-                  await publishCustomerSnapshot(customer.id, {
-                    customer: {
-                      id: customer.id,
-                      name: customer.name,
-                      surname: customer.surname,
-                      phone: customer.phone,
-                      email: customer.email,
-                      address: customer.address,
-                    },
-                    jobs,
-                    payments,
-                    currency: customer.currency,
-                  });
-
-                  const params = new URLSearchParams();
-                  if (fromDate) params.set("from", fromDate);
-                  if (toDate) params.set("to", toDate);
-                  params.set("print", "1");
-
-                  window.open(
-                    `/customer/${customer.id}?${params.toString()}`,
-                    "_blank",
-                  );
-                }}
-              >
-                <i className="fa-solid fa-filter"></i> {t("print_date_range")}
-              </button>
 
               <div style={{ display: "flex", gap: 6 }}>
                 <input
@@ -1830,7 +1827,7 @@ export function CustomerDetailModal({
                         borderLeft: `6px solid ${
                           isPayment ? "#16a34a" : "#dc2626"
                         }`,
-                        background: isPayment ? "#f0fdf4" : "#fef2f2",
+
                         cursor: "pointer",
                       }}
                       onClick={() => {
@@ -1928,7 +1925,7 @@ export function CustomerDetailModal({
                     className="card list-item"
                     style={{
                       borderLeft: "6px solid #dc2626",
-                      background: "#fef2f2",
+
                       cursor: "pointer",
                     }}
                     onClick={() => onEditJob(j.id)}
@@ -2193,6 +2190,8 @@ export function PaymentActionModal({
   const [vaultId, setVaultId] = useState(activeVaultId || "");
   const [method, setMethod] = useState(PAYMENT_METHOD.CASH);
 
+  const [dueDate, setDueDate] = useState("");
+
   const [paymentDate, setPaymentDate] = useState(
     new Date().toISOString().slice(0, 10),
   );
@@ -2206,6 +2205,7 @@ export function PaymentActionModal({
     setVaultId(activeVaultId || "");
     setMethod(PAYMENT_METHOD.CASH);
     setPaymentDate(new Date().toISOString().slice(0, 10));
+    setDueDate("");
   }, [open, activeVaultId]);
 
   if (!open) return null;
@@ -2248,15 +2248,22 @@ export function PaymentActionModal({
             </div>
           )}
 
-          {/* DATE */}
-          <div className="form-group">
-            <label>{t("date")}</label>
-            <input
-              type="date"
-              value={paymentDate}
-              onChange={(e) => setPaymentDate(e.target.value)}
-            />
-          </div>
+          {/* DUE DATE — ONLY FOR DEBT */}
+          {mode === "debt" && (
+            <div className="form-group">
+              <label>{t("payment_due_date") || "Due Date"}</label>
+              <input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                min={paymentDate}
+              />
+              <small style={{ color: "#6b7280" }}>
+                {t("payment_due_info") ||
+                  "Debt will be tracked until this date"}
+              </small>
+            </div>
+          )}
 
           {/* PAYMENT METHOD */}
           {mode === "payment" && (
@@ -2334,6 +2341,15 @@ export function PaymentActionModal({
                   vaultId,
                   paymentDate,
                   mode === "payment" ? method : null,
+                  mode === "debt" && dueDate
+                    ? Math.max(
+                        0,
+                        Math.ceil(
+                          (new Date(dueDate) - new Date(paymentDate)) /
+                            (1000 * 60 * 60 * 24),
+                        ),
+                      )
+                    : null,
                 );
                 onClose();
               }}
@@ -2666,7 +2682,7 @@ export function CalendarPage({
   ============================= */
 
   return (
-    <div id="page-calendar">
+    <div id="page-calendar" className="page-top-spacing">
       {/* VIEW SWITCH */}
       <div className="view-switcher">
         {[
@@ -3291,6 +3307,11 @@ export function AdvancedSettingsModal({
   state,
   setState,
   auth,
+
+  // 🔹 STEP 6 — Dark mode props
+  theme,
+  setTheme,
+  jobs = [], // ✅ ADD
 }) {
   if (!open) return null;
 
@@ -3300,6 +3321,10 @@ export function AdvancedSettingsModal({
   const [changeEmailOpen, setChangeEmailOpen] = useState(false);
 
   const { lang, changeLanguage, t } = useLang();
+
+  const activeJobsCount = React.useMemo(() => {
+    return (jobs || []).filter((j) => j.isCompleted !== true).length;
+  }, [jobs]);
 
   function toggleCalendar() {
     setState((s) => ({
@@ -3395,6 +3420,45 @@ export function AdvancedSettingsModal({
     >
       <div className="settings-section">
         <h4>{t("app_section")}</h4>
+        {/* =========================
+    DARK MODE
+========================= */}
+        <button
+          className="settings-card"
+          type="button"
+          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+        >
+          {/* LEFT ICON */}
+          <div className="settings-icon gray">
+            <i
+              className={`fa-solid ${theme === "dark" ? "fa-moon" : "fa-sun"}`}
+            ></i>
+          </div>
+
+          {/* CENTER CONTENT */}
+          <div className="settings-content">
+            <h3>{t("settings.theme.title") || "Dark Mode"}</h3>
+            <p>
+              {t("settings.theme.desc") ||
+                "Switch between light and dark appearance"}
+            </p>
+          </div>
+
+          {/* RIGHT TOGGLE */}
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ display: "flex", alignItems: "center" }}
+          >
+            <label className="switch">
+              <input
+                type="checkbox"
+                checked={theme === "dark"}
+                onChange={(e) => setTheme(e.target.checked ? "dark" : "light")}
+              />
+              <span className="slider" />
+            </label>
+          </div>
+        </button>
 
         <button
           className="settings-card"
@@ -3435,14 +3499,26 @@ export function AdvancedSettingsModal({
           className="settings-card"
           type="button"
           onClick={() => {
+            const currentlyEnabled =
+              state.profile?.settings?.enableJobs !== false;
+
+            // ❌ BLOCK disabling if active jobs exist
+            if (currentlyEnabled && activeJobsCount > 0) {
+              alert(
+                `You have ${activeJobsCount} active job(s).\n` +
+                  `Please complete them before disabling job tracking.`,
+              );
+              return;
+            }
+
+            // ✅ SAFE TO TOGGLE
             setState((s) => ({
               ...s,
               profile: {
                 ...s.profile,
                 settings: {
                   ...s.profile?.settings,
-                  enableJobs:
-                    s.profile?.settings?.enableJobs === false ? true : false,
+                  enableJobs: !currentlyEnabled,
                 },
               },
             }));
@@ -3470,7 +3546,19 @@ export function AdvancedSettingsModal({
                 checked={state.profile?.settings?.enableJobs !== false}
                 onChange={(e) => {
                   const enabled = e.target.checked;
+                  const currentlyEnabled =
+                    state.profile?.settings?.enableJobs !== false;
 
+                  // ❌ BLOCK disabling if active jobs exist
+                  if (!enabled && currentlyEnabled && activeJobsCount > 0) {
+                    alert(
+                      `You have ${activeJobsCount} active job(s).\n` +
+                        `Please complete them before disabling job tracking.`,
+                    );
+                    return;
+                  }
+
+                  // ✅ SAFE UPDATE
                   setState((s) => ({
                     ...s,
                     profile: {

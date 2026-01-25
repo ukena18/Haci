@@ -1,5 +1,168 @@
 export const CHANGELOG = [
   {
+    version: "1.3.4",
+    title: {
+      en: "Customer Portal Print Fixes, UI Spacing Standardization & Modal UX Improvements",
+      tr: "Müşteri Portal Yazdırma Düzeltmeleri, Boşluk Standardizasyonu ve Modal UX İyileştirmeleri",
+    },
+    sections: [
+      {
+        label: {
+          en: "Customer Public Page (Portal)",
+          tr: "Müşteri Portal Sayfası",
+        },
+        items: {
+          en: [
+            "Customer public page now uses an expandable Job modal with Parts details (same structure as internal UI)",
+            "Fixed issues where Print could open a blank page in customer portal",
+            "Date range filtering now prints only filtered records; default print prints full history",
+          ],
+          tr: [
+            "Müşteri portalında işler artık modal ile açılıp parça detaylarını gösterir (iç ekranla aynı yapı)",
+            "Müşteri portalında yazdırma sırasında oluşan boş sayfa problemi giderildi",
+            "Tarih filtresi varken sadece filtrelenen kayıtlar yazdırılır; filtre yoksa normal şekilde tüm kayıtlar yazdırılır",
+          ],
+        },
+      },
+
+      {
+        label: {
+          en: "Printing & PDF Layout",
+          tr: "Yazdırma ve PDF Düzeni",
+        },
+        items: {
+          en: [
+            "Improved print page spacing and padding for a more compact invoice layout",
+            "Removed unnecessary background styling from printed lists for a cleaner output",
+            "Prevented tables from splitting between pages; blocks move to next page when space is insufficient",
+          ],
+          tr: [
+            "Daha kompakt ve profesyonel çıktı için yazdırma boşlukları ve padding düzenlendi",
+            "Daha temiz çıktı için yazdırma listelerindeki gereksiz arka planlar kaldırıldı",
+            "Tabloların sayfa arasında bölünmesi engellendi; yer yoksa blok bir sonraki sayfaya taşınır",
+          ],
+        },
+      },
+
+      {
+        label: {
+          en: "UI Spacing & Layout Consistency",
+          tr: "Boşluk ve Yerleşim Tutarlılığı",
+        },
+        items: {
+          en: [
+            "Standardized page padding across Home, Customers, Calendar, and Settings",
+            "Adjusted search bar spacing so it aligns flush with the top on supported pages",
+            "Calendar spacing improved for Day/Week/Month views",
+            "Customer list outer padding balanced equally on left and right",
+          ],
+          tr: [
+            "Anasayfa, Müşteriler, Takvim ve Ayarlar sayfalarında padding/boşluk standardı getirildi",
+            "Arama kutusu üst boşluğu giderilerek sayfanın en üstüne hizalandı",
+            "Takvim Gün/Hafta/Ay görünümlerinde üst boşluklar düzenlendi",
+            "Müşteri listesinin dış boşlukları sağ/sol eşit olacak şekilde düzeltildi",
+          ],
+        },
+      },
+
+      {
+        label: {
+          en: "Navigation & Modal UX",
+          tr: "Navigasyon ve Modal UX",
+        },
+        items: {
+          en: [
+            "Back button issues fixed in Updates and Advanced Settings",
+            "Added clear Close actions to modals to prevent being stuck inside",
+            "Modal content now ends cleanly under action buttons (removed unnecessary expansion)",
+          ],
+          tr: [
+            "Güncellemeler ve Gelişmiş Ayarlar ekranlarında geri tuşu sorunu giderildi",
+            "Modallarda net bir Kapat/Çıkış aksiyonu eklendi (modalden çıkamama sorunu giderildi)",
+            "Modal içerikleri butonların hemen altında bitecek şekilde gereksiz uzamalar kaldırıldı",
+          ],
+        },
+      },
+
+      {
+        label: {
+          en: "Business Logic & Defaults",
+          tr: "Mantık ve Varsayılanlar",
+        },
+        items: {
+          en: [
+            "Dashboard now opens with the default currency selected automatically",
+            "Due Tracking and Active Jobs sections now load collapsed by default",
+            "Customer totals no longer change unexpectedly when adjusting date filters (fixed recalculation behavior)",
+            "Negative totals now show a leading minus sign consistently (Debt and Balance)",
+          ],
+          tr: [
+            "Dashboard varsayılan para birimi seçili şekilde açılır",
+            "Vade Takibi ve Aktif İşler bölümleri varsayılan olarak kapalı gelir",
+            "Tarih filtresi değişince toplamların beklenmedik şekilde değişmesi engellendi",
+            "Negatif değerlerde (Toplam Borç / Bakiye) eksi işareti tutarlı şekilde gösterilir",
+          ],
+        },
+      },
+
+      {
+        label: {
+          en: "Data Entry & Validation",
+          tr: "Veri Girişi ve Doğrulama",
+        },
+        items: {
+          en: [
+            "Email input now enforces lowercase and English characters only",
+            "Phone input no longer keeps extra spaces when pasting numbers",
+            "New customer form now clears previous customer data properly when reopening",
+          ],
+          tr: [
+            "E-posta alanı artık her zaman küçük harf ve sadece İngiliz karakterlerini kabul eder",
+            "Telefon numarası yapıştırıldığında boşluklar otomatik temizlenir",
+            "Yeni müşteri ekleme ekranı tekrar açıldığında önceki müşteri verileri otomatik temizlenir",
+          ],
+        },
+      },
+
+      {
+        label: {
+          en: "Vault & Job Tracking",
+          tr: "Kasa ve İş Takibi",
+        },
+        items: {
+          en: [
+            "Vault now includes a dedicated Payments list section under the summary",
+            "When Job Tracking is closed and no active jobs remain, Active/Completed sections are hidden",
+          ],
+          tr: [
+            "Kasa ekranında özetin altında Tahsilat listesi bölümü eklendi",
+            "İş Takibi kapatıldığında ve aktif iş yoksa Aktif/Tamamlanan bölümleri otomatik gizlenir",
+          ],
+        },
+      },
+
+      {
+        label: {
+          en: "Theme & Translations",
+          tr: "Tema ve Çeviriler",
+        },
+        items: {
+          en: [
+            "Dark Mode toggle added inside Advanced Settings (Part 1)",
+            "Updated Turkish translation values in translate.js",
+            "Job modal background standardized to universal white for consistent readability",
+          ],
+          tr: [
+            "Gelişmiş Ayarlar (Part 1) içine Dark Mode seçeneği eklendi",
+            "translate.js içindeki Türkçe değerler güncellendi",
+            "Job modal arka planı okunabilirlik için evrensel beyaz olarak standartlaştırıldı",
+          ],
+        },
+      },
+    ],
+  },
+
+  {
     version: "1.3.3",
     title: {
       en: "Financial Logic Fixes, Due Tracking Dashboard & Mobile UX Improvements",

@@ -284,6 +284,12 @@ function persistState(state) {
 ============================================================ */
 
 export default function App() {
+  // 🔹 STEP 5.1 — Apply saved theme on app boot
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("theme") || "light";
+    document.documentElement.setAttribute("data-theme", savedTheme);
+  }, []);
+
   return (
     <BrowserRouter>
       <AuthGate />
@@ -445,6 +451,17 @@ function AppRoutes({ user }) {
 ============================================================ */
 function MainApp({ state, setState, user }) {
   const [page, setPage] = useState("home"); // home | customers | settings
+  // 🔹 STEP 5.2 — Theme state (light / dark)
+  const [theme, setTheme] = useState(
+    () => localStorage.getItem("theme") || "light",
+  );
+
+  function applyTheme(nextTheme) {
+    setTheme(nextTheme);
+    localStorage.setItem("theme", nextTheme);
+    document.documentElement.setAttribute("data-theme", nextTheme);
+  }
+
   const [search, setSearch] = useState("");
   const [customerSort, setCustomerSort] = useState("latest");
 
@@ -1352,6 +1369,7 @@ ${t("duplicate_customer_confirm")}
                 setActiveOpen={setActiveOpen}
                 setCompletedOpen={setCompletedOpen}
                 setState={setState}
+                state={state}
                 toggleCustomerFolder={toggleCustomerFolder}
                 toggleJobOpen={toggleJobOpen}
                 clockIn={clockIn}
@@ -1761,6 +1779,10 @@ ${t("duplicate_customer_confirm")}
             state={state}
             setState={setState}
             auth={auth}
+            // 🔹 STEP 5.3 — Dark mode control
+            theme={theme}
+            setTheme={applyTheme}
+            jobs={state.jobs} // ✅ ADD THIS LINE
           />
 
           {/* VAULT DELETE CONFIRM MODAL */}
@@ -2353,6 +2375,57 @@ function VaultDetailModal({
           {/* COUNT */}
           <div className="card vault-transaction-count">
             {t("total_transaction_count")} <strong>{transactionCount}</strong>
+          </div>
+
+          {/* TRANSACTIONS LIST */}
+          <div className="card vault-transactions-list">
+            <div className="vault-transactions-header">
+              <strong>{t("transactions") || "Transactions"}</strong>
+              <span className="vault-transactions-sub">
+                {transactionCount} {t("total_transaction_count") || "total"}
+              </span>
+            </div>
+
+            {vaultPayments.length === 0 ? (
+              <div className="vault-empty">
+                {t("no_transactions") || "No transactions"}
+              </div>
+            ) : (
+              <div className="vault-transactions-scroll">
+                {vaultPayments
+                  .slice()
+                  .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+                  .map((p) => {
+                    const dateText =
+                      p.date ||
+                      (p.createdAt
+                        ? new Date(p.createdAt).toLocaleDateString("tr-TR")
+                        : "-");
+
+                    return (
+                      <div key={p.id} className="vault-tx-row">
+                        <div className="vault-tx-left">
+                          <div className="vault-tx-note">{p.note || "-"}</div>
+                          <div className="vault-tx-meta">
+                            <span>{dateText}</span>
+                            {p.method ? (
+                              <span className="vault-tx-method">
+                                {p.method}
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
+
+                        <div className="vault-tx-right">
+                          <div className="vault-tx-amount">
+                            +{toNum(p.amount).toFixed(2)} {vault.currency}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
           </div>
 
           <div className="hidden">

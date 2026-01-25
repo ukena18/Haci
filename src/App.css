@@ -7,7 +7,7 @@
 .app-shell {
   height: 100dvh; /* 🔥 dynamic viewport */
   min-height: 100dvh; /* 🔥 ADD */
-  background: #f4f6fb;
+  background: var(--bg);
   display: flex;
   justify-content: center;
 }
@@ -17,7 +17,7 @@
   height: 100%;
   min-height: 100%;
   height: auto; /* 🔥 */
-  background: #f4f6fb;
+  background: var(--bg);
   position: relative;
   max-width: 100%;
 
@@ -194,7 +194,7 @@
 
 .modal-content {
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
-  background: white;
+  background: var(--surface);
   padding: 20px;
   width: 90%;
   max-width: 500px;
@@ -351,7 +351,7 @@
 }
 
 .portal-btn:hover {
-  background: white;
+  background: var(--surface);
 }
 
 .primary-actions {
@@ -405,7 +405,7 @@
 }
 
 .history-card {
-  background: white;
+  background: var(--surface);
   border-radius: 16px;
   padding: 14px;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
@@ -562,7 +562,7 @@
 }
 
 .edit-modal {
-  background: white;
+  background: var(--surface);
   width: 92%;
   max-width: 420px;
   border-radius: 14px;
@@ -2024,7 +2024,7 @@ input[type="date"] {
   max-width: 900px;
   margin: auto;
   background: white;
-  padding: 48px;
+  padding: 24px;
   border-radius: 14px;
   color: #1f2937;
   font-family: "Inter", Arial, sans-serif;
@@ -2034,37 +2034,39 @@ input[type="date"] {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding-bottom: 20px;
-  border-bottom: 2px solid #e5e7eb;
-  margin-bottom: 30px;
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #e5e7eb;
 }
 
-.logo {
-  font-size: 26px;
+.invoice-header .logo {
+  font-size: 16px;
   font-weight: 700;
-  color: #2563eb;
 }
 
-.header-right {
+.invoice-header .header-right {
+  font-size: 11px;
   text-align: right;
-  font-size: 14px;
-  color: #6b7280;
+  color: #4b5563;
 }
 
 .customer {
-  background: #e3f2fd;
-  padding: 18px 20px;
-  border-radius: 10px;
-  margin-bottom: 35px;
-  font-size: 14px;
+  font-size: 11px;
+  margin-bottom: 12px;
+  padding: 6px 8px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
 }
 
 .job {
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 24px;
-  margin-bottom: 30px;
-  position: relative;
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed #e5e7eb;
+}
+
+.job:last-child {
+  border-bottom: none;
 }
 
 .job::before {
@@ -2094,44 +2096,57 @@ input[type="date"] {
 .print-invoice table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 8px;
-  font-size: 14px;
+  margin-top: 4px;
+  font-size: 11px;
 }
 
 .print-invoice th,
 .print-invoice td {
-  padding: 10px 8px;
+  padding: 4px 6px;
   border-bottom: 1px solid #e5e7eb;
+  text-align: left;
 }
 
-.print-invoice th:last-child,
-.print-invoice td:last-child {
+.print-invoice th {
+  font-weight: 600;
+  background: #f3f4f6;
+  font-size: 10.5px;
+}
+
+.print-invoice td:last-child,
+.print-invoice th:last-child {
   text-align: right;
 }
 
 .subtotal {
+  margin-top: 4px;
+  font-size: 11px;
   text-align: right;
-  font-weight: 700;
-  margin-top: 12px;
+  font-weight: 600;
 }
 
 .totals {
-  margin-left: auto;
-  max-width: 380px;
-  margin-top: 40px;
-  border-top: 2px solid #e5e7eb;
-  padding-top: 20px;
+  margin-top: 12px;
+  font-size: 12px;
 }
 
-.paid {
-  color: #2e7d32;
+.totals table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.totals td {
+  padding: 4px 6px;
+}
+
+.totals .paid {
+  color: #16a34a;
+  font-weight: 600;
+}
+
+.totals .balance {
   font-weight: 700;
-}
-
-.balance {
-  color: #c62828;
-  font-weight: 800;
-  font-size: 18px;
+  border-top: 2px solid #111827;
 }
 
 .footer {
@@ -2142,37 +2157,83 @@ input[type="date"] {
 }
 
 @media print {
-  .print-invoice {
-    box-shadow: none;
-    border-radius: 0;
-  }
-}
-
-/* =========================
-   PRINT OVERRIDE — HARD ISOLATION
-   (THIS FIXES YOUR ISSUE)
-========================= */
-@media print {
-  /* HIDE EVERYTHING */
+  /* Hide app visually, but keep layout tree alive */
   body * {
     visibility: hidden !important;
   }
 
-  /* SHOW ONLY INVOICE */
+  /* Show invoice only */
   .print-invoice,
   .print-invoice * {
     visibility: visible !important;
   }
 
-  /* POSITION INVOICE AT TOP */
+  /* Detach invoice from app layout */
   .print-invoice {
     position: absolute;
     left: 0;
     top: 0;
     width: 100%;
+    max-width: 100%;
     margin: 0;
     padding: 24px;
+    background: white;
+    box-sizing: border-box;
   }
+
+  /* Neutralize app layout constraints */
+  .app-shell,
+  .app-frame,
+  .container {
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+    position: static !important;
+  }
+
+  /* Remove fixed UI */
+  .header,
+  .bottom-nav,
+  .fab,
+  .modal,
+  .payment-backdrop {
+    display: none !important;
+  }
+
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+    overflow: visible !important;
+  }
+
+  table,
+  thead,
+  tbody,
+  job,
+  tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
+
+@page {
+  size: A4;
+  margin: 12mm;
+}
+
+.print-invoice {
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.print-invoice h4 {
+  margin: 6px 0 4px;
+  font-size: 13px;
+}
+
+.print-invoice strong {
+  font-weight: 600;
 }
 
 /* =========================
@@ -2300,7 +2361,8 @@ body {
   height: 100%;
   margin: 0;
   padding: 0;
-  overflow: hidden; /* 🔒 KILLS the right-side scrollbar */
+  overflow-x: hidden;
+  overflow-y: auto; /* ✅ allow page scroll */
 }
 
 body {
@@ -2631,46 +2693,6 @@ textarea {
    THEME CSS
    (Global + reusable utilities)
 ============================================================ */
-
-/* =========================
-   PRINT MODE (GLOBAL)
-========================= */
-@media print {
-  /* Hide all buttons */
-  button,
-  .btn,
-  .fab,
-  .bottom-nav,
-  .logout-btn,
-  .portal-btn,
-  .due-dismiss-btn {
-    display: none !important;
-  }
-
-  /* Remove app frame styling */
-  body {
-    background: white !important;
-    padding: 0 !important;
-  }
-
-  .app-frame,
-  .app-shell {
-    box-shadow: none !important;
-    margin: 0 !important;
-    border-radius: 0 !important;
-  }
-
-  /* Remove card shadows/borders for clean PDF */
-  .card {
-    box-shadow: none !important;
-    border-color: #ddd !important;
-  }
-
-  /* Ensure content uses full width */
-  .container {
-    padding: 0 !important;
-  }
-}
 
 /* =========================
    Calendar / Day Indicators
@@ -3120,7 +3142,7 @@ i.fa-chevron-right i.fa-chevron-down {
   width: 100%;
   max-width: 520px;
 
-  background: #fff;
+  background: var(--surface);
   border-radius: 15px;
   padding: 16px;
 
@@ -3264,4 +3286,54 @@ input[type="number"]::-webkit-inner-spin-button {
 input[type="number"] {
   -moz-appearance: textfield;
   appearance: textfield;
+}
+/* 🔒 FORCE job cards to stay white */
+.job-card,
+.job-card.job-active,
+.job-card.job-completed,
+.job-card.job-unpaid,
+.job-card.job-paid {
+  background: #ffffff !important;
+}
+
+:root {
+  --bg: #f4f6fb;
+  --surface: #ffffff;
+  --text: #111827;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+
+  --grad-card: linear-gradient(180deg, #ffffff, #f8fafc);
+}
+
+[data-theme="dark"] {
+  --bg: #0b1220;
+  --surface: #0f172a;
+  --text: #e5e7eb;
+  --muted: #94a3b8;
+  --border: #1e293b;
+
+  /* in dark mode, gradients should NOT be bright */
+  --grad-card: linear-gradient(180deg, #0f172a, #0b1220);
+}
+
+.job-folder {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition:
+    max-height 0.35s ease,
+    opacity 0.25s ease,
+    transform 0.25s ease;
+}
+
+.job-folder.open {
+  max-height: 2000px;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.folder-arrow.open {
+  transform: rotate(90deg);
 }

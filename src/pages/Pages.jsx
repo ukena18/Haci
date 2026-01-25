@@ -34,6 +34,7 @@ export function HomePage({
   setActiveOpen,
   setCompletedOpen,
   setState,
+  state,
   toggleCustomerFolder,
   toggleJobOpen,
   clockIn,
@@ -63,6 +64,8 @@ export function HomePage({
       ),
     );
   }, [customersById]);
+
+  const jobsEnabled = state?.profile?.settings?.enableJobs !== false;
 
   useEffect(() => {
     if (defaultCurrency) {
@@ -117,7 +120,7 @@ export function HomePage({
   }, [financialSummary]);
 
   return (
-    <div id="page-home">
+    <div id="page-home" className="page-top-spacing">
       <div
         style={{
           display: "flex",
@@ -439,182 +442,191 @@ export function HomePage({
               return null;
             })
           ))}
-
         {/* ACTIVE JOBS FOLDER */}
-        <div className="card">
-          <div
-            className="list-item section-row"
-            onClick={() => {
-              const next = !activeOpen;
-              setActiveOpen(next);
+        {jobsEnabled && (
+          <>
+            <div className="card">
+              <div
+                className="list-item section-row"
+                onClick={() => {
+                  const next = !activeOpen;
+                  setActiveOpen(next);
 
-              if (next) {
-                setState((s) => ({
-                  ...s,
-                  jobs: s.jobs.map((j) =>
-                    !j.isCompleted ? { ...j, isOpen: false } : j,
-                  ),
-                }));
-              }
-            }}
-          >
-            <strong>
-              <i className="fa-solid fa-circle-play"></i> {t("active_jobs")} (
-              {activeJobs.length})
-            </strong>
-            <span>
-              <i
-                className={`fa-solid fa-chevron-${
-                  activeOpen ? "down" : "right"
-                }`}
-              />
-            </span>
-          </div>
-        </div>
+                  if (next) {
+                    setState((s) => ({
+                      ...s,
+                      jobs: s.jobs.map((j) =>
+                        !j.isCompleted ? { ...j, isOpen: false } : j,
+                      ),
+                    }));
+                  }
+                }}
+              >
+                <strong>
+                  <i className="fa-solid fa-circle-play"></i> {t("active_jobs")}{" "}
+                  ({activeJobs.length})
+                </strong>
+                <span>
+                  <i
+                    className={`fa-solid fa-chevron-${
+                      activeOpen ? "down" : "right"
+                    }`}
+                  />
+                </span>
+              </div>
+            </div>
 
-        {activeOpen &&
-          (activeJobsByCustomer.size === 0 ? (
-            <div className="card">{t("no_active_jobs")}</div>
-          ) : (
-            Array.from(activeJobsByCustomer.entries()).map(
-              ([customerId, jobs]) => {
-                const customer = customersById.get(customerId);
-                const isOpen = openCustomerFolders[customerId] ?? false;
+            {activeOpen &&
+              (activeJobsByCustomer.size === 0 ? (
+                <div className="card">{t("no_active_jobs")}</div>
+              ) : (
+                Array.from(activeJobsByCustomer.entries()).map(
+                  ([customerId, jobs]) => {
+                    const customer = customersById.get(customerId);
+                    const isOpen = openCustomerFolders[customerId] ?? false;
+                    const customerCurrency =
+                      customer?.currency || defaultCurrency;
 
-                const customerCurrency = customer?.currency || defaultCurrency;
+                    const totalAmount = jobs.reduce(
+                      (sum, j) => sum + jobTotalOf(j),
+                      0,
+                    );
 
-                const totalAmount = jobs.reduce(
-                  (sum, j) => sum + jobTotalOf(j),
-                  0,
-                );
-
-                return (
-                  <div key={customerId}>
-                    <div
-                      className="card list-item"
-                      style={{ cursor: "pointer", background: "#f8fafc" }}
-                      onClick={() => toggleCustomerFolder(customerId)}
-                    >
-                      <div>
-                        <strong>
-                          {customer
-                            ? `${customer.name} ${customer.surname}`
-                            : t("unknown")}
-                        </strong>
-
-                        <div style={{ fontSize: 12, color: "#666" }}>
-                          {jobs.length} {t("active_job_count")}
-                        </div>
-                      </div>
-
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: 8,
-                          alignItems: "center",
-                        }}
-                      >
-                        <strong className="customer-debt-amount">
-                          {money(totalAmount, customerCurrency)}
-                        </strong>
-
-                        <span
-                          className={`folder-arrow ${isOpen ? "open" : ""}`}
+                    return (
+                      <div key={customerId}>
+                        <div
+                          className="card list-item"
+                          style={{ cursor: "pointer", background: "#f8fafc" }}
+                          onClick={() => toggleCustomerFolder(customerId)}
                         >
-                          <i className="fa-solid fa-chevron-right"></i>
-                        </span>
-                      </div>
-                    </div>
+                          <div>
+                            <strong>
+                              {customer
+                                ? `${customer.name} ${customer.surname}`
+                                : t("unknown")}
+                            </strong>
 
-                    <div className={`job-folder ${isOpen ? "open" : ""}`}>
-                      {jobs.map((job) => (
-                        <div key={job.id} className="job-folder-item">
-                          <JobCard
-                            job={job}
-                            customersById={customersById}
-                            toggleJobOpen={toggleJobOpen}
-                            clockIn={clockIn}
-                            clockOut={clockOut}
-                            currency={customerCurrency}
-                            markJobComplete={markJobComplete}
-                            onOpenActions={(jobId) => {
-                              setEditingJobId(jobId);
-                              setJobModalOpen(true);
+                            <div style={{ fontSize: 12, color: "#666" }}>
+                              {jobs.length} {t("active_job_count")}
+                            </div>
+                          </div>
+
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: 8,
+                              alignItems: "center",
                             }}
-                          />
+                          >
+                            <strong className="customer-debt-amount">
+                              {money(totalAmount, customerCurrency)}
+                            </strong>
+
+                            <span
+                              className={`folder-arrow ${isOpen ? "open" : ""}`}
+                            >
+                              <i className="fa-solid fa-chevron-right"></i>
+                            </span>
+                          </div>
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              },
-            )
-          ))}
+
+                        <div className={`job-folder ${isOpen ? "open" : ""}`}>
+                          {jobs.map((job) => (
+                            <div key={job.id} className="job-folder-item">
+                              <JobCard
+                                job={job}
+                                customersById={customersById}
+                                toggleJobOpen={toggleJobOpen}
+                                clockIn={clockIn}
+                                clockOut={clockOut}
+                                currency={customerCurrency}
+                                markJobComplete={markJobComplete}
+                                onOpenActions={(jobId) => {
+                                  setEditingJobId(jobId);
+                                  setJobModalOpen(true);
+                                }}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  },
+                )
+              ))}
+          </>
+        )}
 
         {/* COMPLETED JOBS FOLDER */}
-        <div className="card" style={{ marginTop: 10 }}>
-          <div
-            className="list-item section-row"
-            onClick={() => {
-              const next = !completedOpen;
-              setCompletedOpen(next);
+        {jobsEnabled && (
+          <>
+            <div className="card" style={{ marginTop: 10 }}>
+              <div
+                className="list-item section-row"
+                onClick={() => {
+                  const next = !completedOpen;
+                  setCompletedOpen(next);
 
-              if (next) {
-                setState((s) => ({
-                  ...s,
-                  jobs: s.jobs.map((j) =>
-                    j.isCompleted ? { ...j, isOpen: false } : j,
-                  ),
-                }));
-              }
-            }}
-          >
-            <strong>
-              <i className="fa-solid fa-circle-check"></i> {t("completed_jobs")}{" "}
-              ({completedJobs.length})
-            </strong>
-            <span>
-              <i
-                className={`fa-solid fa-chevron-${
-                  completedOpen ? "down" : "right"
-                }`}
-              />
-            </span>
-          </div>
-        </div>
+                  if (next) {
+                    setState((s) => ({
+                      ...s,
+                      jobs: s.jobs.map((j) =>
+                        j.isCompleted ? { ...j, isOpen: false } : j,
+                      ),
+                    }));
+                  }
+                }}
+              >
+                <strong>
+                  <i className="fa-solid fa-circle-check"></i>{" "}
+                  {t("completed_jobs")} ({completedJobs.length})
+                </strong>
+                <span>
+                  <i
+                    className={`fa-solid fa-chevron-${
+                      completedOpen ? "down" : "right"
+                    }`}
+                  />
+                </span>
+              </div>
+            </div>
 
-        {completedOpen &&
-          (completedJobs.length === 0 ? (
-            <div className="card">{t("no_completed_jobs")}</div>
-          ) : (
-            completedJobs
-              .slice()
-              .sort((a, b) => {
-                const at = a.createdAt || new Date(a.date || 0).getTime() || 0;
-                const bt = b.createdAt || new Date(b.date || 0).getTime() || 0;
-                return bt - at;
-              })
-              .slice(0, 10)
-              .map((job) => (
-                <JobCard
-                  key={job.id}
-                  job={job}
-                  customersById={customersById}
-                  toggleJobOpen={toggleJobOpen}
-                  clockIn={clockIn}
-                  clockOut={clockOut}
-                  setEditingJobId={setEditingJobId}
-                  setJobModalOpen={setJobModalOpen}
-                  setConfirm={setConfirm}
-                  markJobComplete={markJobComplete}
-                  currency={job.currency || defaultCurrency}
-                  onOpenActions={(jobId) => {
-                    setEditingJobId(jobId);
-                    setJobModalOpen(true);
-                  }}
-                />
-              ))
-          ))}
+            {completedOpen &&
+              (completedJobs.length === 0 ? (
+                <div className="card">{t("no_completed_jobs")}</div>
+              ) : (
+                completedJobs
+                  .slice()
+                  .sort((a, b) => {
+                    const at =
+                      a.createdAt || new Date(a.date || 0).getTime() || 0;
+                    const bt =
+                      b.createdAt || new Date(b.date || 0).getTime() || 0;
+                    return bt - at;
+                  })
+                  .slice(0, 10)
+                  .map((job) => (
+                    <JobCard
+                      key={job.id}
+                      job={job}
+                      customersById={customersById}
+                      toggleJobOpen={toggleJobOpen}
+                      clockIn={clockIn}
+                      clockOut={clockOut}
+                      setEditingJobId={setEditingJobId}
+                      setJobModalOpen={setJobModalOpen}
+                      setConfirm={setConfirm}
+                      markJobComplete={markJobComplete}
+                      currency={job.currency || defaultCurrency}
+                      onOpenActions={(jobId) => {
+                        setEditingJobId(jobId);
+                        setJobModalOpen(true);
+                      }}
+                    />
+                  ))
+              ))}
+          </>
+        )}
       </div>
     </div>
   );
@@ -642,7 +654,7 @@ export function CustomersPage({
   const { t } = useLang();
 
   return (
-    <div id="page-customers">
+    <div id="page-customers " className="page-top-spacing">
       <div id="customer-list">
         {filteredCustomers.length === 0 ? (
           <div className="card">{t("no_customers_yet")}</div>
@@ -894,6 +906,22 @@ export function PublicCustomerSharePage() {
   const [searchParams] = useSearchParams();
 
   const autoPrint = searchParams.get("print") === "1";
+  const [openJobs, setOpenJobs] = useState(() => new Set());
+
+  const COLOR_POSITIVE = "#16a34a"; // green
+  const COLOR_NEGATIVE = "#dc2626"; // red
+  const COLOR_TEXT_MAIN = "#111827"; // neutral dark
+  const COLOR_TEXT_MUTED = "#6b7280"; // muted gray
+
+  function toggleJob(jobId) {
+    setOpenJobs((prev) => {
+      const next = new Set(prev);
+      if (next.has(jobId)) next.delete(jobId);
+      else next.add(jobId);
+      return next;
+    });
+  }
+
   useEffect(() => {
     if (!autoPrint) return;
     if (!snap) return;
@@ -1219,7 +1247,7 @@ export function PublicCustomerSharePage() {
 
       <div className="container screen-only">
         <div ref={printRef}>
-          <div style={{ marginTop: 12 }}>
+          <div style={{ marginTop: 12, paddingLeft: 10 }}>
             <h3 style={{ marginTop: 0 }}>{t("public.historyTitle")}</h3>
 
             {unifiedHistory.length === 0 ? (
@@ -1241,15 +1269,10 @@ export function PublicCustomerSharePage() {
                         borderLeft: `6px solid ${
                           isPayment ? "#16a34a" : "#dc2626"
                         }`,
-                        background: isPayment ? "#f0fdf4" : "#fef2f2",
                       }}
                     >
                       <div>
-                        <strong
-                          style={{
-                            color: isPayment ? "#166534" : "#7f1d1d",
-                          }}
-                        >
+                        <strong style={{ color: COLOR_TEXT_MAIN }}>
                           {isPayment ? (
                             <>
                               <i className="fa-solid fa-money-bill-wave"></i>{" "}
@@ -1290,13 +1313,126 @@ export function PublicCustomerSharePage() {
                 // =====================
                 // JOB ROW (PRINT — DETAILED)
                 // =====================
+                // =====================
+                // JOB ROW (SCREEN — EXPANDABLE)
+                // =====================
+                const job = item.data;
+                const jobId = job.id || item.id; // fallback
+                const isOpen = openJobs.has(jobId);
+
+                const parts = job.parts || [];
+                const laborTotal = jobLaborTotal(job);
+                const partsTotal = partsTotalOf(job);
+                const grandTotal = laborTotal + partsTotal;
+
                 return (
                   <div
                     key={item.id}
-                    dangerouslySetInnerHTML={{
-                      __html: renderJobForPrint(item.data, currency),
+                    className="card"
+                    style={{
+                      padding: 0,
+                      overflow: "hidden",
+                      borderLeft: `6px solid ${COLOR_NEGATIVE}`,
+                      color: COLOR_TEXT_MAIN,
                     }}
-                  />
+                  >
+                    {/* HEADER ROW (click to expand) */}
+                    <div
+                      className="list-item"
+                      onClick={() => toggleJob(jobId)}
+                      style={{
+                        padding: "14px",
+                        cursor: "pointer",
+                        userSelect: "none",
+                      }}
+                    >
+                      <div>
+                        <strong
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                          }}
+                        >
+                          <i className="fa-solid fa-screwdriver-wrench"></i>{" "}
+                          {t("public.job")}
+                          <span
+                            className={`folder-arrow ${isOpen ? "open" : ""}`}
+                          >
+                            ›
+                          </span>
+                        </strong>
+
+                        <div
+                          style={{ fontSize: 12, color: "#777", marginTop: 4 }}
+                        >
+                          {job.date || "-"}
+                        </div>
+                      </div>
+
+                      <div style={{ fontWeight: 800, whiteSpace: "nowrap" }}>
+                        - {money(grandTotal, currency)}
+                      </div>
+                    </div>
+
+                    {/* EXPANDED DETAILS */}
+                    <div className={`job-folder ${isOpen ? "open" : ""}`}>
+                      <div style={{ padding: "0 14px 14px" }}>
+                        {/* Labor */}
+                        <div className="miniRow" style={{ marginTop: 10 }}>
+                          <span>{t("public.labor")}</span>
+                          <strong>{money(laborTotal, currency)}</strong>
+                        </div>
+
+                        {/* Parts */}
+                        <div className="miniRow" style={{ marginTop: 8 }}>
+                          <span>{t("public.parts")}</span>
+                          <strong>{money(partsTotal, currency)}</strong>
+                        </div>
+
+                        {/* Parts list */}
+                        {parts.length > 0 && (
+                          <div style={{ marginTop: 10 }}>
+                            <div
+                              style={{
+                                fontWeight: 800,
+                                fontSize: 13,
+                                marginBottom: 8,
+                              }}
+                            >
+                              {t(
+                                "public.usedParts",
+                              ) /* add this key or hardcode */ ||
+                                "Kullanılan Parçalar"}
+                            </div>
+
+                            {parts.map((p, i) => (
+                              <div key={i} className="partLine">
+                                <span>
+                                  {p.name} × {p.qty}
+                                </span>
+                                <strong>
+                                  {money(partLineTotal(p), currency)}
+                                </strong>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Total */}
+                        <div
+                          className="miniRow"
+                          style={{
+                            marginTop: 10,
+                            fontWeight: 900,
+                          }}
+                        >
+                          <span>{t("public.jobTotal")}</span>
+                          <strong>{money(grandTotal, currency)}</strong>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 );
               })
             )}
@@ -1356,7 +1492,7 @@ export function PublicCustomerSharePage() {
               </h4>
 
               {/* LABOR */}
-              <div className="section-label">{t("public.labor")}</div>
+
               <table>
                 <thead>
                   <tr>
@@ -1383,7 +1519,6 @@ export function PublicCustomerSharePage() {
               {/* PARTS */}
               {parts.length > 0 && (
                 <>
-                  <div className="section-label">{t("public.parts")}</div>
                   <table>
                     <thead>
                       <tr>
@@ -1398,10 +1533,13 @@ export function PublicCustomerSharePage() {
                         <tr key={i}>
                           <td>{p.name}</td>
                           <td>{p.qty}</td>
-                          <td>{money(p.price, currency)}</td>
                           <td>
-                            {money(toNum(p.qty) * toNum(p.price), currency)}
+                            {money(
+                              partLineTotal(p) / toNum(p.qty || 1),
+                              currency,
+                            )}
                           </td>
+                          <td>{money(partLineTotal(p), currency)}</td>
                         </tr>
                       ))}
                     </tbody>
