@@ -212,9 +212,34 @@ export function makeEmptyCustomer() {
     phone: "",
     email: "",
     address: "",
-    currency: null, // ✅ LOCKED AFTER FIRST PAYMENT
+    notes: "", // ✅ NEW
+    currency: null,
 
     createdAt: Date.now(),
+  };
+}
+
+/**
+ * Validate required customer fields
+ */
+export function validateCustomer(customer) {
+  const errors = {};
+
+  if (!customer.name?.trim()) {
+    errors.name = "Name is required";
+  }
+
+  if (!customer.surname?.trim()) {
+    errors.surname = "Surname is required";
+  }
+
+  if (!customer.phone?.trim()) {
+    errors.phone = "Phone number is required";
+  }
+
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors,
   };
 }
 

@@ -51,22 +51,22 @@ export function ModalBase({
     <div
       className={`modal ${className}`}
       style={{ zIndex }}
-      onClick={requestClose} // click outside closes
+      onClick={(e) => {
+        e.stopPropagation();
+        onClose();
+      }}
     >
-      <div
-        className="modal-content"
-        onClick={(e) => e.stopPropagation()} // prevent inside clicks
-      >
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         {/* HEADER */}
         <div className="modal-header">
           <h3 className="modal-title">{title}</h3>
 
-          <button className="modal-x" onClick={requestClose} aria-label="Close">
+          <button onClick={onClose} aria-label="Close" className="modal-x">
             ✕
           </button>
         </div>
 
-        {/* BODY */}
+        {/* BODY (REQUIRED) */}
         <div className="modal-body">{children}</div>
       </div>
     </div>

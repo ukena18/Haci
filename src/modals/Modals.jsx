@@ -11,6 +11,7 @@ import {
   calcHoursWithBreak, // ✅ ADD THIS
   formatDateByLang,
   moneyForTransaction,
+  validateCustomer,
 } from "../utils/helpers";
 
 import {
@@ -193,6 +194,8 @@ export function CustomerModal({
 
   const [draft, setDraft] = useState(() => makeEmptyCustomer());
 
+  const [errors, setErrors] = useState({});
+
   useEffect(() => {
     if (!open) return;
 
@@ -218,21 +221,25 @@ export function CustomerModal({
   }
 
   function save() {
-    // Required fields
-    if (!draft.name.trim() || !draft.surname.trim()) {
-      alert(t("name_surname_required"));
+    const { isValid, errors: validationErrors } = validateCustomer(draft);
+
+    if (!isValid) {
+      setErrors(validationErrors);
       return;
     }
 
-    // Phone validation
-    if (!isValidPhone(draft.phone)) {
-      alert(t("invalid_phone"));
+    if (!isValid) {
+      setErrors(validationErrors);
+
+      const firstErrorField = Object.keys(validationErrors)[0];
+      document.querySelector(`[name="${firstErrorField}"]`)?.focus();
+
       return;
     }
 
-    // Email validation
+    // Email validation (still optional)
     if (!isValidEmail(draft.email)) {
-      alert(t("invalid_email"));
+      setErrors((e) => ({ ...e, email: t("invalid_email") }));
       return;
     }
 
@@ -255,84 +262,110 @@ export function CustomerModal({
       open={open}
       title={editing ? t("edit_customer") : t("new_customer")}
       onClose={onClose}
-      zIndex={zIndex} // ✅ ADD THIS
+      zIndex={zIndex}
     >
-      <div className="customer-edit-modal">
+      {/* 🔹 SCROLLABLE CONTENT */}
+      <div className="modal-scroll">
+        <div className="customer-edit-modal">
+          <div className="form-group">
+            <label>{t("customer_id")}</label>
+            <input value={draft.id} readOnly />
+            <small style={{ color: "#666" }}>
+              {t("customer_id_info")} <b>/customer/{draft.id}</b>
+            </small>
+          </div>
+        </div>
+
         <div className="form-group">
-          <label>{t("customer_id")}</label>
-          <input value={draft.id} readOnly />
-          <small style={{ color: "#666" }}>
-            {t("customer_id_info")} <b>/customer/{draft.id}</b>
-          </small>
+          <label>
+            {t("name")} <span style={{ color: "#dc2626" }}>*</span>
+          </label>
+          <input
+            name="name"
+            className={errors.name ? "input-error" : ""}
+            value={draft.name}
+            onChange={(e) => {
+              setField("name", e.target.value);
+              setErrors((err) => ({ ...err, name: null }));
+            }}
+          />
+          {errors.name && <div className="error-text">{errors.name}</div>}
+        </div>
+
+        <div className="form-group">
+          <label>
+            {t("surname")} <span style={{ color: "#dc2626" }}>*</span>
+          </label>
+          <input
+            name="surname"
+            className={errors.surname ? "input-error" : ""}
+            value={draft.surname}
+            onChange={(e) => {
+              setField("surname", e.target.value);
+              setErrors((err) => ({ ...err, surname: null }));
+            }}
+          />
+          {errors.surname && <div className="error-text">{errors.surname}</div>}
+        </div>
+
+        <div className="form-group">
+          <label>
+            {t("phone")} <span style={{ color: "#dc2626" }}>*</span>
+          </label>
+          <input
+            name="phone"
+            className={errors.phone ? "input-error" : ""}
+            type="tel"
+            inputMode="tel"
+            placeholder="+90 5xx xxx xx xx"
+            value={draft.phone}
+            onChange={(e) => {
+              const cleaned = e.target.value.replace(/[^\d+]/g, "");
+              setField("phone", cleaned);
+              setErrors((err) => ({ ...err, phone: null }));
+            }}
+          />
+          {errors.phone && <div className="error-text">{errors.phone}</div>}
+        </div>
+
+        <div className="form-group">
+          <label>{t("email")}</label>
+          <input
+            className={errors.email ? "input-error" : ""}
+            type="email"
+            placeholder="example@email.com"
+            value={draft.email}
+            onChange={(e) => {
+              const raw = e.target.value;
+              const lower = raw.toLowerCase();
+              const cleaned = lower.replace(/[^a-z0-9@._+-]/g, "");
+              setField("email", cleaned);
+              setErrors((err) => ({ ...err, email: null }));
+            }}
+          />
+          {errors.email && <div className="error-text">{errors.email}</div>}
+        </div>
+
+        <div className="form-group">
+          <label>{t("address")}</label>
+          <textarea
+            value={draft.address}
+            onChange={(e) => setField("address", e.target.value)}
+          />
+        </div>
+
+        <div className="form-group">
+          <label>{t("notes")}</label>
+          <textarea
+            value={draft.notes}
+            onChange={(e) => setField("notes", e.target.value)}
+            placeholder={t("notes_placeholder") || "Internal notes"}
+            rows={3}
+          />
         </div>
       </div>
-
-      <div className="form-group">
-        <label>{t("name")}</label>
-        <input
-          value={draft.name}
-          onChange={(e) => setField("name", e.target.value)}
-        />
-      </div>
-
-      <div className="form-group">
-        <label>{t("surname")}</label>
-        <input
-          value={draft.surname}
-          onChange={(e) => setField("surname", e.target.value)}
-        />
-      </div>
-
-      <div className="form-group">
-        <label>{t("phone")}</label>
-        <input
-          type="tel"
-          inputMode="tel"
-          placeholder="+90 5xx xxx xx xx"
-          value={draft.phone}
-          onChange={(e) => {
-            const raw = e.target.value;
-
-            // 1️⃣ allow typing symbols
-            const cleaned = raw.replace(/[^\d+]/g, "");
-
-            // 2️⃣ REMOVE ALL SPACES automatically
-            setField("phone", cleaned);
-          }}
-        />
-      </div>
-
-      <div className="form-group">
-        <label>{t("email")}</label>
-        <input
-          type="email"
-          placeholder="example@email.com"
-          value={draft.email}
-          onChange={(e) => {
-            const raw = e.target.value;
-
-            // 1️⃣ force lowercase
-            const lower = raw.toLowerCase();
-
-            // 2️⃣ allow ONLY American ASCII email characters
-            // letters a-z, numbers 0-9, @ . _ - +
-            const cleaned = lower.replace(/[^a-z0-9@._+-]/g, "");
-
-            setField("email", cleaned);
-          }}
-          required
-        />
-      </div>
-
-      <div className="form-group">
-        <label>{t("address")}</label>
-        <textarea
-          value={draft.address}
-          onChange={(e) => setField("address", e.target.value)}
-        />
-      </div>
-
-      <div className="btn-row">
+      {/* 🔹 STICKY ACTIONS */}
+      <div className="modal-actions">
         <button className="btn btn-cancel" onClick={onClose}>
           {t("cancel")}
         </button>
@@ -343,7 +376,7 @@ export function CustomerModal({
       </div>
 
       {editing && (
-        <div style={{ marginTop: 12 }}>
+        <div className="modal-actions" style={{ paddingTop: 0 }}>
           <button
             className="btn btn-delete"
             style={{ width: "100%" }}
@@ -598,661 +631,667 @@ export function JobModal({
       onClose={onClose}
       zIndex={1300} // ✅ add this
     >
-      {!fixedCustomerId ? (
-        <div
-          className="form-group"
-          ref={customerBoxRef}
-          style={{ position: "relative" }}
-        >
-          {/* SEARCH INPUT */}
-          <div style={{ position: "relative" }}>
-            <input
-              type="text"
-              placeholder={t("search_customer")}
-              value={
-                draft.customerId
-                  ? (() => {
-                      const c = customers.find(
-                        (x) => x.id === draft.customerId,
-                      );
-                      return c ? `${c.name} ${c.surname}` : "";
-                    })()
-                  : customerSearch
-              }
-              onChange={(e) => {
-                setCustomerSearch(e.target.value);
-                setCustomerDropdownOpen(true);
-                setField("customerId", "");
-              }}
-              onFocus={() => setCustomerDropdownOpen(true)}
-              style={{ paddingRight: 36 }} // 👈 space for X
-            />
-
-            {/* ❌ CLEAR BUTTON */}
-            {(customerSearch || draft.customerId) && (
-              <button
-                type="button"
-                onClick={() => {
-                  setCustomerSearch("");
+      <div className="modal-scroll">
+        {!fixedCustomerId ? (
+          <div
+            className="form-group"
+            ref={customerBoxRef}
+            style={{ position: "relative" }}
+          >
+            {/* SEARCH INPUT */}
+            <div style={{ position: "relative" }}>
+              <input
+                type="text"
+                placeholder={t("search_customer")}
+                value={
+                  draft.customerId
+                    ? (() => {
+                        const c = customers.find(
+                          (x) => x.id === draft.customerId,
+                        );
+                        return c ? `${c.name} ${c.surname}` : "";
+                      })()
+                    : customerSearch
+                }
+                onChange={(e) => {
+                  setCustomerSearch(e.target.value);
+                  setCustomerDropdownOpen(true);
                   setField("customerId", "");
-                  setCustomerDropdownOpen(false);
                 }}
-                style={{
-                  position: "absolute",
-                  right: 10,
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  background: "transparent",
-                  border: "none",
-                  cursor: "pointer",
-                  color: "#6b7280",
-                  fontSize: 16,
-                }}
-                aria-label="Clear"
-              >
-                ✕
-              </button>
-            )}
-          </div>
+                onFocus={() => setCustomerDropdownOpen(true)}
+                style={{ paddingRight: 36 }} // 👈 space for X
+              />
 
-          {/* DROPDOWN */}
-          {customerDropdownOpen && (
-            <div
-              style={{
-                position: "absolute",
-                top: "100%",
-                left: 0,
-                right: 0,
-                zIndex: 50,
-                marginTop: 4,
-                background: "#fff",
-                border: "1px solid #e5e7eb",
-                borderRadius: 12,
-                maxHeight: 260,
-                overflowY: "auto",
-                boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
-              }}
-            >
-              {customerOptions.length === 0 ? (
-                <div style={{ padding: 10, fontSize: 12, color: "#666" }}>
-                  {t("no_results")}
-                </div>
-              ) : (
-                customerOptions.map((c) => (
-                  <div
-                    key={c.id}
-                    style={{
-                      padding: "10px 12px",
-                      cursor: "pointer",
-                      fontSize: 13,
-                      borderBottom: "1px solid #f1f5f9",
-                    }}
-                    onClick={() => {
-                      setField("customerId", c.id);
-                      setCustomerSearch("");
-                      setCustomerDropdownOpen(false);
-                    }}
-                  >
-                    <strong>
-                      {c.name} {c.surname}
-                    </strong>
-                    <div style={{ fontSize: 11, color: "#666" }}>
-                      ID: {c.id}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="form-group">
-          <label>{t("customer")}</label>
-          <input
-            value={(() => {
-              const c = customers.find((x) => x.id === fixedCustomerId);
-              return c ? `${c.name} ${c.surname}` : "—";
-            })()}
-            readOnly
-          />
-        </div>
-      )}
-
-      <div className="form-group">
-        <input
-          type="date"
-          value={draft.date}
-          onChange={(e) => {
-            const newDate = e.target.value;
-
-            setDraft((d) => {
-              // if dueDate was auto (date + 30), keep it in sync
-              const autoDue =
-                d.dueDate === addDaysToDate(d.date, 30) || !d.dueDate;
-
-              return {
-                ...d,
-                date: newDate,
-                dueDate: autoDue ? addDaysToDate(newDate, 30) : d.dueDate,
-                dueDays: autoDue ? 30 : d.dueDays,
-              };
-            });
-          }}
-        />
-      </div>
-      <div className="form-group">
-        <label>{t("payment_due_date")}</label>
-
-        <input
-          type="date"
-          value={draft.dueDate ?? ""}
-          onChange={(e) => {
-            const v = e.target.value;
-
-            setDraft((d) => ({
-              ...d,
-              dueDate: v,
-              // 🔁 auto-calc dueDays from job date
-              dueDays: v ? diffDays(d.date, v) : "",
-            }));
-          }}
-          disabled={!draft.trackPayment}
-        />
-
-        <small style={{ color: "#6b7280" }}>
-          {draft.trackPayment
-            ? t("payment_due_info")
-            : t("payment_tracking_disabled")}
-        </small>
-
-        {editing && draft.dueDismissed && (
-          <div style={{ marginTop: 10 }}>
-            <button
-              type="button"
-              className="btn"
-              style={{
-                background: "#ecfeff",
-                color: "#0369a1",
-                fontWeight: 600,
-              }}
-              onClick={() =>
-                setDraft((d) => ({
-                  ...d,
-                  dueDismissed: false,
-                }))
-              }
-            >
-              🔔 {t("restore_payment_tracking")}
-            </button>
-
-            <div style={{ fontSize: 12, color: "#0369a1", marginTop: 4 }}>
-              {t("payment_tracking_resume_info")}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ============================= */}
-      {/* ÇALIŞMA ZAMANI GİRİŞİ */}
-      {/* ============================= */}
-      <div className="form-group">
-        <label>{t("work_time_input")}</label>
-
-        {/* RADIO OPTIONS */}
-        <div className="time-mode-row">
-          <label className="time-mode-option">
-            <input
-              type="radio"
-              name="timeMode"
-              checked={draft.timeMode === "manual"}
-              onChange={() =>
-                setDraft((d) => ({
-                  ...d,
-                  timeMode: "manual",
-                  isRunning: false,
-                  clockInAt: null,
-                  clockOutAt: null,
-                }))
-              }
-            />
-            <span>{t("manual_entry")}</span>
-          </label>
-
-          <label className="time-mode-option">
-            <input
-              type="radio"
-              name="timeMode"
-              checked={draft.timeMode === "clock"}
-              onChange={() =>
-                setDraft((d) => ({
-                  ...d,
-                  timeMode: "clock",
-                  start: "",
-                  end: "",
-                }))
-              }
-            />
-            <span>{t("start_stop")}</span>
-          </label>
-
-          <label className="time-mode-option">
-            <input
-              type="radio"
-              name="timeMode"
-              checked={draft.timeMode === "fixed"}
-              onChange={() =>
-                setDraft((d) => ({
-                  ...d,
-                  timeMode: "fixed",
-                  start: "",
-                  end: "",
-                  rate: 0,
-                  isRunning: false,
-                  clockInAt: null,
-                  clockOutAt: null,
-                }))
-              }
-            />
-            <span>{t("fixed_price")}</span>
-          </label>
-        </div>
-      </div>
-
-      {/* ============================= */}
-      {/* CLOCK SESSION EDITOR (CLOCK ONLY) */}
-      {/* ============================= */}
-      {draft.timeMode === "clock" && (
-        <div className="form-group">
-          <label>{t("work_history_edit")}</label>
-
-          {(draft.sessions || []).length === 0 ? (
-            <div style={{ fontSize: 12, color: "#666" }}>Henüz kayıt yok</div>
-          ) : (
-            (draft.sessions || []).map((s, idx) => (
-              <div
-                key={s.id || idx}
-                style={{
-                  display: "flex",
-                  gap: 8,
-                  alignItems: "center",
-                  marginBottom: 8,
-                }}
-              >
-                <span style={{ fontSize: 12, width: 28 }}>#{idx + 1}</span>
-
-                <input
-                  type="time"
-                  value={utcTimeFromTimestamp(s.inAt)}
-                  onChange={(e) => {
-                    const t = e.target.value;
-                    setDraft((d) => ({
-                      ...d,
-                      sessions: d.sessions.map((x) =>
-                        x.id === s.id
-                          ? {
-                              ...x,
-                              inAt: utcTimestampFromDateAndTime(d.date, t),
-                            }
-                          : x,
-                      ),
-                    }));
-                  }}
-                />
-
-                <input
-                  type="time"
-                  value={utcTimeFromTimestamp(s.outAt)}
-                  onChange={(e) => {
-                    const t = e.target.value;
-                    setDraft((d) => ({
-                      ...d,
-                      sessions: d.sessions.map((x) =>
-                        x.id === s.id
-                          ? {
-                              ...x,
-                              outAt: utcTimestampFromDateAndTime(d.date, t),
-                            }
-                          : x,
-                      ),
-                    }));
-                  }}
-                />
-
+              {/* ❌ CLEAR BUTTON */}
+              {(customerSearch || draft.customerId) && (
                 <button
                   type="button"
-                  className="btn btn-delete"
-                  onClick={() =>
-                    setDraft((d) => ({
-                      ...d,
-                      sessions: d.sessions.filter((x) => x.id !== s.id),
-                    }))
-                  }
+                  onClick={() => {
+                    setCustomerSearch("");
+                    setField("customerId", "");
+                    setCustomerDropdownOpen(false);
+                  }}
+                  style={{
+                    position: "absolute",
+                    right: 10,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "#6b7280",
+                    fontSize: 16,
+                  }}
+                  aria-label="Clear"
                 >
-                  <i className="fa-solid fa-trash" />
+                  ✕
                 </button>
+              )}
+            </div>
+
+            {/* DROPDOWN */}
+            {customerDropdownOpen && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "100%",
+                  left: 0,
+                  right: 0,
+                  zIndex: 50,
+                  marginTop: 4,
+                  background: "#fff",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: 12,
+                  maxHeight: 260,
+                  overflowY: "auto",
+                  boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
+                }}
+              >
+                {customerOptions.length === 0 ? (
+                  <div style={{ padding: 10, fontSize: 12, color: "#666" }}>
+                    {t("no_results")}
+                  </div>
+                ) : (
+                  customerOptions.map((c) => (
+                    <div
+                      key={c.id}
+                      style={{
+                        padding: "10px 12px",
+                        cursor: "pointer",
+                        fontSize: 13,
+                        borderBottom: "1px solid #f1f5f9",
+                      }}
+                      onClick={() => {
+                        setField("customerId", c.id);
+                        setCustomerSearch("");
+                        setCustomerDropdownOpen(false);
+                      }}
+                    >
+                      <strong>
+                        {c.name} {c.surname}
+                      </strong>
+                      <div style={{ fontSize: 11, color: "#666" }}>
+                        ID: {c.id}
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
-            ))
-          )}
+            )}
+          </div>
+        ) : (
+          <div className="form-group">
+            <label>{t("customer")}</label>
+            <input
+              value={(() => {
+                const c = customers.find((x) => x.id === fixedCustomerId);
+                return c ? `${c.name} ${c.surname}` : "—";
+              })()}
+              readOnly
+            />
+          </div>
+        )}
 
-          {/* ✅ ADD BUTTON (ONLY ONCE) */}
-          <button
-            type="button"
-            className="btn"
-            style={{ marginTop: 8, background: "#eef2ff", color: "#1e40af" }}
-            onClick={() =>
+        <div className="form-group">
+          <input
+            type="date"
+            value={draft.date}
+            onChange={(e) => {
+              const newDate = e.target.value;
+
               setDraft((d) => {
-                const dateStr = d.date || new Date().toISOString().slice(0, 10);
-                const now = new Date();
-
-                const hh = String(now.getHours()).padStart(2, "0");
-                const mm = String(now.getMinutes()).padStart(2, "0");
+                // if dueDate was auto (date + 30), keep it in sync
+                const autoDue =
+                  d.dueDate === addDaysToDate(d.date, 30) || !d.dueDate;
 
                 return {
                   ...d,
-                  sessions: [
-                    ...(d.sessions || []),
-                    {
-                      id: uid(),
-                      inAt: utcTimestampFromDateAndTime(dateStr, `${hh}:${mm}`),
-                      outAt: utcTimestampFromDateAndTime(
-                        dateStr,
-                        `${hh}:${mm}`,
-                      ),
-                    },
-                  ],
+                  date: newDate,
+                  dueDate: autoDue ? addDaysToDate(newDate, 30) : d.dueDate,
+                  dueDays: autoDue ? 30 : d.dueDays,
                 };
-              })
-            }
-          >
-            + {t("add_work_session")}
-          </button>
+              });
+            }}
+          />
         </div>
-      )}
-
-      {/* ============================= */}
-      {/* PLANNED JOB DURATION (FIXED ONLY) */}
-      {/* ============================= */}
-      {draft.timeMode === "fixed" && (
         <div className="form-group">
-          {/* ✅ ONE LINE HEADER (like the other one) */}
-          <label>{t("planned_job_duration")}</label>
+          <label>{t("payment_due_date")}</label>
 
-          <div style={{ display: "flex", gap: 10 }}>
-            <input
-              style={{ flex: 1 }}
-              type="date"
-              value={draft.plannedStartDate || ""}
-              onChange={(e) =>
-                setDraft((d) => ({
-                  ...d,
-                  plannedStartDate: e.target.value,
-                }))
-              }
-            />
+          <input
+            type="date"
+            value={draft.dueDate ?? ""}
+            onChange={(e) => {
+              const v = e.target.value;
 
-            <input
-              style={{ flex: 1 }}
-              type="date"
-              value={draft.plannedEndDate || ""}
-              onChange={(e) =>
-                setDraft((d) => ({
-                  ...d,
-                  plannedEndDate: e.target.value,
-                }))
-              }
-            />
+              setDraft((d) => ({
+                ...d,
+                dueDate: v,
+                // 🔁 auto-calc dueDays from job date
+                dueDays: v ? diffDays(d.date, v) : "",
+              }));
+            }}
+            disabled={!draft.trackPayment}
+          />
+
+          <small style={{ color: "#6b7280" }}>
+            {draft.trackPayment
+              ? t("payment_due_info")
+              : t("payment_tracking_disabled")}
+          </small>
+
+          {editing && draft.dueDismissed && (
+            <div style={{ marginTop: 10 }}>
+              <button
+                type="button"
+                className="btn"
+                style={{
+                  background: "#ecfeff",
+                  color: "#0369a1",
+                  fontWeight: 600,
+                }}
+                onClick={() =>
+                  setDraft((d) => ({
+                    ...d,
+                    dueDismissed: false,
+                  }))
+                }
+              >
+                🔔 {t("restore_payment_tracking")}
+              </button>
+
+              <div style={{ fontSize: 12, color: "#0369a1", marginTop: 4 }}>
+                {t("payment_tracking_resume_info")}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ============================= */}
+        {/* ÇALIŞMA ZAMANI GİRİŞİ */}
+        {/* ============================= */}
+        <div className="form-group">
+          <label>{t("work_time_input")}</label>
+
+          {/* RADIO OPTIONS */}
+          <div className="time-mode-row">
+            <label className="time-mode-option">
+              <input
+                type="radio"
+                name="timeMode"
+                checked={draft.timeMode === "manual"}
+                onChange={() =>
+                  setDraft((d) => ({
+                    ...d,
+                    timeMode: "manual",
+                    isRunning: false,
+                    clockInAt: null,
+                    clockOutAt: null,
+                  }))
+                }
+              />
+              <span>{t("manual_entry")}</span>
+            </label>
+
+            <label className="time-mode-option">
+              <input
+                type="radio"
+                name="timeMode"
+                checked={draft.timeMode === "clock"}
+                onChange={() =>
+                  setDraft((d) => ({
+                    ...d,
+                    timeMode: "clock",
+                    start: "",
+                    end: "",
+                  }))
+                }
+              />
+              <span>{t("start_stop")}</span>
+            </label>
+
+            <label className="time-mode-option">
+              <input
+                type="radio"
+                name="timeMode"
+                checked={draft.timeMode === "fixed"}
+                onChange={() =>
+                  setDraft((d) => ({
+                    ...d,
+                    timeMode: "fixed",
+                    start: "",
+                    end: "",
+                    rate: 0,
+                    isRunning: false,
+                    clockInAt: null,
+                    clockOutAt: null,
+                  }))
+                }
+              />
+              <span>{t("fixed_price")}</span>
+            </label>
           </div>
         </div>
-      )}
 
-      {/* ============================= */}
-      {/* MANUAL / CLOCK INPUTS */}
-      {/* ============================= */}
-      {draft.timeMode !== "fixed" && (
-        <>
+        {/* ============================= */}
+        {/* CLOCK SESSION EDITOR (CLOCK ONLY) */}
+        {/* ============================= */}
+        {draft.timeMode === "clock" && (
           <div className="form-group">
-            <label>{t("work_hours_range")}</label>
-            <div style={{ display: "flex", gap: 5 }}>
-              <input
-                type="time"
-                value={draft.start}
-                disabled={draft.timeMode !== "manual"}
-                onChange={(e) => setField("start", e.target.value)}
-              />
+            <label>{t("work_history_edit")}</label>
 
-              <input
-                type="time"
-                value={draft.end}
-                disabled={draft.timeMode !== "manual"}
-                onChange={(e) => setField("end", e.target.value)}
-              />
-            </div>
+            {(draft.sessions || []).length === 0 ? (
+              <div style={{ fontSize: 12, color: "#666" }}>Henüz kayıt yok</div>
+            ) : (
+              (draft.sessions || []).map((s, idx) => (
+                <div
+                  key={s.id || idx}
+                  style={{
+                    display: "flex",
+                    gap: 8,
+                    alignItems: "center",
+                    marginBottom: 8,
+                  }}
+                >
+                  <span style={{ fontSize: 12, width: 28 }}>#{idx + 1}</span>
+
+                  <input
+                    type="time"
+                    value={utcTimeFromTimestamp(s.inAt)}
+                    onChange={(e) => {
+                      const t = e.target.value;
+                      setDraft((d) => ({
+                        ...d,
+                        sessions: d.sessions.map((x) =>
+                          x.id === s.id
+                            ? {
+                                ...x,
+                                inAt: utcTimestampFromDateAndTime(d.date, t),
+                              }
+                            : x,
+                        ),
+                      }));
+                    }}
+                  />
+
+                  <input
+                    type="time"
+                    value={utcTimeFromTimestamp(s.outAt)}
+                    onChange={(e) => {
+                      const t = e.target.value;
+                      setDraft((d) => ({
+                        ...d,
+                        sessions: d.sessions.map((x) =>
+                          x.id === s.id
+                            ? {
+                                ...x,
+                                outAt: utcTimestampFromDateAndTime(d.date, t),
+                              }
+                            : x,
+                        ),
+                      }));
+                    }}
+                  />
+
+                  <button
+                    type="button"
+                    className="btn btn-delete"
+                    onClick={() =>
+                      setDraft((d) => ({
+                        ...d,
+                        sessions: d.sessions.filter((x) => x.id !== s.id),
+                      }))
+                    }
+                  >
+                    <i className="fa-solid fa-trash" />
+                  </button>
+                </div>
+              ))
+            )}
+
+            {/* ✅ ADD BUTTON (ONLY ONCE) */}
+            <button
+              type="button"
+              className="btn"
+              style={{ marginTop: 8, background: "#eef2ff", color: "#1e40af" }}
+              onClick={() =>
+                setDraft((d) => {
+                  const dateStr =
+                    d.date || new Date().toISOString().slice(0, 10);
+                  const now = new Date();
+
+                  const hh = String(now.getHours()).padStart(2, "0");
+                  const mm = String(now.getMinutes()).padStart(2, "0");
+
+                  return {
+                    ...d,
+                    sessions: [
+                      ...(d.sessions || []),
+                      {
+                        id: uid(),
+                        inAt: utcTimestampFromDateAndTime(
+                          dateStr,
+                          `${hh}:${mm}`,
+                        ),
+                        outAt: utcTimestampFromDateAndTime(
+                          dateStr,
+                          `${hh}:${mm}`,
+                        ),
+                      },
+                    ],
+                  };
+                })
+              }
+            >
+              + {t("add_work_session")}
+            </button>
           </div>
-          {draft.timeMode === "manual" && (
-            <div className="form-group">
+        )}
+
+        {/* ============================= */}
+        {/* PLANNED JOB DURATION (FIXED ONLY) */}
+        {/* ============================= */}
+        {draft.timeMode === "fixed" && (
+          <div className="form-group">
+            {/* ✅ ONE LINE HEADER (like the other one) */}
+            <label>{t("planned_job_duration")}</label>
+
+            <div style={{ display: "flex", gap: 10 }}>
               <input
-                type="number"
-                min="0"
-                step="5"
-                placeholder={t("lunch_break_minutes")}
-                value={draft.breakMinutes ?? ""}
+                style={{ flex: 1 }}
+                type="date"
+                value={draft.plannedStartDate || ""}
                 onChange={(e) =>
                   setDraft((d) => ({
                     ...d,
-                    breakMinutes: e.target.value, // ✅ STRING ONLY
+                    plannedStartDate: e.target.value,
                   }))
                 }
               />
 
-              <small style={{ color: "#6b7280" }}>
-                {t("break_auto_deduct_info")}
-              </small>
+              <input
+                style={{ flex: 1 }}
+                type="date"
+                value={draft.plannedEndDate || ""}
+                onChange={(e) =>
+                  setDraft((d) => ({
+                    ...d,
+                    plannedEndDate: e.target.value,
+                  }))
+                }
+              />
             </div>
-          )}
+          </div>
+        )}
 
+        {/* ============================= */}
+        {/* MANUAL / CLOCK INPUTS */}
+        {/* ============================= */}
+        {draft.timeMode !== "fixed" && (
+          <>
+            <div className="form-group">
+              <label>{t("work_hours_range")}</label>
+              <div style={{ display: "flex", gap: 5 }}>
+                <input
+                  type="time"
+                  value={draft.start}
+                  disabled={draft.timeMode !== "manual"}
+                  onChange={(e) => setField("start", e.target.value)}
+                />
+
+                <input
+                  type="time"
+                  value={draft.end}
+                  disabled={draft.timeMode !== "manual"}
+                  onChange={(e) => setField("end", e.target.value)}
+                />
+              </div>
+            </div>
+            {draft.timeMode === "manual" && (
+              <div className="form-group">
+                <input
+                  type="number"
+                  min="0"
+                  step="5"
+                  placeholder={t("lunch_break_minutes")}
+                  value={draft.breakMinutes ?? ""}
+                  onChange={(e) =>
+                    setDraft((d) => ({
+                      ...d,
+                      breakMinutes: e.target.value, // ✅ STRING ONLY
+                    }))
+                  }
+                />
+
+                <small style={{ color: "#6b7280" }}>
+                  {t("break_auto_deduct_info")}
+                </small>
+              </div>
+            )}
+
+            <div className="form-group">
+              <input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="0.01"
+                placeholder={t("hourly_rate")}
+                value={draft.rate ?? ""}
+                onKeyDown={(e) => {
+                  // ❌ block minus & scientific notation
+                  if (e.key === "-" || e.key === "e" || e.key === "E") {
+                    e.preventDefault();
+                  }
+                }}
+                onChange={(e) => {
+                  const v = e.target.value;
+
+                  // allow empty while typing
+                  if (v === "") {
+                    setField("rate", "");
+                    return;
+                  }
+
+                  const n = Number(v);
+
+                  // clamp to >= 0
+                  setField("rate", Number.isFinite(n) ? Math.max(0, n) : 0);
+                }}
+              />
+            </div>
+          </>
+        )}
+
+        {/* ============================= */}
+        {/* FIXED PRICE */}
+        {/* ============================= */}
+        {draft.timeMode === "fixed" && (
           <div className="form-group">
             <input
               type="number"
-              inputMode="decimal"
               min="0"
               step="0.01"
-              placeholder={t("hourly_rate")}
-              value={draft.rate ?? ""}
+              value={draft.fixedPrice ?? ""}
+              placeholder="Sabit Ücret"
+              onWheel={(e) => e.currentTarget.blur()}
               onKeyDown={(e) => {
-                // ❌ block minus & scientific notation
-                if (e.key === "-" || e.key === "e" || e.key === "E") {
+                if (e.key === "-" || e.key === "e" || e.key === "E")
                   e.preventDefault();
-                }
               }}
               onChange={(e) => {
                 const v = e.target.value;
-
-                // allow empty while typing
-                if (v === "") {
-                  setField("rate", "");
-                  return;
-                }
-
-                const n = Number(v);
-
-                // clamp to >= 0
-                setField("rate", Number.isFinite(n) ? Math.max(0, n) : 0);
+                if (v === "") return setField("fixedPrice", "");
+                setField("fixedPrice", Math.max(0, Number(v)));
               }}
             />
           </div>
-        </>
-      )}
+        )}
 
-      {/* ============================= */}
-      {/* FIXED PRICE */}
-      {/* ============================= */}
-      {draft.timeMode === "fixed" && (
-        <div className="form-group">
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            value={draft.fixedPrice ?? ""}
-            placeholder="Sabit Ücret"
-            onWheel={(e) => e.currentTarget.blur()}
-            onKeyDown={(e) => {
-              if (e.key === "-" || e.key === "e" || e.key === "E")
-                e.preventDefault();
-            }}
-            onChange={(e) => {
-              const v = e.target.value;
-              if (v === "") return setField("fixedPrice", "");
-              setField("fixedPrice", Math.max(0, Number(v)));
+        {/* Parts */}
+        <div id="parca-container">
+          <label>{t("used_parts")}</label>
+
+          {(draft.parts || []).map((p) => (
+            <div
+              key={p.id}
+              className="parca-item"
+              style={{
+                flexDirection: "column",
+                background: "#f9fafb",
+                padding: 10,
+                borderRadius: 10,
+                marginBottom: 8,
+              }}
+            >
+              <input
+                type="text"
+                placeholder={t("part_name_placeholder")}
+                value={p.name}
+                onChange={(e) => updatePart(p.id, { name: e.target.value })}
+              />
+
+              <div style={{ display: "flex", gap: 6 }}>
+                <input
+                  type="number"
+                  placeholder={t("quantity")}
+                  min="1"
+                  value={p.qty === null ? "" : p.qty}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    updatePart(p.id, {
+                      qty: v === "" ? null : Number(v),
+                    });
+                  }}
+                />
+
+                <input
+                  type="number"
+                  placeholder={t("unit_price")}
+                  value={p.unitPrice === null ? "" : p.unitPrice}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    updatePart(p.id, {
+                      unitPrice: v === "" ? null : Number(v),
+                    });
+                  }}
+                />
+
+                <button
+                  onClick={() => removePart(p.id)}
+                  title={t("delete_part")}
+                  style={{
+                    background: "#fee2e2",
+                    border: "none",
+                    color: "#991b1b",
+                    borderRadius: 8,
+                    padding: "0 10px",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  <i className="fa-solid fa-xmark"></i>
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <button
+          type="button"
+          className="btn"
+          style={{ background: "#eee", color: "#333", marginBottom: 10 }}
+          onClick={addPartRow}
+        >
+          + {t("add_part")}
+        </button>
+
+        {/* Totals */}
+        <div className="card" style={{ background: "#f9f9f9" }}>
+          {/* MANUAL / CLOCK */}
+          {draft.timeMode !== "fixed" && (
+            <>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span>{t("work_hours")}:</span>
+                <strong>
+                  {hours.toFixed(2)} {t("hours")}
+                </strong>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span>{t("labor")}:</span>
+                <strong>{money(laborTotal, jobCurrency)}</strong>
+              </div>
+            </>
+          )}
+
+          {/* FIXED MODE */}
+          {draft.timeMode === "fixed" && (
+            <>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span>{t("working_days")}:</span>
+                <strong>
+                  {workingDays} {t("days")}
+                </strong>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span>{t("fixed_price")}:</span>
+                <strong>{money(draft.fixedPrice, jobCurrency)}</strong>
+              </div>
+            </>
+          )}
+
+          {/* COMMON */}
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <span>{t("parts")}:</span>
+            <strong>{money(partsTotal, jobCurrency)}</strong>
+          </div>
+
+          <hr
+            style={{
+              border: "none",
+              borderTop: "1px solid #ddd",
+              margin: "10px 0",
             }}
           />
-        </div>
-      )}
 
-      {/* Parts */}
-      <div id="parca-container">
-        <label>{t("used_parts")}</label>
-
-        {(draft.parts || []).map((p) => (
-          <div
-            key={p.id}
-            className="parca-item"
-            style={{
-              flexDirection: "column",
-              background: "#f9fafb",
-              padding: 10,
-              borderRadius: 10,
-              marginBottom: 8,
-            }}
-          >
-            <input
-              type="text"
-              placeholder={t("part_name_placeholder")}
-              value={p.name}
-              onChange={(e) => updatePart(p.id, { name: e.target.value })}
-            />
-
-            <div style={{ display: "flex", gap: 6 }}>
-              <input
-                type="number"
-                placeholder={t("quantity")}
-                min="1"
-                value={p.qty === null ? "" : p.qty}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  updatePart(p.id, {
-                    qty: v === "" ? null : Number(v),
-                  });
-                }}
-              />
-
-              <input
-                type="number"
-                placeholder={t("unit_price")}
-                value={p.unitPrice === null ? "" : p.unitPrice}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  updatePart(p.id, {
-                    unitPrice: v === "" ? null : Number(v),
-                  });
-                }}
-              />
-
-              <button
-                onClick={() => removePart(p.id)}
-                title={t("delete_part")}
-                style={{
-                  background: "#fee2e2",
-                  border: "none",
-                  color: "#991b1b",
-                  borderRadius: 8,
-                  padding: "0 10px",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                }}
-              >
-                <i className="fa-solid fa-xmark"></i>
-              </button>
-            </div>
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <span>
+              <strong>{t("total_amount")}:</strong>
+            </span>
+            <strong>{money(grandTotal, jobCurrency)}</strong>
           </div>
-        ))}
-      </div>
-
-      <button
-        type="button"
-        className="btn"
-        style={{ background: "#eee", color: "#333", marginBottom: 10 }}
-        onClick={addPartRow}
-      >
-        + {t("add_part")}
-      </button>
-
-      {/* Totals */}
-      <div className="card" style={{ background: "#f9f9f9" }}>
-        {/* MANUAL / CLOCK */}
-        {draft.timeMode !== "fixed" && (
-          <>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span>{t("work_hours")}:</span>
-              <strong>
-                {hours.toFixed(2)} {t("hours")}
-              </strong>
-            </div>
-
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span>{t("labor")}:</span>
-              <strong>{money(laborTotal, jobCurrency)}</strong>
-            </div>
-          </>
-        )}
-
-        {/* FIXED MODE */}
-        {draft.timeMode === "fixed" && (
-          <>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span>{t("working_days")}:</span>
-              <strong>
-                {workingDays} {t("days")}
-              </strong>
-            </div>
-
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span>{t("fixed_price")}:</span>
-              <strong>{money(draft.fixedPrice, jobCurrency)}</strong>
-            </div>
-          </>
-        )}
-
-        {/* COMMON */}
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
-          <span>{t("parts")}:</span>
-          <strong>{money(partsTotal, jobCurrency)}</strong>
         </div>
 
-        <hr
-          style={{
-            border: "none",
-            borderTop: "1px solid #ddd",
-            margin: "10px 0",
-          }}
-        />
-
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
-          <span>
-            <strong>{t("total_amount")}:</strong>
-          </span>
-          <strong>{money(grandTotal, jobCurrency)}</strong>
+        <div className="form-group">
+          <label>{t("note_optional")}</label>
+          <textarea
+            value={draft.notes}
+            onChange={(e) => setField("notes", e.target.value)}
+          />
         </div>
       </div>
 
-      <div className="form-group">
-        <label>{t("note_optional")}</label>
-        <textarea
-          value={draft.notes}
-          onChange={(e) => setField("notes", e.target.value)}
-        />
-      </div>
-
-      <div className="btn-row">
+      <div className="modal-actions">
         {editing && (
           <button
             className="btn btn-delete"
@@ -1552,7 +1591,7 @@ export function CustomerDetailModal({
   // ✅ PLUS (payments)
   const paymentsPlusTotal = useMemo(() => {
     return allCustomerPayments
-      .filter((p) => p.type === "payment")
+      .filter((p) => p.type === "payment" && p.source !== "job")
       .reduce((sum, p) => sum + toNum(p.amount), 0);
   }, [allCustomerPayments]);
 
@@ -1983,8 +2022,8 @@ export function CustomerDetailModal({
       )}
 
       {editTx && (
-        <div className="edit-modal-overlay">
-          <div className="edit-modal">
+        <div className="edit-modal-overlay" onClick={() => setEditTx(null)}>
+          <div className="edit-modal" onClick={(e) => e.stopPropagation()}>
             <h3
               style={{
                 marginTop: 0,
@@ -2192,9 +2231,7 @@ export function PaymentActionModal({
 
   const [dueDate, setDueDate] = useState("");
 
-  const [paymentDate, setPaymentDate] = useState(
-    new Date().toISOString().slice(0, 10),
-  );
+  const [addDate, setAddDate] = useState(new Date().toISOString().slice(0, 10));
 
   const { t } = useLang();
 
@@ -2204,7 +2241,8 @@ export function PaymentActionModal({
     setNote("");
     setVaultId(activeVaultId || "");
     setMethod(PAYMENT_METHOD.CASH);
-    setPaymentDate(new Date().toISOString().slice(0, 10));
+    setAddDate(new Date().toISOString().slice(0, 10));
+
     setDueDate("");
   }, [open, activeVaultId]);
 
@@ -2248,6 +2286,20 @@ export function PaymentActionModal({
             </div>
           )}
 
+          {/* DEBT ADD DATE */}
+          {mode === "debt" && (
+            <div className="form-group">
+              <label>{t("debt_add_date") || "Debt Date"}</label>
+              <input
+                type="date"
+                value={addDate}
+                onChange={(e) => setAddDate(e.target.value)}
+              />
+              <small style={{ color: "#6b7280" }}>
+                {t("debt_add_date_info") || "Date when the debt was created"}
+              </small>
+            </div>
+          )}
           {/* DUE DATE — ONLY FOR DEBT */}
           {mode === "debt" && (
             <div className="form-group">
@@ -2256,7 +2308,7 @@ export function PaymentActionModal({
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                min={paymentDate}
+                min={addDate}
               />
               <small style={{ color: "#6b7280" }}>
                 {t("payment_due_info") ||
@@ -2331,26 +2383,22 @@ export function PaymentActionModal({
             <button className="btn btn-cancel" onClick={onClose}>
               {t("cancel")}
             </button>
-
             <button
               className={mode === "payment" ? "btn btn-save" : "btn btn-delete"}
               onClick={() => {
-                onSubmit(
+                onSubmit({
                   amount,
                   note,
                   vaultId,
-                  paymentDate,
-                  mode === "payment" ? method : null,
-                  mode === "debt" && dueDate
-                    ? Math.max(
-                        0,
-                        Math.ceil(
-                          (new Date(dueDate) - new Date(paymentDate)) /
-                            (1000 * 60 * 60 * 24),
-                        ),
-                      )
-                    : null,
-                );
+
+                  // ✅ EXPLICIT DATES
+                  addDate,
+                  dueDate,
+
+                  // ✅ PAYMENT ONLY
+                  method: mode === "payment" ? method : null,
+                });
+
                 onClose();
               }}
             >
@@ -3680,8 +3728,8 @@ export function AdvancedSettingsModal({
         </div>
 
         <div className="settings-content">
-          <h3>{t("import_data")}</h3>
-          <p>{t("import_data_desc")}</p>
+          <h3>{t("settings.import.title")}</h3>
+          <p>{t("settings.import.desc")}</p>
         </div>
 
         <i className="fa-solid fa-chevron-right arrow"></i>

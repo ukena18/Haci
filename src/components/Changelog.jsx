@@ -1,6 +1,21 @@
 import React, { useState } from "react";
 import { CHANGELOG } from "../data/changelog";
 
+function formatDate(dateStr, language) {
+  if (!dateStr) return "";
+
+  const date = new Date(dateStr);
+
+  return date.toLocaleDateString(
+    language === "tr" ? "tr-TR" : language === "de" ? "de-DE" : "en-US",
+    {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    },
+  );
+}
+
 export default function Changelog({ language = "tr" }) {
   const [openVersions, setOpenVersions] = useState({});
 
@@ -29,7 +44,22 @@ export default function Changelog({ language = "tr" }) {
               onClick={() => toggle(release.version)}
             >
               <div>
-                <strong>v{release.version}</strong>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <strong>v{release.version}</strong>
+
+                  {release.date && (
+                    <span
+                      style={{
+                        fontSize: 12,
+                        color: "#888",
+                        fontWeight: 400,
+                      }}
+                    >
+                      • {formatDate(release.date, language)}
+                    </span>
+                  )}
+                </div>
+
                 <div style={{ fontSize: 12, color: "#666" }}>
                   {release.title?.[language]}
                 </div>

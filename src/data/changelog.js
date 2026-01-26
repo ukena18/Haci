@@ -1,6 +1,7 @@
 export const CHANGELOG = [
   {
     version: "1.3.4",
+    date: "2026-01-25",
     title: {
       en: "Customer Portal Print Fixes, UI Spacing Standardization & Modal UX Improvements",
       tr: "Müşteri Portal Yazdırma Düzeltmeleri, Boşluk Standardizasyonu ve Modal UX İyileştirmeleri",
@@ -164,6 +165,7 @@ export const CHANGELOG = [
 
   {
     version: "1.3.3",
+    date: "2026-01-24",
     title: {
       en: "Financial Logic Fixes, Due Tracking Dashboard & Mobile UX Improvements",
       tr: "Finansal Mantık Düzeltmeleri, Vade Takibi Dashboard ve Mobil UX İyileştirmeleri",
@@ -294,6 +296,7 @@ export const CHANGELOG = [
   },
   {
     version: "1.3.2",
+    date: "2026-01-23",
     title: {
       en: "Sharing, Data Tools, Language UI & Stability Improvements",
       tr: "Paylaşım, Veri Araçları, Dil Arayüzü ve Kararlılık İyileştirmeleri",
@@ -394,6 +397,7 @@ export const CHANGELOG = [
 
   {
     version: "1.3.1",
+    date: "2026-01-22",
     title: {
       en: "Job Creation UX, Due Date Logic & Input Validation Improvements",
       tr: "İş Oluşturma UX, Vade Tarihi Mantığı ve Girdi Doğrulamaları",
@@ -537,6 +541,7 @@ export const CHANGELOG = [
 
   {
     version: "1.3.0",
+    date: "2026-01-21",
     title: {
       en: "Currency Consistency, Vault Rules & Critical Data Integrity Fixes",
       tr: "Para Birimi Tutarlılığı, Kasa Kuralları ve Kritik Veri Düzeltmeleri",
@@ -699,6 +704,7 @@ export const CHANGELOG = [
 
   {
     version: "1.2.9",
+    date: "2026-01-20",
     title: {
       en: "Language Toggle Expansion, Pay Watch Enhancements & Mobile UI Fixes",
       tr: "Dil Değiştirme Genişletmeleri, Ödeme Takibi ve Mobil Arayüz Düzeltmeleri",
@@ -865,6 +871,7 @@ export const CHANGELOG = [
 
   {
     version: "1.2.8",
+    date: "2026-01-19",
     title: {
       en: "Calendar UX, Portal Scoping & Print Detail Improvements",
       tr: "Takvim UX, Portal Kapsamı ve Yazdırma Detay İyileştirmeleri",
@@ -965,6 +972,7 @@ export const CHANGELOG = [
 
   {
     version: "1.2.7",
+    date: "2026-01-18",
     title: {
       en: "Time Input Fixes, Icon Cleanup & Job Flow Stability",
       tr: "Zaman Girişi Düzeltmeleri, İkon Temizliği ve İş Akışı Kararlılığı",
@@ -1063,6 +1071,7 @@ export const CHANGELOG = [
 
   {
     version: "1.2.6",
+    date: "2026-01-17",
     title: {
       en: "Job Modals & Interaction Polish",
       tr: "İş Modalları ve Etkileşim Rötuşları",
@@ -1092,6 +1101,7 @@ export const CHANGELOG = [
 
   {
     version: "1.2.5",
+    date: "2026-01-16",
     title: {
       en: "Customer Portal (Public) Improvements",
       tr: "Herkese Açık Müşteri Portalı İyileştirmeleri",
@@ -1127,6 +1137,7 @@ export const CHANGELOG = [
 
   {
     version: "1.2.4",
+    date: "2026-01-15",
     title: {
       en: "Calendar Integration & Admin Controls",
       tr: "Takvim Entegrasyonu ve Admin Kontrolleri",
@@ -1160,6 +1171,7 @@ export const CHANGELOG = [
 
   {
     version: "1.2.3",
+    date: "2026-01-14",
     title: {
       en: "Search Bar, Layout & Text Fixes",
       tr: "Arama Çubuğu, Yerleşim ve Metin Düzeltmeleri",
@@ -1191,6 +1203,7 @@ export const CHANGELOG = [
 
   {
     version: "1.2.2",
+    date: "2026-01-13",
     title: {
       en: "Active & Completed Jobs Final Polish",
       tr: "Aktif ve Tamamlanan İşler Son Rötuş",
@@ -1218,6 +1231,7 @@ export const CHANGELOG = [
 
   {
     version: "1.2.1",
+    date: "2026-01-12",
     title: {
       en: "Customer Selection, Modals & Desktop Compatibility",
       tr: "Müşteri Seçimi, Modallar ve Masaüstü Uyumluluğu",
@@ -1249,6 +1263,7 @@ export const CHANGELOG = [
 
   {
     version: "1.2.0",
+    date: "2026-01-11",
     title: {
       en: "Financial Flow (Recep Logic) & Vault Rules",
       tr: "Finans Akışı (Recep Mantığı) ve Kasa Kuralları",
@@ -1280,6 +1295,7 @@ export const CHANGELOG = [
 
   {
     version: "1.1.9",
+    date: "2026-01-10",
     title: {
       en: "Job Method Consistency & History Cleanup",
       tr: "İş Yöntemi Tutarlılığı ve Geçmiş Temizliği",
@@ -1309,6 +1325,7 @@ export const CHANGELOG = [
 
   {
     version: "1.1.8",
+    date: "2026-01-9",
     title: {
       en: "Currency Rules, Vault Ownership & Job Flow Fixes",
       tr: "Para Birimi Kuralları, Kasa Sahipliği ve İş Akışı Düzeltmeleri",
@@ -1338,6 +1355,7 @@ export const CHANGELOG = [
 
   {
     version: "1.1.7",
+    date: "2026-01-8",
     title: {
       en: "Vault Logic, Pagination & Sticky Navigation",
       tr: "Kasa Mantığı, Sayfalama ve Sabit Navigasyon",
@@ -1369,6 +1387,7 @@ export const CHANGELOG = [
 
   {
     version: "1.1.6",
+    date: "2026-01-7",
     title: {
       en: "History Order, Printing & Data Integrity",
       tr: "Geçmiş Sıralaması, Yazdırma ve Veri Bütünlüğü",
@@ -1400,6 +1419,7 @@ export const CHANGELOG = [
 
   {
     version: "1.1.5",
+    date: "2026-01-6",
     title: {
       en: "Job Headers, Layout Symmetry & UX Consistency",
       tr: "İş Başlıkları, Yerleşim Simetrisi ve UX Tutarlılığı",
@@ -1427,6 +1447,7 @@ export const CHANGELOG = [
 
   {
     version: "1.1.4",
+    date: "2026-01-5",
     title: {
       en: "Financial Integrity & Universal Totals",
       tr: "Finansal Bütünlük ve Evrensel Toplamlar",
@@ -1454,6 +1475,7 @@ export const CHANGELOG = [
 
   {
     version: "1.1.3",
+    date: "2026-01-4",
     title: {
       en: "Multi-Vault Jobs & Financial Sync Fixes",
       tr: "Çoklu Kasa İşleri ve Finansal Senkron Düzeltmeleri",
@@ -1485,6 +1507,7 @@ export const CHANGELOG = [
 
   {
     version: "1.1.2",
+    date: "2026-01-3",
     title: {
       en: "Input Fixes, Active Jobs & Visual Consistency",
       tr: "Girdi Düzeltmeleri, Aktif İşler ve Görsel Tutarlılık",
@@ -1521,6 +1544,7 @@ export const CHANGELOG = [
 
   {
     version: "1.1.1",
+    date: "2026-01-2",
     title: {
       en: "Portal, PWA & Security Fixes",
       tr: "Portal, PWA ve Güvenlik Düzeltmeleri",
@@ -1550,6 +1574,7 @@ export const CHANGELOG = [
 
   {
     version: "1.1.0",
+    date: "2026-01-1",
     title: {
       en: "Navigation, Language & Performance",
       tr: "Navigasyon, Dil ve Performans",
@@ -1583,6 +1608,7 @@ export const CHANGELOG = [
 
   {
     version: "1.0.9",
+    date: "2025-12-31",
     title: {
       en: "Jobs, Pricing Models & Time Logic",
       tr: "İşler, Fiyatlandırma Modelleri ve Zaman Mantığı",
@@ -1612,6 +1638,7 @@ export const CHANGELOG = [
 
   {
     version: "1.0.8",
+    date: "2025-12-30",
     title: {
       en: "UI Cleanup, Layout & Accessibility",
       tr: "Arayüz Temizliği, Yerleşim ve Erişilebilirlik",
@@ -1647,6 +1674,7 @@ export const CHANGELOG = [
 
   {
     version: "1.0.7",
+    date: "2025-12-29",
     title: {
       en: "History, Modals & Safety Improvements",
       tr: "Geçmiş, Modallar ve Güvenlik İyileştirmeleri",
@@ -1677,6 +1705,7 @@ export const CHANGELOG = [
 
   {
     version: "1.0.6",
+    date: "2025-12-28",
     title: {
       en: "Job Creation Flow & Vault Fixes",
       tr: "İş Oluşturma Akışı ve Kasa Düzeltmeleri",
@@ -1708,6 +1737,7 @@ export const CHANGELOG = [
 
   {
     version: "1.0.5",
+    date: "2025-12-27",
     title: {
       en: "UI Fixes & Job / Parts Corrections",
       tr: "Arayüz Düzeltmeleri ve İş / Parça Hesaplamaları",
@@ -1741,6 +1771,7 @@ export const CHANGELOG = [
 
   {
     version: "0.9.6",
+    date: "2025-12-26",
     title: {
       en: "Customer Portal, PDF & Printing",
       tr: "Müşteri Portalı, PDF ve Yazdırma",
@@ -1770,6 +1801,7 @@ export const CHANGELOG = [
 
   {
     version: "0.9.4",
+    date: "2025-12-25",
     title: {
       en: "Jobs, Time Tracking & History",
       tr: "İşler, Zaman Takibi ve Geçmiş",
@@ -1801,6 +1833,7 @@ export const CHANGELOG = [
 
   {
     version: "0.9.2",
+    date: "2025-12-24",
     title: {
       en: "Payments, Vaults & Accounting Logic",
       tr: "Tahsilat, Kasalar ve Muhasebe Mantığı",
@@ -1836,6 +1869,7 @@ export const CHANGELOG = [
 
   {
     version: "0.9.0",
+    date: "2025-12-23",
     title: {
       en: "Core Architecture & UI Refactor",
       tr: "Çekirdek Mimari ve Arayüz Yenilemesi",

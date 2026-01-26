@@ -1,6 +1,5 @@
 export const translations = {
   tr: {
-    loading: "Yükleniyor...",
     home: "Anasayfa",
     customers: "Müşteriler",
     calendar: "Takvim",
@@ -26,7 +25,7 @@ export const translations = {
     no: "Hayır",
     cancel: "İptal",
     save: "Kaydet",
-    clear: "Temizle",
+
     unknown: "Bilinmeyen",
 
     // =====================
@@ -194,7 +193,7 @@ export const translations = {
     vault_detail_title: "Kasa Detayı",
     edit: "Düzenle",
     currency_label: "Para Birimi",
-    save: "Kaydet",
+
     cancel: "İptal",
 
     vault_print: "Kasa Dökümü Yazdır",
@@ -344,7 +343,7 @@ export const translations = {
     // =====================
     close: "Kapat",
     cancel: "İptal",
-    save: "Kaydet",
+
     delete: "Sil",
 
     // =====================
@@ -555,7 +554,7 @@ export const translations = {
     // =====================
     // MODAL ACTIONS
     // =====================
-    save: "Kaydet",
+
     cancel: "İptal",
     delete: "Sil",
 
@@ -626,7 +625,7 @@ export const translations = {
     reservation_note: "Rezervasyon notu",
 
     discard: "Vazgeç",
-    save: "Kaydet",
+
     delete: "Sil",
 
     // =====================
@@ -873,9 +872,9 @@ export const translations = {
 
     select_customer_required: "Müşteri seçmelisiniz.",
     edit_job: "İşi Düzenle",
-    add_job: "Yeni İş Ekle",
+    add_job: "Yeni İş ",
     search_customer: "Müşteri ara…",
-    clear: "Temizle",
+
     no_results: "Sonuç bulunamadı",
     payment_due_date: "Ödeme Vadesi",
     payment_due_info: "Ödeme seçilen tarihte vadesi dolacaktır.",
@@ -942,16 +941,22 @@ export const translations = {
     total_due_exposure: "Net Durum",
     debt_default_note: "Borç",
     "public.usedParts": "Kullanılan Parçalar",
+
+    "settings.import.title": "Veri İçe Aktarma",
+    "settings.import.desc":
+      "Uygulama verilerini bir JSON dosyasından geri yükle.",
+
+    "settings.theme.title": "Tema",
+    "settings.theme.desc": "Açık ve koyu görünüm arasında geçiş yap",
   },
 
   en: {
-    loading: "Loading...",
     home: "Home",
     customers: "Customers",
     calendar: "Calendar",
     settings: "Settings",
     searchPlaceholder: "Search...",
-    clear: "Clear",
+
     debt: "Debt",
     payment: "Payment",
     start: "Start",
@@ -1069,7 +1074,7 @@ export const translations = {
     vault_detail_title: "Vault Details",
     edit: "Edit",
     currency_label: "Currency",
-    save: "Save",
+
     cancel: "Cancel",
 
     vault_print: "Print Vault Statement",
@@ -1177,7 +1182,7 @@ export const translations = {
 
     close: "Close",
     cancel: "Cancel",
-    save: "Save",
+
     delete: "Delete",
 
     delete_confirmation: "Delete Confirmation",
@@ -1315,7 +1320,6 @@ export const translations = {
     restore_payment_tracking: "🔔 Restore Payment Tracking",
     restore_payment_info: "Tracking continues without resetting days.",
 
-    save: "Save",
     cancel: "Cancel",
     delete: "Delete",
 
@@ -1374,7 +1378,7 @@ export const translations = {
     reservation_note: "Reservation note",
 
     discard: "Discard",
-    save: "Save",
+
     delete: "Delete",
     advanced_settings: "Advanced Settings",
 
@@ -1598,7 +1602,7 @@ export const translations = {
     edit_job: "Edit Job",
     add_job: "Add New Job",
     search_customer: "Search customer…",
-    clear: "Clear",
+
     no_results: "No results found",
     payment_due_date: "Payment Due Date",
     payment_due_info: "Payment will be due on the selected date.",
@@ -1671,10 +1675,19 @@ export const translations = {
     upcoming_due: "Upcoming Due",
     total_due_exposure: "Total Due Exposure",
     debt_default_note: "Debt",
+
+    "public.part": "Part",
+    "public.parts": "Parts",
+    "public.labor": "Labor",
+
+    "settings.import.title": "Import Data",
+    "settings.import.desc": "Restore application data from a JSON file.",
+
+    "settings.theme.title": "Theme",
+    "settings.theme.desc": "Switch between light and dark appearance",
   },
 
   de: {
-    loading: "Wird geladen...",
     home: "Startseite",
     customers: "Kunden",
     calendar: "Kalender",
@@ -1697,7 +1710,7 @@ export const translations = {
     no: "Nein",
     cancel: "Abbrechen",
     save: "Speichern",
-    clear: "Löschen",
+
     unknown: "Unbekannt",
 
     nav_home: "Startseite",
@@ -1799,7 +1812,7 @@ export const translations = {
     vault_detail_title: "Kassendetails",
     edit: "Bearbeiten",
     currency_label: "Währung",
-    save: "Speichern",
+
     cancel: "Abbrechen",
 
     vault_print: "Kassenbericht drucken",
@@ -1907,7 +1920,7 @@ export const translations = {
 
     close: "Schließen",
     cancel: "Abbrechen",
-    save: "Speichern",
+
     delete: "Löschen",
 
     delete_confirmation: "Löschbestätigung",
@@ -2045,7 +2058,6 @@ export const translations = {
     restore_payment_tracking: "🔔 Zahlungsüberwachung wiederherstellen",
     restore_payment_info: "Die Verfolgung wird ohne Zurücksetzen fortgesetzt.",
 
-    save: "Speichern",
     cancel: "Abbrechen",
     delete: "Löschen",
 
@@ -2104,7 +2116,7 @@ export const translations = {
     reservation_note: "Reservierungsnotiz",
 
     discard: "Verwerfen",
-    save: "Speichern",
+
     delete: "Löschen",
 
     advanced_settings: "Erweiterte Einstellungen",
@@ -2342,7 +2354,7 @@ export const translations = {
     edit_job: "Auftrag bearbeiten",
     add_job: "Neuen Auftrag hinzufügen",
     search_customer: "Kunde suchen…",
-    clear: "Löschen",
+
     no_results: "Keine Ergebnisse gefunden",
     payment_due_date: "Fälligkeitsdatum",
     payment_due_info: "Die Zahlung ist am ausgewählten Datum fällig.",
@@ -2411,5 +2423,13 @@ export const translations = {
     overdue_amount: "Überfälliger Betrag",
     upcoming_due: "Bevorstehende Fälligkeit",
     total_due_exposure: "Gesamtes Fälligkeitsrisiko",
+
+    "settings.import.title": "Daten importieren",
+    "settings.import.desc":
+      "Anwendungsdaten aus einer JSON-Datei wiederherstellen.",
+
+    "settings.theme.title": "Design",
+    "settings.theme.desc":
+      "Zwischen hellem und dunklem Erscheinungsbild wechseln",
   },
 };

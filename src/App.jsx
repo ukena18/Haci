@@ -315,9 +315,13 @@ function AuthGate() {
   // ✅ PUBLIC route: login istemez
   if (location.pathname.startsWith("/customer/")) {
     return (
-      <Routes>
-        <Route path="/customer/:id" element={<PublicCustomerSharePage />} />
-      </Routes>
+      <div className="app-shell">
+        <div className="app-frame">
+          <Routes>
+            <Route path="/customer/:id" element={<PublicCustomerSharePage />} />
+          </Routes>
+        </div>
+      </div>
     );
   }
 
@@ -546,6 +550,17 @@ function MainApp({ state, setState, user }) {
         setConfirm({ open: false });
         return true;
       }
+
+      if (showChangelog) {
+        setShowChangelog(false);
+        return true;
+      }
+
+      if (advancedSettingsOpen) {
+        setAdvancedSettingsOpen(false);
+        return true;
+      }
+
       return false;
     },
   });
@@ -755,23 +770,19 @@ function MainApp({ state, setState, user }) {
     // DEBTS
     // =====================
     ...(state.payments || [])
-      .filter((p) => p.type === "debt" && !p.dueDismissed && p.dueDays != null)
+      .filter((p) => p.type === "debt" && !p.dueDismissed && p.dueDate)
       .map((debt) => {
-        const startDate = debt.createdAt || new Date(debt.date || 0).getTime();
-        if (!startDate) return null;
-
-        const dueInDays = debt.dueDays ?? 30;
-        const dueDate = addDaysSkippingWeekend(new Date(startDate), dueInDays);
-
+        const dueDate = new Date(debt.dueDate);
         const daysLeft = daysBetween(new Date(), dueDate);
 
         return {
-          kind: "debt", // ✅ NEW
-          ref: debt, // ✅ NEW
+          kind: "debt",
+          ref: debt,
           daysLeft,
           dueDate,
         };
       })
+
       .filter(Boolean),
   ].sort((a, b) => a.daysLeft - b.daysLeft);
 
@@ -1059,29 +1070,23 @@ ${t("duplicate_customer_confirm")}
     });
   }
 
-  function addDebt(customerId, amount, note, date) {
+  function addDebt({ customerId, amount, note, addDate, dueDate }) {
     const amt = toNum(amount);
-
     if (amt <= 0) return;
 
     setState((s) => {
-      const customer = s.customers.find((c) => c.id === customerId);
-
       const debt = {
         id: uid(),
         customerId,
         type: "debt",
         amount: amt,
         note: note || t("debt_default_note"),
-        date,
-        createdAt: Date.now(),
-        dueDays: 30,
-        dueDismissed: false,
 
-        // 🔒 CRITICAL RULE:
-        // Debt NEVER defines currency
-        // Before first payment → null
-        // After payment → display uses customer.currency
+        addDate: addDate || new Date().toISOString().slice(0, 10),
+        dueDate: dueDate || null,
+
+        createdAt: Date.now(),
+        dueDismissed: false,
         currency: null,
       };
 
@@ -1592,35 +1597,39 @@ ${t("duplicate_customer_confirm")}
             vaults={state.vaults}
             activeVaultId={state.activeVaultId}
             onClose={() => setPaymentModalOpen(false)}
-            onSubmit={(amount, note, vaultId, date, method) => {
+            onSubmit={(data) => {
               if (!paymentCustomer) return;
 
               if (paymentMode === "payment") {
                 makePayment(
                   paymentCustomer.id,
-                  amount,
-                  note,
-                  date,
-                  vaultId,
-                  method,
+                  data.amount,
+                  data.note,
+                  data.addDate,
+                  data.vaultId,
+                  data.method,
                 );
               } else {
-                addDebt(paymentCustomer.id, amount, note, date, null, null);
+                addDebt({
+                  customerId: paymentCustomer.id,
+                  amount: data.amount,
+                  note: data.note,
+                  addDate: data.addDate,
+                  dueDate: data.dueDate,
+                });
               }
             }}
           />
 
           {/* CHANGELOG MODAL */}
-          {showChangelog && (
-            <ModalBase
-              open={true}
-              title={t("changelog_title")}
-              onClose={() => setShowChangelog(false)}
-              zIndex={2000}
-            >
-              <Changelog language={lang} />
-            </ModalBase>
-          )}
+          <ModalBase
+            open={showChangelog}
+            title={t("changelog_title")}
+            onClose={() => setShowChangelog(false)}
+            zIndex={2000}
+          >
+            <Changelog language={lang} />
+          </ModalBase>
 
           <VaultDetailModal
             open={vaultDetailOpen}
@@ -1773,17 +1782,23 @@ ${t("duplicate_customer_confirm")}
             }}
           />
 
-          <AdvancedSettingsModal
+          <ModalBase
             open={advancedSettingsOpen}
+            title={t("settings.advanced.title")}
             onClose={() => setAdvancedSettingsOpen(false)}
-            state={state}
-            setState={setState}
-            auth={auth}
-            // 🔹 STEP 5.3 — Dark mode control
-            theme={theme}
-            setTheme={applyTheme}
-            jobs={state.jobs} // ✅ ADD THIS LINE
-          />
+            zIndex={2000}
+          >
+            <AdvancedSettingsModal
+              open={true} // internal open no longer matters
+              onClose={() => setAdvancedSettingsOpen(false)}
+              state={state}
+              setState={setState}
+              auth={auth}
+              theme={theme}
+              setTheme={applyTheme}
+              jobs={state.jobs}
+            />
+          </ModalBase>
 
           {/* VAULT DELETE CONFIRM MODAL */}
           {vaultDeleteConfirm.open && (

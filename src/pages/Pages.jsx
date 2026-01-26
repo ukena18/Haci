@@ -962,8 +962,12 @@ export function PublicCustomerSharePage() {
   if (!snap) return <div style={{ padding: 20 }}>{t("public.notFound")}</div>;
 
   const customer = snap.customer;
-  const jobs = snap.jobs || [];
-  const payments = (snap.payments || []).filter((p) => p.source !== "job");
+  const customerId = customer?.id;
+  const jobs = (snap.jobs || []).filter((j) => j.customerId === customerId);
+
+  const payments = (snap.payments || []).filter(
+    (p) => p.customerId === customerId,
+  );
 
   const fromDate = searchParams.get("from");
   const toDate = searchParams.get("to");
@@ -985,24 +989,23 @@ export function PublicCustomerSharePage() {
     fromDate || toDate ? payments.filter((p) => isInRange(p.date)) : payments;
 
   const currency = snap.currency || "TRY";
-  const paymentsPlusTotal = filteredPayments
-    .filter((p) => p.type === "payment")
-    .reduce((sum, p) => sum + toNum(p.amount), 0);
 
-  const paymentsMinusTotal = filteredPayments
-    .filter((p) => p.type === "debt")
-    .reduce((sum, p) => sum + toNum(p.amount), 0);
+  let totalPayment = 0;
+  let totalDebt = 0;
 
-  const paidJobsTotal = filteredJobs
-    .filter((j) => j.isPaid)
-    .reduce((sum, j) => sum + jobTotalOf(j), 0);
+  // ✅ payments & debts — MUST use filteredPayments
+  filteredPayments.forEach((p) => {
+    const amount = toNum(p.amount);
+    if (p.type === "payment") totalPayment += amount;
+    if (p.type === "debt") totalDebt += amount;
+  });
+  // jobs
+  filteredJobs.forEach((j) => {
+    const jobTotal = jobTotalOf(j);
+    if (j.isPaid) totalPayment += jobTotal;
+    else totalDebt += jobTotal;
+  });
 
-  const unpaidJobsTotal = filteredJobs
-    .filter((j) => !j.isCompleted || (j.isCompleted && !j.isPaid))
-    .reduce((sum, j) => sum + jobTotalOf(j), 0);
-
-  const totalPayment = paymentsPlusTotal + paidJobsTotal;
-  const totalDebt = paymentsMinusTotal + unpaidJobsTotal;
   const balance = totalPayment - totalDebt;
 
   function jobLaborTotal(job) {
@@ -1016,6 +1019,37 @@ export function PublicCustomerSharePage() {
           : 0;
 
     return hours * toNum(job.rate);
+  }
+
+  function printableRow(item) {
+    // PAYMENT / DEBT
+    if (item.kind === "payment") {
+      const p = item.data;
+      const isPay = p.type === "payment";
+
+      return {
+        date: p.date || "-",
+        type: isPay ? t("public.payment") : t("public.debt"),
+        note: p.note || "-",
+        amount: `${isPay ? "+" : "-"}${money(
+          toNum(p.amount),
+          p.currency || currency,
+        )}`,
+        positive: isPay,
+      };
+    }
+
+    // JOB
+    const j = item.data;
+    const total = jobTotalOf(j);
+
+    return {
+      date: j.date || "-",
+      type: t("public.job"),
+      note: j.note || "-",
+      amount: `-${money(total, currency)}`,
+      positive: false,
+    };
   }
 
   // ✅ MIX jobs + payments into ONE historic timeline
@@ -1082,508 +1116,543 @@ export function PublicCustomerSharePage() {
   `;
   }
 
+  function renderJobPrintRows(job) {
+    const rows = [];
+
+    const laborTotal = jobLaborTotal(job);
+    const parts = job.parts || [];
+
+    // 🧑‍🔧 Labor (description-only)
+    if (laborTotal > 0) {
+      rows.push(
+        <tr key={`labor_${job.id}`} style={{ color: "#374151" }}>
+          <td></td>
+          <td style={{ paddingLeft: 20 }}>{t("public.labor")}</td>
+          <td>{money(laborTotal, currency)}</td>
+          <td></td> {/* ❌ NO total column value */}
+        </tr>,
+      );
+    }
+
+    // 🔧 Parts (description-only)
+    parts.forEach((p, idx) => {
+      rows.push(
+        <tr key={`part_${job.id}_${idx}`} style={{ color: "#374151" }}>
+          <td></td>
+          <td style={{ paddingLeft: 20 }}>{t("public.part") || "Part"}</td>
+          <td>
+            {p.name} × {p.qty}
+            {" — "}
+            {money(partLineTotal(p), currency)}
+            {p.note && (
+              <div style={{ fontSize: 10, color: "#6b7280" }}>{p.note}</div>
+            )}
+          </td>
+          <td></td> {/* ❌ NO total column value */}
+        </tr>,
+      );
+    });
+
+    return rows;
+  }
+
   return (
-    <>
-      <div
-        className="card"
-        style={{
-          margin: "16px",
-          padding: "16px 18px",
-        }}
-      >
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr auto",
-            gap: 16,
-            alignItems: "stretch",
-          }}
-        >
-          {/* LEFT — CUSTOMER INFO */}
-          <div>
-            <h2 style={{ margin: 0 }}>
-              {customer.name} {customer.surname}
-            </h2>
-
-            <div
-              style={{
-                marginTop: 6,
-                fontSize: 13,
-                color: "#555",
-              }}
-            >
-              {t("public.balance")}:{" "}
-              <strong style={{ color: balance >= 0 ? "#16a34a" : "#dc2626" }}>
-                {money(balance, currency)}
-              </strong>
-            </div>
-
-            <div
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: 14,
-                marginTop: 10,
-                fontSize: 13,
-                color: "#444",
-              }}
-            >
-              {customer.phone && (
-                <div>
-                  <i className="fa-solid fa-phone"></i>{" "}
-                  <a
-                    href={`tel:${customer.phone}`}
-                    style={{
-                      color: "inherit",
-                      textDecoration: "none",
-                      fontWeight: 600,
-                    }}
-                  >
-                    {customer.phone}
-                  </a>
-                </div>
-              )}
-
-              {customer.address && (
-                <div>
-                  <i className="fa-solid fa-location-dot"></i>{" "}
-                  {customer.address}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* RIGHT — PRINT BUTTON */}
-          <button
-            onClick={printPage}
-            className="btn"
-            style={{
-              minWidth: 180,
-              padding: "0 20px",
-              fontSize: 14,
-              fontWeight: 600,
-              borderRadius: 12,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 10,
-            }}
-          >
-            <i className="fa-solid fa-print"></i>
-            {t("public.print")}
-          </button>
-        </div>
-      </div>
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-          gap: 12,
-          margin: "16px",
-        }}
-      >
-        {/* TOPLAM TAHSİLAT */}
+    <div id="page-public" className="page-top-spacing">
+      <div className="page-inner">
         <div
           className="card"
           style={{
-            background: "#f0fdf4",
-            textAlign: "center",
-            padding: 14,
-          }}
-        >
-          <div style={{ fontSize: 12, color: "#166534" }}>
-            {t("public.totalPayment")}
-          </div>
-          <strong style={{ color: "#16a34a", fontSize: 16 }}>
-            +{money(totalPayment, currency)}
-          </strong>
-        </div>
-
-        {/* TOPLAM BORÇ */}
-        <div
-          className="card"
-          style={{
-            background: "#fef2f2",
-            textAlign: "center",
-            padding: 14,
-          }}
-        >
-          <div style={{ fontSize: 12, color: "#7f1d1d" }}>
-            {t("public.totalDebt")}
-          </div>
-          <strong style={{ color: "#dc2626", fontSize: 16 }}>
-            -{money(totalDebt, currency)}
-          </strong>
-        </div>
-
-        {/* BAKİYE */}
-        <div
-          className="card"
-          style={{
-            background: balance >= 0 ? "#eff6ff" : "#fef2f2",
-            textAlign: "center",
-            padding: 14,
+            margin: "16px",
+            padding: "16px 18px",
           }}
         >
           <div
             style={{
-              fontSize: 12,
-              color: balance >= 0 ? "#1e40af" : "#7f1d1d",
+              display: "grid",
+              gridTemplateColumns: "1fr auto",
+              gap: 16,
+              alignItems: "stretch",
             }}
           >
-            {t("public.balance")}
+            {/* LEFT — CUSTOMER INFO */}
+            <div>
+              <h2 style={{ margin: 0 }}>
+                {customer.name} {customer.surname}
+              </h2>
+
+              <div
+                style={{
+                  marginTop: 6,
+                  fontSize: 13,
+                  color: "#555",
+                }}
+              >
+                {t("public.balance")}:{" "}
+                <strong style={{ color: balance >= 0 ? "#16a34a" : "#dc2626" }}>
+                  {money(balance, currency)}
+                </strong>
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 14,
+                  marginTop: 10,
+                  fontSize: 13,
+                  color: "#444",
+                }}
+              >
+                {customer.phone && (
+                  <div>
+                    <i className="fa-solid fa-phone"></i>{" "}
+                    <a
+                      href={`tel:${customer.phone}`}
+                      style={{
+                        color: "inherit",
+                        textDecoration: "none",
+                        fontWeight: 600,
+                      }}
+                    >
+                      {customer.phone}
+                    </a>
+                  </div>
+                )}
+
+                {customer.address && (
+                  <div>
+                    <i className="fa-solid fa-location-dot"></i>{" "}
+                    {customer.address}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* RIGHT — PRINT BUTTON */}
+            <button
+              onClick={printPage}
+              className="btn"
+              style={{
+                minWidth: 180,
+                padding: "0 20px",
+                fontSize: 14,
+                fontWeight: 600,
+                borderRadius: 12,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 10,
+              }}
+            >
+              <i className="fa-solid fa-print"></i>
+              {t("public.print")}
+            </button>
           </div>
-          <strong
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+            gap: 12,
+            margin: "16px",
+          }}
+        >
+          {/* TOPLAM TAHSİLAT */}
+          <div
+            className="card"
             style={{
-              fontSize: 16,
-              color: balance >= 0 ? "#2563eb" : "#dc2626",
+              background: "#f0fdf4",
+              textAlign: "center",
+              padding: 14,
             }}
           >
-            {money(balance, currency)}
-          </strong>
+            <div style={{ fontSize: 12, color: "#166534" }}>
+              {t("public.totalPayment")}
+            </div>
+            <strong style={{ color: "#16a34a", fontSize: 16 }}>
+              +{money(totalPayment, currency)}
+            </strong>
+          </div>
+
+          {/* TOPLAM BORÇ */}
+          <div
+            className="card"
+            style={{
+              background: "#fef2f2",
+              textAlign: "center",
+              padding: 14,
+            }}
+          >
+            <div style={{ fontSize: 12, color: "#7f1d1d" }}>
+              {t("public.totalDebt")}
+            </div>
+            <strong style={{ color: "#dc2626", fontSize: 16 }}>
+              -{money(totalDebt, currency)}
+            </strong>
+          </div>
+
+          {/* BAKİYE */}
+          <div
+            className="card"
+            style={{
+              background: balance >= 0 ? "#eff6ff" : "#fef2f2",
+              textAlign: "center",
+              padding: 14,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 12,
+                color: balance >= 0 ? "#1e40af" : "#7f1d1d",
+              }}
+            >
+              {t("public.balance")}
+            </div>
+            <strong
+              style={{
+                fontSize: 16,
+                color: balance >= 0 ? "#2563eb" : "#dc2626",
+              }}
+            >
+              {money(balance, currency)}
+            </strong>
+          </div>
         </div>
-      </div>
 
-      <div className="container screen-only">
-        <div ref={printRef}>
-          <div style={{ marginTop: 12, paddingLeft: 10 }}>
-            <h3 style={{ marginTop: 0 }}>{t("public.historyTitle")}</h3>
+        <div className="  screen-only">
+          <div ref={printRef}>
+            <div style={{ marginTop: 12, padding: 10 }}>
+              <h3 style={{ marginTop: 0 }}>{t("public.historyTitle")}</h3>
 
-            {unifiedHistory.length === 0 ? (
-              <div className="card">{t("public.noRecords")}</div>
-            ) : (
-              unifiedHistory.map((item) => {
-                // =====================
-                // PAYMENT / DEBT ROW
-                // =====================
-                if (item.kind === "payment") {
-                  const p = item.data;
-                  const isPayment = p.type === "payment";
+              {unifiedHistory.length === 0 ? (
+                <div className="card">{t("public.noRecords")}</div>
+              ) : (
+                unifiedHistory.map((item) => {
+                  // =====================
+                  // PAYMENT / DEBT ROW
+                  // =====================
+                  if (item.kind === "payment") {
+                    const p = item.data;
+                    const isPayment = p.type === "payment";
+
+                    return (
+                      <div
+                        key={item.id}
+                        className="card list-item"
+                        style={{
+                          borderLeft: `6px solid ${
+                            isPayment ? "#16a34a" : "#dc2626"
+                          }`,
+                        }}
+                      >
+                        <div>
+                          <strong style={{ color: COLOR_TEXT_MAIN }}>
+                            {isPayment ? (
+                              <>
+                                <i className="fa-solid fa-money-bill-wave"></i>{" "}
+                                {t("public.payment")}
+                              </>
+                            ) : (
+                              <>
+                                <i className="fa-solid fa-file-invoice"></i>{" "}
+                                {t("public.debt")}
+                              </>
+                            )}
+                          </strong>
+
+                          {p.note && (
+                            <div style={{ fontSize: 12, color: "#555" }}>
+                              {p.note}
+                            </div>
+                          )}
+
+                          <div style={{ fontSize: 12, color: "#777" }}>
+                            {p.date}
+                          </div>
+                        </div>
+
+                        <div
+                          style={{
+                            fontWeight: 700,
+                            color: isPayment ? "#16a34a" : "#dc2626",
+                          }}
+                        >
+                          {isPayment ? "+" : "-"}
+                          {money(p.amount, p.currency || currency)}
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // =====================
+                  // JOB ROW (PRINT — DETAILED)
+                  // =====================
+                  // =====================
+                  // JOB ROW (SCREEN — EXPANDABLE)
+                  // =====================
+                  const job = item.data;
+                  const jobId = job.id || item.id; // fallback
+                  const isOpen = openJobs.has(jobId);
+
+                  const parts = job.parts || [];
+                  const laborTotal = jobLaborTotal(job);
+                  const partsTotal = partsTotalOf(job);
+                  const grandTotal = laborTotal + partsTotal;
 
                   return (
                     <div
                       key={item.id}
-                      className="card list-item"
+                      className="card"
                       style={{
-                        borderLeft: `6px solid ${
-                          isPayment ? "#16a34a" : "#dc2626"
-                        }`,
+                        padding: 0,
+                        overflow: "hidden",
+                        borderLeft: `6px solid ${COLOR_NEGATIVE}`,
+                        color: COLOR_TEXT_MAIN,
                       }}
                     >
-                      <div>
-                        <strong style={{ color: COLOR_TEXT_MAIN }}>
-                          {isPayment ? (
-                            <>
-                              <i className="fa-solid fa-money-bill-wave"></i>{" "}
-                              {t("public.payment")}
-                            </>
-                          ) : (
-                            <>
-                              <i className="fa-solid fa-file-invoice"></i>{" "}
-                              {t("public.debt")}
-                            </>
-                          )}
-                        </strong>
+                      {/* HEADER ROW (click to expand) */}
+                      <div
+                        className="list-item"
+                        onClick={() => toggleJob(jobId)}
+                        style={{
+                          padding: "14px",
+                          cursor: "pointer",
+                          userSelect: "none",
+                        }}
+                      >
+                        <div>
+                          <strong
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 8,
+                            }}
+                          >
+                            <i className="fa-solid fa-screwdriver-wrench"></i>{" "}
+                            {t("public.job")}
+                            <span
+                              className={`folder-arrow ${isOpen ? "open" : ""}`}
+                            >
+                              ›
+                            </span>
+                          </strong>
 
-                        {p.note && (
-                          <div style={{ fontSize: 12, color: "#555" }}>
-                            {p.note}
+                          <div
+                            style={{
+                              fontSize: 12,
+                              color: "#777",
+                              marginTop: 4,
+                            }}
+                          >
+                            {job.date || "-"}
                           </div>
-                        )}
+                        </div>
 
-                        <div style={{ fontSize: 12, color: "#777" }}>
-                          {p.date}
+                        <div style={{ fontWeight: 800, whiteSpace: "nowrap" }}>
+                          - {money(grandTotal, currency)}
                         </div>
                       </div>
 
-                      <div
-                        style={{
-                          fontWeight: 700,
-                          color: isPayment ? "#16a34a" : "#dc2626",
-                        }}
-                      >
-                        {isPayment ? "+" : "-"}
-                        {money(p.amount, p.currency || currency)}
+                      {/* EXPANDED DETAILS */}
+                      <div className={`job-folder ${isOpen ? "open" : ""}`}>
+                        <div style={{ padding: "0 14px 14px" }}>
+                          {/* Labor */}
+                          <div className="miniRow" style={{ marginTop: 10 }}>
+                            <span>{t("public.labor")}</span>
+                            <strong>{money(laborTotal, currency)}</strong>
+                          </div>
+
+                          {/* Parts */}
+                          <div className="miniRow" style={{ marginTop: 8 }}>
+                            <span>{t("public.parts")}</span>
+                            <strong>{money(partsTotal, currency)}</strong>
+                          </div>
+
+                          {/* Parts list */}
+                          {parts.length > 0 && (
+                            <div style={{ marginTop: 10 }}>
+                              <div
+                                style={{
+                                  fontWeight: 800,
+                                  fontSize: 13,
+                                  marginBottom: 8,
+                                }}
+                              >
+                                {t(
+                                  "public.usedParts",
+                                ) /* add this key or hardcode */ ||
+                                  "Kullanılan Parçalar"}
+                              </div>
+
+                              {parts.map((p, i) => (
+                                <div key={i} className="partLine">
+                                  <span>
+                                    {p.name} × {p.qty}
+                                  </span>
+                                  <strong>
+                                    {money(partLineTotal(p), currency)}
+                                  </strong>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Total */}
+                          <div
+                            className="miniRow"
+                            style={{
+                              marginTop: 10,
+                              fontWeight: 900,
+                            }}
+                          >
+                            <span>{t("public.jobTotal")}</span>
+                            <strong>{money(grandTotal, currency)}</strong>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   );
-                }
-
-                // =====================
-                // JOB ROW (PRINT — DETAILED)
-                // =====================
-                // =====================
-                // JOB ROW (SCREEN — EXPANDABLE)
-                // =====================
-                const job = item.data;
-                const jobId = job.id || item.id; // fallback
-                const isOpen = openJobs.has(jobId);
-
-                const parts = job.parts || [];
-                const laborTotal = jobLaborTotal(job);
-                const partsTotal = partsTotalOf(job);
-                const grandTotal = laborTotal + partsTotal;
-
-                return (
-                  <div
-                    key={item.id}
-                    className="card"
-                    style={{
-                      padding: 0,
-                      overflow: "hidden",
-                      borderLeft: `6px solid ${COLOR_NEGATIVE}`,
-                      color: COLOR_TEXT_MAIN,
-                    }}
-                  >
-                    {/* HEADER ROW (click to expand) */}
-                    <div
-                      className="list-item"
-                      onClick={() => toggleJob(jobId)}
-                      style={{
-                        padding: "14px",
-                        cursor: "pointer",
-                        userSelect: "none",
-                      }}
-                    >
-                      <div>
-                        <strong
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 8,
-                          }}
-                        >
-                          <i className="fa-solid fa-screwdriver-wrench"></i>{" "}
-                          {t("public.job")}
-                          <span
-                            className={`folder-arrow ${isOpen ? "open" : ""}`}
-                          >
-                            ›
-                          </span>
-                        </strong>
-
-                        <div
-                          style={{ fontSize: 12, color: "#777", marginTop: 4 }}
-                        >
-                          {job.date || "-"}
-                        </div>
-                      </div>
-
-                      <div style={{ fontWeight: 800, whiteSpace: "nowrap" }}>
-                        - {money(grandTotal, currency)}
-                      </div>
-                    </div>
-
-                    {/* EXPANDED DETAILS */}
-                    <div className={`job-folder ${isOpen ? "open" : ""}`}>
-                      <div style={{ padding: "0 14px 14px" }}>
-                        {/* Labor */}
-                        <div className="miniRow" style={{ marginTop: 10 }}>
-                          <span>{t("public.labor")}</span>
-                          <strong>{money(laborTotal, currency)}</strong>
-                        </div>
-
-                        {/* Parts */}
-                        <div className="miniRow" style={{ marginTop: 8 }}>
-                          <span>{t("public.parts")}</span>
-                          <strong>{money(partsTotal, currency)}</strong>
-                        </div>
-
-                        {/* Parts list */}
-                        {parts.length > 0 && (
-                          <div style={{ marginTop: 10 }}>
-                            <div
-                              style={{
-                                fontWeight: 800,
-                                fontSize: 13,
-                                marginBottom: 8,
-                              }}
-                            >
-                              {t(
-                                "public.usedParts",
-                              ) /* add this key or hardcode */ ||
-                                "Kullanılan Parçalar"}
-                            </div>
-
-                            {parts.map((p, i) => (
-                              <div key={i} className="partLine">
-                                <span>
-                                  {p.name} × {p.qty}
-                                </span>
-                                <strong>
-                                  {money(partLineTotal(p), currency)}
-                                </strong>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Total */}
-                        <div
-                          className="miniRow"
-                          style={{
-                            marginTop: 10,
-                            fontWeight: 900,
-                          }}
-                        >
-                          <span>{t("public.jobTotal")}</span>
-                          <strong>{money(grandTotal, currency)}</strong>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            )}
+                })
+              )}
+            </div>
           </div>
         </div>
-      </div>
-      {/* =========================
+        {/* =========================
    PROFESSIONAL PRINT INVOICE
 ========================= */}
-      <div className="print-invoice">
-        {/* HEADER */}
-        <div className="invoice-header">
-          <div className="logo">⚡ Usta App</div>
-          <div className="header-right">
-            {new Date().toLocaleDateString("tr-TR")}
+        <div className="print-invoice">
+          {/* HEADER */}
+          <div className="invoice-header">
+            <div className="logo">⚡ Usta App</div>
+            <div className="header-right">
+              {new Date().toLocaleDateString("tr-TR")}
+              <br />
+              {t("public.statement")}
+            </div>
+          </div>
+
+          {/* CUSTOMER */}
+          <div className="customer">
+            <strong>{t("public.customer")}:</strong> {customer.name}{" "}
+            {customer.surname}
             <br />
-            {t("public.statement")}
+            {customer.phone && (
+              <>
+                <strong>{t("public.phone")}:</strong> {customer.phone}
+                <br />
+              </>
+            )}
+            {customer.address && (
+              <>
+                <strong>{t("public.address")}:</strong> {customer.address}
+                <br />
+              </>
+            )}
+          </div>
+
+          {/* TRANSACTIONS (PRINT) */}
+          <div className="job">
+            <h4>{t("public.historyTitle")}</h4>
+
+            <table>
+              <thead>
+                <tr>
+                  <th>{t("public.date") || "Date"}</th>
+                  <th>{t("public.type") || "Type"}</th>
+                  <th>{t("public.desc") || "Note"}</th>
+                  <th style={{ textAlign: "right" }}>
+                    {t("public.total") || "Amount"}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {unifiedHistory.map((item) => {
+                  // 💳 PAYMENT / DEBT (single row)
+                  if (item.kind === "payment") {
+                    const row = printableRow(item);
+
+                    return (
+                      <tr key={item.id}>
+                        <td>{row.date}</td>
+                        <td>{row.type}</td>
+                        <td>{row.note}</td>
+                        <td
+                          style={{
+                            textAlign: "right",
+                            fontWeight: 700,
+                            whiteSpace: "nowrap",
+                            color: row.positive ? "#16a34a" : "#dc2626",
+                          }}
+                        >
+                          {row.amount}
+                        </td>
+                      </tr>
+                    );
+                  }
+
+                  // 🧾 JOB (multi-row)
+                  const job = item.data;
+                  const total = jobTotalOf(job);
+
+                  return (
+                    <React.Fragment key={item.id}>
+                      {/* Job header */}
+                      <tr>
+                        <td>{job.date}</td>
+                        <td>{t("public.job")}</td>
+                        <td>{job.note || "-"}</td>
+                        <td
+                          style={{
+                            textAlign: "right",
+                            fontWeight: 800,
+                            color: "#dc2626",
+                          }}
+                        >
+                          -{money(total, currency)}
+                        </td>
+                      </tr>
+
+                      {/* Job details (labor + parts) */}
+                      {renderJobPrintRows(job)}
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* TOTALS */}
+          <div className="totals">
+            <table>
+              <tbody>
+                <tr>
+                  <td>
+                    <strong>{t("public.totalDebt")}</strong>
+                  </td>
+                  <td>
+                    <strong>{money(totalDebt, currency)}</strong>
+                  </td>
+                </tr>
+                <tr>
+                  <td>{t("public.totalPayment")}</td>
+                  <td className="paid">{money(totalPayment, currency)}</td>
+                </tr>
+                <tr>
+                  <td>{t("public.balance")}</td>
+                  <td className="balance">{money(balance, currency)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div className="footer">
+            {t("public.thanks")}
+            <br />
+            {t("public.infoOnly")}
           </div>
         </div>
-
-        {/* CUSTOMER */}
-        <div className="customer">
-          <strong>{t("public.customer")}:</strong> {customer.name}{" "}
-          {customer.surname}
-          <br />
-          {customer.phone && (
-            <>
-              <strong>{t("public.phone")}:</strong> {customer.phone}
-              <br />
-            </>
-          )}
-          {customer.address && (
-            <>
-              <strong>{t("public.address")}:</strong> {customer.address}
-              <br />
-            </>
-          )}
-        </div>
-
-        {/* JOBS */}
-        {filteredJobs.map((job, idx) => {
-          const hours = job.timeMode === "fixed" ? null : clockHoursOf(job);
-
-          const labor =
-            job.timeMode === "fixed"
-              ? toNum(job.fixedPrice)
-              : hours * toNum(job.rate);
-
-          const parts = job.parts || [];
-          const partsTotal = partsTotalOf(job);
-          const jobTotal = labor + partsTotal;
-
-          return (
-            <div className="job" key={job.id || idx}>
-              <h4>
-                {t("public.job")} #{idx + 1} – {job.date || "-"}
-              </h4>
-
-              {/* LABOR */}
-
-              <table>
-                <thead>
-                  <tr>
-                    <th>{t("public.desc")}</th>
-                    <th>{t("public.hours")}</th>
-                    <th>{t("public.unit")}</th>
-                    <th>{t("public.total")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>{job.note || t("public.laborFallback")}</td>
-                    <td>{job.timeMode === "fixed" ? "-" : hours}</td>
-                    <td>
-                      {job.timeMode === "fixed"
-                        ? money(job.fixedPrice, currency)
-                        : money(job.rate, currency)}
-                    </td>
-                    <td>{money(labor, currency)}</td>
-                  </tr>
-                </tbody>
-              </table>
-
-              {/* PARTS */}
-              {parts.length > 0 && (
-                <>
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>{t("public.part")}</th>
-                        <th>{t("public.qty")}</th>
-                        <th>{t("public.unit")}</th>
-                        <th>{t("public.total")}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {parts.map((p, i) => (
-                        <tr key={i}>
-                          <td>{p.name}</td>
-                          <td>{p.qty}</td>
-                          <td>
-                            {money(
-                              partLineTotal(p) / toNum(p.qty || 1),
-                              currency,
-                            )}
-                          </td>
-                          <td>{money(partLineTotal(p), currency)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </>
-              )}
-
-              <div className="subtotal">
-                {t("public.jobTotal")}: {money(jobTotal, currency)}
-              </div>
-            </div>
-          );
-        })}
-
-        {/* TOTALS */}
-        <div className="totals">
-          <table>
-            <tbody>
-              <tr>
-                <td>
-                  <strong>{t("public.totalDebt")}</strong>
-                </td>
-                <td>
-                  <strong>{money(totalDebt, currency)}</strong>
-                </td>
-              </tr>
-              <tr>
-                <td>{t("public.totalPayment")}</td>
-                <td className="paid">{money(totalPayment, currency)}</td>
-              </tr>
-              <tr>
-                <td>{t("public.balance")}</td>
-                <td className="balance">{money(balance, currency)}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div className="footer">
-          {t("public.thanks")}
-          <br />
-          {t("public.infoOnly")}
-        </div>
       </div>
-    </>
+    </div>
   );
 }

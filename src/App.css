@@ -198,7 +198,7 @@
   padding: 20px;
   width: 90%;
   max-width: 500px;
-  border-radius: 15px;
+  border-radius: 0x;
   position: relative;
   max-height: 90vh;
   overflow-y: auto;
@@ -227,7 +227,7 @@
   width: 420px;
   max-width: 92vw;
   background: #fff;
-  border-radius: 16px;
+  border-radius: 0x;
   padding: 14px;
   box-shadow: 0 25px 60px rgba(0, 0, 0, 0.3);
   z-index: 1400; /* above backdrop */
@@ -565,7 +565,7 @@
   background: var(--surface);
   width: 92%;
   max-width: 420px;
-  border-radius: 14px;
+  border-radius: 0px;
   padding: 16px;
 
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
@@ -631,7 +631,7 @@
   width: 100%;
   max-width: 380px;
   background: white;
-  border-radius: 16px;
+  border-radius: 0px;
   padding: 20px;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
   animation: confirmPop 0.18s ease-out;
@@ -725,7 +725,7 @@
 
 .customer-edit-modal {
   max-width: 520px;
-  border-radius: 20px;
+  border-radius: 0px;
   padding: 20px;
   background: linear-gradient(180deg, #ffffff, #f9fafb);
 }
@@ -925,7 +925,7 @@
   width: 100%;
   max-width: 420px; /* 👈 NOT full screen */
   background: white;
-  border-radius: 20px;
+  border-radius: 0px;
   padding: 18px;
   box-shadow: 0 14px 40px rgba(0, 0, 0, 0.08);
 }
@@ -949,7 +949,7 @@
   width: 100%;
 
   background: #ffffff; /* 🤍 clean */
-  border-radius: 18px;
+  border-radius: 0px;
 
   border: 1px solid #dcfce7; /* very soft green */
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
@@ -1374,7 +1374,7 @@
    Job Card (BASE)
 ========================= */
 .job-card {
-  border-radius: 14px;
+  border-radius: 0px;
   padding: 14px;
   background: #ffffff;
   margin-bottom: 8px;
@@ -1746,7 +1746,7 @@ input[type="date"] {
   padding: 10px;
 
   background: #ffffff;
-  border-radius: 14px;
+  border-radius: 0px;
   border: 1px solid #e5e7eb;
 
   cursor: pointer;
@@ -2385,7 +2385,7 @@ body {
 
 .card {
   background: var(--grad-card);
-  border-radius: var(--radius-lg);
+  border-radius: 0;
   padding: 14px;
   margin-bottom: 12px;
   font-size: 12px;
@@ -2499,7 +2499,7 @@ textarea {
 
 .section-header {
   padding: 10px 12px;
-  border-radius: 12px;
+  border-radius: 0px;
 }
 
 .section-header strong {
@@ -3143,7 +3143,7 @@ i.fa-chevron-right i.fa-chevron-down {
   max-width: 520px;
 
   background: var(--surface);
-  border-radius: 15px;
+  border-radius: 0px;
   padding: 16px;
 
   overflow-y: auto;
@@ -3178,7 +3178,7 @@ body.modal-open {
     max-width: none;
     max-height: none;
 
-    border-radius: 15px; /* 🔥 edge-to-edge */
+    border-radius: 0x; /* 🔥 edge-to-edge */
     padding: 16px;
 
     overflow-y: auto;
@@ -3336,4 +3336,123 @@ input[type="number"] {
 
 .folder-arrow.open {
   transform: rotate(90deg);
+}
+
+.page-top-spacing {
+  padding-top: 10px;
+}
+
+/* ===== Form validation ===== */
+.input-error {
+  border: 1.5px solid #dc2626 !important;
+  background-color: rgba(220, 38, 38, 0.04);
+}
+
+.error-text {
+  color: #dc2626;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+/* ===========================
+   MODAL MOBILE FIX
+=========================== */
+
+.modal-content {
+  display: flex;
+  flex-direction: column;
+  max-height: 90dvh; /* 🔥 dynamic viewport height */
+}
+
+/* Header stays fixed */
+.modal-header {
+  flex-shrink: 0;
+}
+
+/* Body becomes a flex container */
+.modal-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden; /* important */
+}
+
+/* Scrollable area */
+.modal-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Sticky bottom buttons */
+.modal-actions {
+  position: sticky;
+  bottom: 0;
+  background: var(--surface, #fff);
+  padding: 12px;
+  display: flex;
+  gap: 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  z-index: 5;
+}
+
+/* Buttons full width on mobile */
+.modal-actions .btn {
+  flex: 1;
+}
+
+/* iPhone safe-area support */
+.modal-actions {
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
+}
+
+.page {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.page-inner {
+  width: 100%;
+  max-width: 860px; /* 👈 SAME AS YOUR OTHER PAGES */
+  padding: 0 12px;
+  box-sizing: border-box;
+}
+
+/* 🔧 Public page inner wrapper */
+#page-public .page-inner {
+  width: 100%;
+  max-width: 100%;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* 🔒 Public customer share – kill horizontal overflow */
+#page-public {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+/* 🔥 Cards must include borders inside width */
+#page-public .card,
+#page-public .list-item {
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+/* 🖨️ Print invoice must NOT affect screen layout */
+.print-invoice {
+  display: none;
+}
+
+@media print {
+  .print-invoice {
+    display: block;
+  }
+
+  .screen-only {
+    display: none;
+  }
 }
