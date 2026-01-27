@@ -61,7 +61,11 @@ export function ModalBase({
         <div className="modal-header">
           <h3 className="modal-title">{title}</h3>
 
-          <button onClick={onClose} aria-label="Close" className="modal-x">
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="modal-close-btn"
+          >
             ✕
           </button>
         </div>

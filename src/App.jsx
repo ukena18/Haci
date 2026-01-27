@@ -2310,14 +2310,15 @@ function VaultDetailModal({
           {/* HEADER */}
           <div className="card">
             {!editingName ? (
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <h3 style={{ margin: 0 }}>{vault.name}</h3>
+              <div className="vault-header-row">
+                <h3 className="vault-title">{vault.name}</h3>
+
                 <button
-                  className="btn btn-cancel"
-                  style={{ padding: "4px 10px", fontSize: 12 }}
+                  className="vault-edit-btn"
                   onClick={() => setEditingName(true)}
                 >
-                  <i className="fa-solid fa-pen"></i> {t("edit")}
+                  <i className="fa-solid fa-pen"></i>
+                  <span>{t("edit")}</span>
                 </button>
               </div>
             ) : (

@@ -1631,16 +1631,16 @@ export function CustomerDetailModal({
   if (!open) return null;
 
   return (
-    <ModalBase
-      open={open}
-      title={t("customer_detail")}
-      onClose={onClose}
-      zIndex={1100} // ✅ add this
-    >
-      {!customer ? (
-        <div className="card">{t("customer_not_found")}</div>
-      ) : (
-        <div className="modal-body">
+    <>
+      <ModalBase
+        open={open}
+        title={t("customer_detail")}
+        onClose={onClose}
+        zIndex={1100} // ✅ add this
+      >
+        {!customer ? (
+          <div className="card">{t("customer_not_found")}</div>
+        ) : (
           <div className="modal-scroll">
             <div className="cust-header-card">
               <div className="cust-header-top">
@@ -1998,9 +1998,8 @@ export function CustomerDetailModal({
               )}
             </div>
           </div>
-        </div>
-      )}
-
+        )}
+      </ModalBase>
       {editTx && (
         <div className="edit-modal-overlay" onClick={() => setEditTx(null)}>
           <div className="edit-modal" onClick={(e) => e.stopPropagation()}>
@@ -2187,7 +2186,7 @@ export function CustomerDetailModal({
           </div>
         </div>
       )}
-    </ModalBase>
+    </>
   );
 }
 
