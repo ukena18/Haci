@@ -1,5 +1,183 @@
 export const CHANGELOG = [
   {
+    version: "1.3.5",
+    date: "2026-01-26",
+    title: {
+      en: "UI Polish, Modal Consistency, Printing Simplification & Validation Improvements",
+      tr: "UI Düzeltmeleri, Modal Tutarlılığı, Yazdırma Sadeleştirme ve Doğrulama İyileştirmeleri",
+    },
+    sections: [
+      {
+        label: {
+          en: "Cashbox (Vault) UI Improvements",
+          tr: "Kasa (Vault) Arayüz İyileştirmeleri",
+        },
+        items: {
+          en: [
+            "Cashbox name edit button size reduced for better visual balance",
+            "Cashbox name area enlarged for clearer visibility",
+            "Removed unnecessary descriptive texts under cashbox title",
+            "Vault management interface refined for better usability",
+          ],
+          tr: [
+            "Kasa adı düzenleme butonu görsel denge için küçültüldü",
+            "Kasa adı alanı daha net görünmesi için büyütüldü",
+            "Kasa başlığı altındaki gereksiz açıklama yazıları kaldırıldı",
+            "Kasa yönetim arayüzü daha iyi kullanılabilirlik için iyileştirildi",
+          ],
+        },
+      },
+
+      {
+        label: {
+          en: "Modal UX & Mobile Behavior",
+          tr: "Modal UX ve Mobil Davranış",
+        },
+        items: {
+          en: [
+            "All modals standardized to rectangular shape on mobile devices",
+            "Close button moved to modern top-right position across all modals",
+            "Cancel and Save buttons fixed to the bottom of the screen on mobile",
+            "Removed unnecessary modal height expansion; content now ends cleanly under buttons",
+            "Consistent modal behavior applied across all feature modals",
+          ],
+          tr: [
+            "Mobil cihazlarda tüm modallar dikdörtgen formda standartlaştırıldı",
+            "Tüm modallarda kapatma butonu modern şekilde sağ üst köşeye alındı",
+            "Mobilde İptal ve Kaydet butonları ekranın altına sabitlendi",
+            "Modallardaki gereksiz yükseklik uzamaları kaldırıldı",
+            "Tüm modallar için tutarlı UX davranışı sağlandı",
+          ],
+        },
+      },
+
+      {
+        label: {
+          en: "Layout, Scroll & Spacing Fixes",
+          tr: "Yerleşim, Scroll ve Boşluk Düzeltmeleri",
+        },
+        items: {
+          en: [
+            "Resolved multiple scroll issues across pages and modals",
+            "Removed unwanted blue left padding from Customer Public Page",
+            "Added consistent top padding under search bars",
+            "Limited maximum width of Customer pages for better readability",
+            "Improved left and right padding on Print pages",
+          ],
+          tr: [
+            "Sayfa ve modallardaki scroll problemleri giderildi",
+            "Müşteri açık sayfasındaki mavi sol padding kaldırıldı",
+            "Arama çubuklarının üst boşlukları yeniden düzenlendi",
+            "Müşteri sayfalarının maksimum genişliği sınırlandırıldı",
+            "Yazdırma sayfalarında sağ ve sol padding iyileştirildi",
+          ],
+        },
+      },
+
+      {
+        label: {
+          en: "Printing & Invoice Simplification",
+          tr: "Yazdırma ve Fatura Sadeleştirmeleri",
+        },
+        items: {
+          en: [
+            "Print pages now display Parts information correctly",
+            "Invoice print layout simplified to core information only",
+            "Removed job titles, dates, and non-essential labels from invoice print",
+            "Removed invoice section from generic Print page",
+            "Ensured Print pages no longer include unrelated invoice content",
+          ],
+          tr: [
+            "Yazdırma sayfalarında parça bilgileri doğru şekilde gösterilir",
+            "Fatura yazdırma tasarımı temel bilgilerle sadeleştirildi",
+            "Fatura çıktısından iş başlığı, tarih ve gereksiz etiketler kaldırıldı",
+            "Genel Yazdırma sayfasından fatura bölümü kaldırıldı",
+            "Yazdırma sayfalarındaki alakasız fatura içerikleri temizlendi",
+          ],
+        },
+      },
+
+      {
+        label: {
+          en: "Customer Data & Business Logic",
+          tr: "Müşteri Verileri ve İş Mantığı",
+        },
+        items: {
+          en: [
+            "Customer total summaries now show customer-specific totals instead of admin totals",
+            "Customer Portal now displays only the current customer's history",
+            "Debt entries now require a debt date",
+            "Added note field to customer profile",
+            "Phone number and address are now mandatory when creating a user",
+          ],
+          tr: [
+            "Müşteri toplam özetleri artık admin değil müşteri bazlı hesaplanır",
+            "Müşteri portalı yalnızca ilgili müşterinin geçmişini gösterir",
+            "Borç eklerken tarih alanı zorunlu hale getirildi",
+            "Müşteri profiline not alanı eklendi",
+            "Kullanıcı oluştururken telefon ve adres zorunlu yapıldı",
+          ],
+        },
+      },
+
+      {
+        label: {
+          en: "Forms, Validation & Errors",
+          tr: "Formlar, Doğrulama ve Hatalar",
+        },
+        items: {
+          en: [
+            "Inline validation errors now display with red input borders",
+            "Create Job and Create User forms show immediate visual error feedback",
+            "Email input text corrected and standardized across the UI",
+          ],
+          tr: [
+            "Inline form hataları artık kırmızı alan vurgusu ile gösterilir",
+            "İş oluşturma ve kullanıcı oluşturma formlarında anlık hata geri bildirimi eklendi",
+            "E-posta alanı metinleri ve davranışı standartlaştırıldı",
+          ],
+        },
+      },
+
+      {
+        label: {
+          en: "Code Quality & Structure",
+          tr: "Kod Kalitesi ve Yapı",
+        },
+        items: {
+          en: [
+            "Removed all inline CSS usage; styles now live exclusively in CSS files",
+            "Codebase split into dedicated Pages, Components, and Modals modules",
+          ],
+          tr: [
+            "Inline CSS tamamen kaldırıldı, tüm stiller CSS dosyalarına taşındı",
+            "Kod yapısı Pages, Components ve Modals olarak ayrıştırıldı",
+          ],
+        },
+      },
+
+      {
+        label: {
+          en: "Settings, Navigation & Versioning",
+          tr: "Ayarlar, Navigasyon ve Versiyonlama",
+        },
+        items: {
+          en: [
+            "Back navigation fixed in Updates and Advanced Settings pages",
+            "Added date metadata to version update entries",
+            "Dark Mode development continued (Part 3)",
+          ],
+          tr: [
+            "Güncellemeler ve Gelişmiş Ayarlar sayfalarında geri tuşu sorunu giderildi",
+            "Versiyon güncellemelerine tarih bilgisi eklendi",
+            "Dark Mode geliştirmesine devam edildi (Part 3)",
+          ],
+        },
+      },
+    ],
+  },
+
+  {
     version: "1.3.4",
     date: "2026-01-25",
     title: {
