@@ -790,7 +790,6 @@
 
 /* 🔴 Not completed (Borç) */
 .job-card.job-active {
-  background: color-mix(in srgb, var(--danger) 12%, var(--surface));
   border-left: 6px solid var(--danger);
 }
 

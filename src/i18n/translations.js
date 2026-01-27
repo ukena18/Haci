@@ -948,6 +948,13 @@ export const translations = {
 
     "settings.theme.title": "Tema",
     "settings.theme.desc": "Açık ve koyu görünüm arasında geçiş yap",
+    duplicate_customer_title: "Benzer Müşteri Bulundu",
+    duplicate_customer_similar_found:
+      "Aşağıdaki müşteri sistemde zaten mevcut olabilir",
+    duplicate_customer_question:
+      "Yine de yeni bir müşteri olarak kaydetmek istiyor musunuz?",
+    cancel: "Vazgeç",
+    create_anyway: "Yine de Kaydet",
   },
 
   en: {

@@ -109,13 +109,10 @@ export function CustomerModal({
             {t("name")} <span style={{ color: "#dc2626" }}>*</span>
           </label>
           <input
-            name="name"
-            className={errors.name ? "input-error" : ""}
+            name="given-name"
+            autoComplete="given-name"
             value={draft.name}
-            onChange={(e) => {
-              setField("name", e.target.value);
-              setErrors((err) => ({ ...err, name: null }));
-            }}
+            onChange={(e) => setField("name", e.target.value)}
           />
           {errors.name && <div className="error-text">{errors.name}</div>}
         </div>
