@@ -86,29 +86,14 @@ export function ModalBase({
         className="modal-content"
         onClick={(e) => e.stopPropagation()} // ✅ stop inside clicks
       >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: 10,
-          }}
-        >
+        <div className="modal-header">
           <h3 style={{ margin: 0 }}>{title}</h3>
 
           {/* ❌ CLOSE BUTTON */}
           <button
             onClick={onClose}
             aria-label="Close"
-            style={{
-              background: "transparent",
-              border: "none",
-              fontSize: 20,
-              cursor: "pointer",
-              lineHeight: 1,
-              padding: 4,
-              color: "#6b7280",
-            }}
+            className="modal-close-btn"
           >
             ✕
           </button>
@@ -270,7 +255,7 @@ export function CustomerModal({
           <div className="form-group">
             <label>{t("customer_id")}</label>
             <input value={draft.id} readOnly />
-            <small style={{ color: "#666" }}>
+            <small style={{ color: "var(--muted)" }}>
               {t("customer_id_info")} <b>/customer/{draft.id}</b>
             </small>
           </div>
@@ -679,7 +664,7 @@ export function JobModal({
                     background: "transparent",
                     border: "none",
                     cursor: "pointer",
-                    color: "#6b7280",
+                    color: "var(--muted)",
                     fontSize: 16,
                   }}
                   aria-label="Clear"
@@ -691,22 +676,7 @@ export function JobModal({
 
             {/* DROPDOWN */}
             {customerDropdownOpen && (
-              <div
-                style={{
-                  position: "absolute",
-                  top: "100%",
-                  left: 0,
-                  right: 0,
-                  zIndex: 50,
-                  marginTop: 4,
-                  background: "#fff",
-                  border: "1px solid #e5e7eb",
-                  borderRadius: 12,
-                  maxHeight: 260,
-                  overflowY: "auto",
-                  boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
-                }}
-              >
+              <div className="dropdown-panel">
                 {customerOptions.length === 0 ? (
                   <div style={{ padding: 10, fontSize: 12, color: "#666" }}>
                     {t("no_results")}
@@ -793,7 +763,7 @@ export function JobModal({
             disabled={!draft.trackPayment}
           />
 
-          <small style={{ color: "#6b7280" }}>
+          <small style={{ color: "var(--muted)" }}>
             {draft.trackPayment
               ? t("payment_due_info")
               : t("payment_tracking_disabled")}
@@ -805,8 +775,9 @@ export function JobModal({
                 type="button"
                 className="btn"
                 style={{
-                  background: "#ecfeff",
-                  color: "#0369a1",
+                  background:
+                    "color-mix(in srgb, var(--primary) 15%, var(--surface))",
+                  color: "var(--primary)",
                   fontWeight: 600,
                 }}
                 onClick={() =>
@@ -1082,7 +1053,7 @@ export function JobModal({
                   }
                 />
 
-                <small style={{ color: "#6b7280" }}>
+                <small style={{ color: "var(--muted)" }}>
                   {t("break_auto_deduct_info")}
                 </small>
               </div>
@@ -1156,7 +1127,7 @@ export function JobModal({
               className="parca-item"
               style={{
                 flexDirection: "column",
-                background: "#f9fafb",
+                background: "var(--surface-muted)",
                 padding: 10,
                 borderRadius: 10,
                 marginBottom: 8,
@@ -1199,9 +1170,11 @@ export function JobModal({
                   onClick={() => removePart(p.id)}
                   title={t("delete_part")}
                   style={{
-                    background: "#fee2e2",
+                    background:
+                      "color-mix(in srgb, var(--danger) 15%, var(--surface))",
+                    color: "var(--danger)",
                     border: "none",
-                    color: "#991b1b",
+
                     borderRadius: 8,
                     padding: "0 10px",
                     fontWeight: 700,
@@ -1225,7 +1198,7 @@ export function JobModal({
         </button>
 
         {/* Totals */}
-        <div className="card" style={{ background: "#f9f9f9" }}>
+        <div className="card" style={{ background: "var(--surface-muted)" }}>
           {/* MANUAL / CLOCK */}
           {draft.timeMode !== "fixed" && (
             <>
@@ -1667,358 +1640,365 @@ export function CustomerDetailModal({
       {!customer ? (
         <div className="card">{t("customer_not_found")}</div>
       ) : (
-        <>
-          <div className="cust-header-card">
-            <div className="cust-header-top">
-              <div>
-                <h3 className="cust-name">
-                  {customer.name} {customer.surname}
-                </h3>
+        <div className="modal-body">
+          <div className="modal-scroll">
+            <div className="cust-header-card">
+              <div className="cust-header-top">
+                <div>
+                  <h3 className="cust-name">
+                    {customer.name} {customer.surname}
+                  </h3>
 
-                <div className="customer-meta">
-                  {customer.phone && (
-                    <div className="customer-meta-line">
-                      <a
-                        href={`tel:${customer.phone}`}
-                        style={{
-                          color: "inherit",
-                          textDecoration: "none",
-                          fontWeight: 600,
-                        }}
-                      >
-                        <i className="fa-solid fa-phone"></i> {customer.phone}
-                      </a>
-                    </div>
-                  )}
+                  <div className="customer-meta">
+                    {customer.phone && (
+                      <div className="customer-meta-line">
+                        <a
+                          href={`tel:${customer.phone}`}
+                          style={{
+                            color: "inherit",
+                            textDecoration: "none",
+                            fontWeight: 600,
+                          }}
+                        >
+                          <i className="fa-solid fa-phone"></i> {customer.phone}
+                        </a>
+                      </div>
+                    )}
 
-                  {customer.address && (
-                    <div className="customer-meta-line">
-                      <a
-                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                          customer.address,
-                        )}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{
-                          color: "inherit",
-                          textDecoration: "none",
-                          fontWeight: 600,
-                        }}
-                      >
-                        <i className="fa-solid fa-location-dot"></i>{" "}
-                        {customer.address}
-                      </a>
-                    </div>
-                  )}
+                    {customer.address && (
+                      <div className="customer-meta-line">
+                        <a
+                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                            customer.address,
+                          )}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            color: "inherit",
+                            textDecoration: "none",
+                            fontWeight: 600,
+                          }}
+                        >
+                          <i className="fa-solid fa-location-dot"></i>{" "}
+                          {customer.address}
+                        </a>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="cust-meta">
+                    ID: <b style={{ fontFamily: "monospace" }}>{customer.id}</b>
+                  </div>
                 </div>
+              </div>
 
-                <div className="cust-meta">
-                  ID: <b style={{ fontFamily: "monospace" }}>{customer.id}</b>
+              <button
+                className="portal-btn"
+                onClick={async () => {
+                  if (!customer) return;
+
+                  // customerJobs ve customerPayments zaten CustomerDetailModal içinde var
+                  await publishCustomerSnapshot(customer.id, {
+                    customer: {
+                      id: customer.id,
+                      name: customer.name,
+                      surname: customer.surname,
+                      phone: customer.phone,
+                      email: customer.email,
+                      address: customer.address,
+                    },
+                    jobs,
+                    payments,
+                    currency,
+                  });
+
+                  window.open(`/customer/${customer.id}`, "_blank");
+                }}
+              >
+                <i className="fa-solid fa-globe"></i>{" "}
+                {t("open_customer_portal")}
+              </button>
+            </div>
+
+            {/* 📊 QUICK CUSTOMER STATS */}
+            <div className="cust-stats">
+              <div className="cust-stat">
+                <div className="stat-label">{t("total_payment")}</div>
+                <div className="stat-value green">
+                  +{money(totalPayment, displayCurrency)}
+                </div>
+              </div>
+
+              <div className="cust-stat">
+                <div className="stat-label">{t("total_debt")}</div>
+                <div className="stat-value red">
+                  -{money(totalDebt, displayCurrency)}
+                </div>
+              </div>
+
+              <div className="cust-stat">
+                <div className="stat-label">{t("balance")}</div>
+                <div className={`stat-value ${balance >= 0 ? "green" : "red"}`}>
+                  {money(balance, displayCurrency)}
                 </div>
               </div>
             </div>
 
-            <button
-              className="portal-btn"
-              onClick={async () => {
-                if (!customer) return;
-
-                // customerJobs ve customerPayments zaten CustomerDetailModal içinde var
-                await publishCustomerSnapshot(customer.id, {
-                  customer: {
-                    id: customer.id,
-                    name: customer.name,
-                    surname: customer.surname,
-                    phone: customer.phone,
-                    email: customer.email,
-                    address: customer.address,
-                  },
-                  jobs,
-                  payments,
-                  currency,
-                });
-
-                window.open(`/customer/${customer.id}`, "_blank");
-              }}
-            >
-              <i className="fa-solid fa-globe"></i> {t("open_customer_portal")}
-            </button>
-          </div>
-
-          {/* 📊 QUICK CUSTOMER STATS */}
-          <div className="cust-stats">
-            <div className="cust-stat">
-              <div className="stat-label">{t("total_payment")}</div>
-              <div className="stat-value green">
-                +{money(totalPayment, displayCurrency)}
-              </div>
-            </div>
-
-            <div className="cust-stat">
-              <div className="stat-label">{t("total_debt")}</div>
-              <div className="stat-value red">
-                -{money(totalDebt, displayCurrency)}
-              </div>
-            </div>
-
-            <div className="cust-stat">
-              <div className="stat-label">{t("balance")}</div>
-              <div className={`stat-value ${balance >= 0 ? "green" : "red"}`}>
-                {money(balance, displayCurrency)}
-              </div>
-            </div>
-          </div>
-
-          <hr />
-          {/* Payment / debt */}
-          {/* i basically add another button and havent changed payment amonut for debt button */}
-          <div className="btn-row">
-            <div style={{ flex: 1 }}>
-              <div className="primary-actions">
-                <button
-                  className="btn-primary green"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onOpenPayment("payment", customer);
-                  }}
-                >
-                  <i className="fa-solid fa-money-bill-wave"></i> {t("payment")}
-                </button>
-
-                <button
-                  className="btn-primary red"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onOpenPayment("debt", customer);
-                  }}
-                >
-                  <i className="fa-solid fa-file-invoice"></i> {t("debt")}
-                </button>
-
-                {onAddJob && (
-                  <button className="btn-primary blue" onClick={onAddJob}>
-                    {t("add_job")}
+            <hr />
+            {/* Payment / debt */}
+            {/* i basically add another button and havent changed payment amonut for debt button */}
+            <div className="btn-row">
+              <div style={{ flex: 1 }}>
+                <div className="primary-actions">
+                  <button
+                    className="btn-primary green"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onOpenPayment("payment", customer);
+                    }}
+                  >
+                    <i className="fa-solid fa-money-bill-wave"></i>{" "}
+                    {t("payment")}
                   </button>
-                )}
-              </div>
-            </div>
-          </div>
 
-          <div className="secondary-actions">
-            <button onClick={shareAsPDF}>
-              <i className="fa-solid fa-print"></i> {t("pdf")}
-            </button>
-            <button onClick={sendByEmail}>
-              <i className="fa-solid fa-envelope"></i> {t("mail")}
-            </button>
-            <button onClick={sendByWhatsApp}>
-              <i className="fa-brands fa-whatsapp"></i> {t("whatsapp")}
-            </button>
-            <button onClick={onEditCustomer}>
-              <i className="fa-solid fa-pen"></i>
-            </button>
-          </div>
+                  <button
+                    className="btn-primary red"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onOpenPayment("debt", customer);
+                    }}
+                  >
+                    <i className="fa-solid fa-file-invoice"></i> {t("debt")}
+                  </button>
 
-          <hr />
-
-          <div className="history-card">
-            <div className="history-header">
-              <h4>{t("job_history")}</h4>
-
-              <div style={{ display: "flex", gap: 6 }}>
-                <input
-                  type="date"
-                  value={fromDate}
-                  onChange={(e) => setFromDate(e.target.value)}
-                  style={{ fontSize: 12 }}
-                />
-                <input
-                  type="date"
-                  value={toDate}
-                  onChange={(e) => setToDate(e.target.value)}
-                  style={{ fontSize: 12 }}
-                />
+                  {onAddJob && (
+                    <button className="btn-primary blue" onClick={onAddJob}>
+                      {t("add_job")}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
-            <div
-              id="detail-history"
-              style={{ marginTop: 8, fontSize: 12 }}
-            ></div>
+            <div className="secondary-actions">
+              <button onClick={shareAsPDF}>
+                <i className="fa-solid fa-print"></i> {t("pdf")}
+              </button>
+              <button onClick={sendByEmail}>
+                <i className="fa-solid fa-envelope"></i> {t("mail")}
+              </button>
+              <button onClick={sendByWhatsApp}>
+                <i className="fa-brands fa-whatsapp"></i> {t("whatsapp")}
+              </button>
+              <button onClick={onEditCustomer}>
+                <i className="fa-solid fa-pen"></i>
+              </button>
+            </div>
 
-            {/* 💰 Payment / Debt Records */}
-            {unifiedHistory.length === 0 ? (
-              <div className="card">{t("no_records")}</div>
-            ) : (
-              unifiedHistory.map((item) => {
-                // ======================
-                // PAYMENT / DEBT ROW
-                // ======================
-                if (item.kind === "payment") {
-                  const p = item.data;
-                  const isPayment = p.type === "payment";
+            <hr />
+
+            <div className="history-card">
+              <div className="history-header">
+                <h4>{t("job_history")}</h4>
+
+                <div style={{ display: "flex", gap: 6 }}>
+                  <input
+                    type="date"
+                    value={fromDate}
+                    onChange={(e) => setFromDate(e.target.value)}
+                    style={{ fontSize: 12 }}
+                  />
+                  <input
+                    type="date"
+                    value={toDate}
+                    onChange={(e) => setToDate(e.target.value)}
+                    style={{ fontSize: 12 }}
+                  />
+                </div>
+              </div>
+
+              <div
+                id="detail-history"
+                style={{ marginTop: 8, fontSize: 12 }}
+              ></div>
+
+              {/* 💰 Payment / Debt Records */}
+              {unifiedHistory.length === 0 ? (
+                <div className="card">{t("no_records")}</div>
+              ) : (
+                unifiedHistory.map((item) => {
+                  // ======================
+                  // PAYMENT / DEBT ROW
+                  // ======================
+                  if (item.kind === "payment") {
+                    const p = item.data;
+                    const isPayment = p.type === "payment";
+
+                    return (
+                      <div
+                        key={p.id}
+                        className={`card list-item ${isPayment ? "payment-row" : "debt-row"}`}
+                        style={{
+                          cursor: "pointer",
+                        }}
+                        onClick={() => {
+                          setEditTx(p);
+                          setEditAmount(String(p.amount ?? ""));
+                          setEditNote(p.note || "");
+                          setEditDate(
+                            p.date || new Date().toISOString().slice(0, 10),
+                          );
+                          setEditMethod(p.method || "cash");
+                          setEditVaultId(p.vaultId || activeVaultId || "");
+
+                          setEditDueDays(
+                            p.dueDays == null ? "" : String(p.dueDays),
+                          );
+                          setEditDueDismissed(p.dueDismissed === true);
+                        }}
+                      >
+                        <div>
+                          <strong
+                            style={{ color: isPayment ? "#166534" : "#7f1d1d" }}
+                          >
+                            {isPayment ? (
+                              <>
+                                <i className="fa-solid fa-money-bill-wave"></i>{" "}
+                                {t("payment")}
+                              </>
+                            ) : (
+                              <>
+                                <i className="fa-solid fa-file-invoice"></i>{" "}
+                                {t("debt")}
+                              </>
+                            )}
+                          </strong>
+
+                          {p.note &&
+                            p.note !== t("default_payment_note") &&
+                            p.note !== t("default_debt_note") && (
+                              <div
+                                style={{
+                                  fontSize: 12,
+                                  color: "#555",
+                                  marginTop: 4,
+                                }}
+                              >
+                                {p.note}
+                              </div>
+                            )}
+
+                          <div style={{ fontSize: 12, color: "#777" }}>
+                            {formatDateByLang(p.date, lang)}
+                            {" • "}
+                            {t("vault")}: <b>{vaultNameOf(p.vaultId)}</b>
+                            {" • "}
+                            {t("method_label")}:{" "}
+                            <b>
+                              {PAYMENT_METHOD_LABEL_TR[p.method] ||
+                                t("unknown")}
+                            </b>
+                          </div>
+                        </div>
+
+                        <div
+                          style={{
+                            fontWeight: 700,
+                            color: isPayment
+                              ? "var(--success)"
+                              : "var(--danger)",
+                            fontSize: 12,
+                          }}
+                        >
+                          {isPayment ? "+" : "-"}
+                          {moneyForTransaction(p.amount, p, customer)}
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // ======================
+                  // JOB ROW
+                  // ======================
+                  const j = item.data;
+
+                  const total = jobTotalOf(j);
+
+                  const hours =
+                    j.timeMode === "clock"
+                      ? ((j.workedMs || 0) +
+                          (j.isRunning && j.clockInAt
+                            ? Date.now() - j.clockInAt
+                            : 0)) /
+                        36e5
+                      : calcHoursWithBreak(j.start, j.end, j.breakMinutes);
 
                   return (
                     <div
-                      key={p.id}
+                      key={j.id}
                       className="card list-item"
                       style={{
-                        borderLeft: `6px solid ${
-                          isPayment ? "#16a34a" : "#dc2626"
-                        }`,
+                        borderLeft: "6px solid var(--danger)",
 
                         cursor: "pointer",
                       }}
-                      onClick={() => {
-                        setEditTx(p);
-                        setEditAmount(String(p.amount ?? ""));
-                        setEditNote(p.note || "");
-                        setEditDate(
-                          p.date || new Date().toISOString().slice(0, 10),
-                        );
-                        setEditMethod(p.method || "cash");
-                        setEditVaultId(p.vaultId || activeVaultId || "");
-
-                        setEditDueDays(
-                          p.dueDays == null ? "" : String(p.dueDays),
-                        );
-                        setEditDueDismissed(p.dueDismissed === true);
-                      }}
+                      onClick={() => onEditJob(j.id)}
                     >
                       <div>
-                        <strong
-                          style={{ color: isPayment ? "#166534" : "#7f1d1d" }}
-                        >
-                          {isPayment ? (
-                            <>
-                              <i className="fa-solid fa-money-bill-wave"></i>{" "}
-                              {t("payment")}
-                            </>
-                          ) : (
-                            <>
-                              <i className="fa-solid fa-file-invoice"></i>{" "}
-                              {t("debt")}
-                            </>
-                          )}
+                        <strong style={{ color: "var(--danger)" }}>
+                          <i className="fa-solid fa-briefcase"></i> {t("job")}
                         </strong>
 
-                        {p.note &&
-                          p.note !== t("default_payment_note") &&
-                          p.note !== t("default_debt_note") && (
-                            <div
-                              style={{
-                                fontSize: 12,
-                                color: "#555",
-                                marginTop: 4,
-                              }}
-                            >
-                              {p.note}
-                            </div>
+                        <div style={{ fontSize: 12, color: "#777" }}>
+                          {formatDateByLang(j.date, lang)}
+                          {" • "}
+                          <b>{jobTimeModeLabel(j)}</b>
+
+                          {(j.timeMode === "clock" ||
+                            j.timeMode === "manual") && (
+                            <>
+                              {" • "}
+                              {hours.toFixed(2)} {t("hours")}
+                            </>
                           )}
 
-                        <div style={{ fontSize: 12, color: "#777" }}>
-                          {formatDateByLang(p.date, lang)}
-                          {" • "}
-                          {t("vault")}: <b>{vaultNameOf(p.vaultId)}</b>
-                          {" • "}
-                          {t("method_label")}:{" "}
-                          <b>
-                            {PAYMENT_METHOD_LABEL_TR[p.method] || t("unknown")}
-                          </b>
+                          {j.timeMode === "fixed" && j.fixedDays != null && (
+                            <>
+                              {" • "}
+                              {j.fixedDays} {t("days")}
+                            </>
+                          )}
                         </div>
+
+                        {j.notes && (
+                          <div
+                            style={{
+                              fontSize: 12,
+                              color: "#555",
+                              marginTop: 4,
+                            }}
+                          >
+                            {j.notes}
+                          </div>
+                        )}
                       </div>
 
                       <div
                         style={{
                           fontWeight: 700,
-                          color: isPayment ? "#16a34a" : "#dc2626",
+                          color: "#dc2626",
                           fontSize: 12,
                         }}
                       >
-                        {isPayment ? "+" : "-"}
-                        {moneyForTransaction(p.amount, p, customer)}
+                        -{moneyForTransaction(total, j, customer)}
                       </div>
                     </div>
                   );
-                }
-
-                // ======================
-                // JOB ROW
-                // ======================
-                const j = item.data;
-
-                const total = jobTotalOf(j);
-
-                const hours =
-                  j.timeMode === "clock"
-                    ? ((j.workedMs || 0) +
-                        (j.isRunning && j.clockInAt
-                          ? Date.now() - j.clockInAt
-                          : 0)) /
-                      36e5
-                    : calcHoursWithBreak(j.start, j.end, j.breakMinutes);
-
-                return (
-                  <div
-                    key={j.id}
-                    className="card list-item"
-                    style={{
-                      borderLeft: "6px solid #dc2626",
-
-                      cursor: "pointer",
-                    }}
-                    onClick={() => onEditJob(j.id)}
-                  >
-                    <div>
-                      <strong style={{ color: "#7f1d1d" }}>
-                        <i className="fa-solid fa-briefcase"></i> {t("job")}
-                      </strong>
-
-                      <div style={{ fontSize: 12, color: "#777" }}>
-                        {formatDateByLang(j.date, lang)}
-                        {" • "}
-                        <b>{jobTimeModeLabel(j)}</b>
-
-                        {(j.timeMode === "clock" ||
-                          j.timeMode === "manual") && (
-                          <>
-                            {" • "}
-                            {hours.toFixed(2)} {t("hours")}
-                          </>
-                        )}
-
-                        {j.timeMode === "fixed" && j.fixedDays != null && (
-                          <>
-                            {" • "}
-                            {j.fixedDays} {t("days")}
-                          </>
-                        )}
-                      </div>
-
-                      {j.notes && (
-                        <div
-                          style={{ fontSize: 12, color: "#555", marginTop: 4 }}
-                        >
-                          {j.notes}
-                        </div>
-                      )}
-                    </div>
-
-                    <div
-                      style={{
-                        fontWeight: 700,
-                        color: "#dc2626",
-                        fontSize: 12,
-                      }}
-                    >
-                      -{moneyForTransaction(total, j, customer)}
-                    </div>
-                  </div>
-                );
-              })
-            )}
+                })
+              )}
+            </div>
           </div>
-        </>
+        </div>
       )}
 
       {editTx && (
@@ -2295,7 +2275,7 @@ export function PaymentActionModal({
                 value={addDate}
                 onChange={(e) => setAddDate(e.target.value)}
               />
-              <small style={{ color: "#6b7280" }}>
+              <small style={{ color: "var(--muted)" }}>
                 {t("debt_add_date_info") || "Date when the debt was created"}
               </small>
             </div>
@@ -2310,7 +2290,7 @@ export function PaymentActionModal({
                 onChange={(e) => setDueDate(e.target.value)}
                 min={addDate}
               />
-              <small style={{ color: "#6b7280" }}>
+              <small style={{ color: "var(--muted)" }}>
                 {t("payment_due_info") ||
                   "Debt will be tracked until this date"}
               </small>
@@ -2906,7 +2886,7 @@ export function CalendarPage({
               <div
                 key={job.id}
                 className="card"
-                style={{ borderLeft: "6px solid #ef4444" }}
+                style={{ borderLeft: "6px solid var(--danger)" }}
               >
                 <strong>
                   {customer
@@ -2925,7 +2905,10 @@ export function CalendarPage({
               <div
                 key={r.id}
                 className="card"
-                style={{ borderLeft: "6px solid #16a34a", cursor: "pointer" }}
+                style={{
+                  borderLeft: "6px solid var(--success)",
+                  cursor: "pointer",
+                }}
                 onClick={() => setEditingReservation(r)}
               >
                 <strong>
@@ -2933,7 +2916,7 @@ export function CalendarPage({
                     ? `${customer.name} ${customer.surname}`
                     : t("customer")}
                 </strong>
-                <div style={{ fontSize: 13, color: "#15803d" }}>
+                <div style={{ fontSize: 13, color: "var(--success)" }}>
                   {r.start} – {r.end}
                 </div>
                 {r.note && <div style={{ fontSize: 12 }}>{r.note}</div>}
@@ -2965,7 +2948,7 @@ export function CalendarPage({
                     style={{
                       fontSize: 13,
                       fontWeight: 700,
-                      color: "#374151",
+                      color: "var(--text)",
                       margin: "10px 4px 6px",
                     }}
                   >
@@ -2973,7 +2956,7 @@ export function CalendarPage({
                       style={{
                         fontSize: 13,
                         fontWeight: 700,
-                        color: "#374151",
+                        color: "var(--text)",
                         margin: "10px 4px 6px",
                       }}
                     >
@@ -2994,7 +2977,7 @@ export function CalendarPage({
                       <div
                         key={job.id}
                         className="card"
-                        style={{ borderLeft: "6px solid #ef4444" }}
+                        style={{ borderLeft: "6px solid var(--danger)" }}
                       >
                         <strong>
                           {customer
@@ -3019,7 +3002,7 @@ export function CalendarPage({
                         key={r.id}
                         className="card"
                         style={{
-                          borderLeft: "6px solid #16a34a",
+                          borderLeft: "6px solid var(--success)",
                           cursor: "pointer",
                         }}
                         onClick={() => setEditingReservation(r)}
@@ -3029,7 +3012,7 @@ export function CalendarPage({
                             ? `${customer.name} ${customer.surname}`
                             : t("customer")}
                         </strong>
-                        <div style={{ fontSize: 13, color: "#15803d" }}>
+                        <div style={{ fontSize: 13, color: "var(--success)" }}>
                           {r.start} – {r.end}
                         </div>
                         {r.note && <div style={{ fontSize: 12 }}>{r.note}</div>}

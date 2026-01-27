@@ -121,16 +121,11 @@ export function HomePage({
 
   return (
     <div id="page-home" className="page-top-spacing">
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "flex-end",
-          marginBottom: 10,
-        }}
-      >
+      <div className="summary-toolbar">
         <select
           value={summaryCurrency}
           onChange={(e) => setSummaryCurrency(e.target.value)}
+          className="currency-select"
         >
           {availableCurrencies.map((cur) => (
             <option key={cur} value={cur}>
@@ -259,9 +254,7 @@ export function HomePage({
 
         {paymentOpen &&
           (safePaymentWatchList.length === 0 ? (
-            <div className="card" style={{ fontSize: 12, color: "#666" }}>
-              {t("no_tracked_jobs")}
-            </div>
+            <div className="card muted-card">{t("no_tracked_jobs")}</div>
           ) : (
             safePaymentWatchList.map((item) => {
               const { kind, ref, daysLeft, dueDate } = item;
@@ -277,41 +270,20 @@ export function HomePage({
 
                 return (
                   <div
-                    key={`job-${job.id}`}
-                    className="card list-item"
-                    style={{
-                      background:
-                        daysLeft <= 0
-                          ? "#fee2e2"
-                          : daysLeft <= 5
-                            ? "#fef3c7"
-                            : "white",
-                      borderLeft:
-                        daysLeft <= 0
-                          ? "6px solid #dc2626"
-                          : daysLeft <= 5
-                            ? "6px solid #f59e0b"
-                            : "6px solid #16a34a",
-                    }}
+                    className={`card list-item due-item ${
+                      daysLeft <= 0
+                        ? "overdue"
+                        : daysLeft <= 5
+                          ? "warning"
+                          : "ok"
+                    }`}
                   >
                     <div>
                       <strong>
                         {c.name} {c.surname}
                       </strong>
                       {c.currency && (
-                        <span
-                          style={{
-                            marginLeft: 6,
-                            fontSize: 11,
-                            padding: "2px 6px",
-                            borderRadius: 6,
-                            background: "#eef2ff",
-                            color: "#3730a3",
-                            fontWeight: 700,
-                          }}
-                        >
-                          {c.currency}
-                        </span>
+                        <span className="currency-badge">{c.currency}</span>
                       )}
 
                       <br />
@@ -371,21 +343,13 @@ export function HomePage({
                 return (
                   <div
                     key={`debt-${debt.id}`}
-                    className="card list-item"
-                    style={{
-                      background:
-                        daysLeft <= 0
-                          ? "#fee2e2"
-                          : daysLeft <= 5
-                            ? "#fef3c7"
-                            : "white",
-                      borderLeft:
-                        daysLeft <= 0
-                          ? "6px solid #dc2626"
-                          : daysLeft <= 5
-                            ? "6px solid #f59e0b"
-                            : "6px solid #16a34a",
-                    }}
+                    className={`card list-item due-item ${
+                      daysLeft <= 0
+                        ? "overdue"
+                        : daysLeft <= 5
+                          ? "warning"
+                          : "ok"
+                    }`}
                   >
                     <div>
                       <strong>
@@ -496,7 +460,7 @@ export function HomePage({
                       <div key={customerId}>
                         <div
                           className="card list-item"
-                          style={{ cursor: "pointer", background: "#f8fafc" }}
+                          style={{ cursor: "pointer" }}
                           onClick={() => toggleCustomerFolder(customerId)}
                         >
                           <div>
@@ -506,7 +470,9 @@ export function HomePage({
                                 : t("unknown")}
                             </strong>
 
-                            <div style={{ fontSize: 12, color: "#666" }}>
+                            <div
+                              style={{ fontSize: 12, color: "var(--muted)" }}
+                            >
                               {jobs.length} {t("active_job_count")}
                             </div>
                           </div>
@@ -697,7 +663,7 @@ export function CustomersPage({
                       style={{
                         marginTop: 4,
                         fontSize: 12,
-                        color: "#666",
+                        color: "var(--muted)",
                       }}
                     >
                       ID:{" "}
@@ -707,13 +673,7 @@ export function CustomersPage({
 
                   {/* RIGHT — BALANCE */}
                   <div
-                    style={{
-                      fontWeight: 700,
-                      fontSize: 14,
-                      color: balance >= 0 ? "#16a34a" : "#dc2626",
-                      minWidth: 90,
-                      textAlign: "right",
-                    }}
+                    className={`balance-amount ${balance >= 0 ? "positive" : "negative"}`}
                   >
                     {money(balance, rowCurrency)}
                   </div>
@@ -907,11 +867,10 @@ export function PublicCustomerSharePage() {
 
   const autoPrint = searchParams.get("print") === "1";
   const [openJobs, setOpenJobs] = useState(() => new Set());
-
-  const COLOR_POSITIVE = "#16a34a"; // green
-  const COLOR_NEGATIVE = "#dc2626"; // red
-  const COLOR_TEXT_MAIN = "#111827"; // neutral dark
-  const COLOR_TEXT_MUTED = "#6b7280"; // muted gray
+  const COLOR_POSITIVE = "var(--success)";
+  const COLOR_NEGATIVE = "var(--danger)";
+  const COLOR_TEXT_MAIN = "var(--text)";
+  const COLOR_TEXT_MUTED = "var(--muted)";
 
   function toggleJob(jobId) {
     setOpenJobs((prev) => {
@@ -1184,11 +1143,15 @@ export function PublicCustomerSharePage() {
                 style={{
                   marginTop: 6,
                   fontSize: 13,
-                  color: "#555",
+                  color: "var(--muted)",
                 }}
               >
                 {t("public.balance")}:{" "}
-                <strong style={{ color: balance >= 0 ? "#16a34a" : "#dc2626" }}>
+                <strong
+                  style={{
+                    color: balance >= 0 ? "var(--success)" : "var(--danger)",
+                  }}
+                >
                   {money(balance, currency)}
                 </strong>
               </div>
@@ -1200,7 +1163,7 @@ export function PublicCustomerSharePage() {
                   gap: 14,
                   marginTop: 10,
                   fontSize: 13,
-                  color: "#444",
+                  color: "var(--text)",
                 }}
               >
                 {customer.phone && (
@@ -1229,21 +1192,7 @@ export function PublicCustomerSharePage() {
             </div>
 
             {/* RIGHT — PRINT BUTTON */}
-            <button
-              onClick={printPage}
-              className="btn"
-              style={{
-                minWidth: 180,
-                padding: "0 20px",
-                fontSize: 14,
-                fontWeight: 600,
-                borderRadius: 12,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 10,
-              }}
-            >
+            <button onClick={printPage} className="btn btn-print">
               <i className="fa-solid fa-print"></i>
               {t("public.print")}
             </button>
@@ -1259,18 +1208,11 @@ export function PublicCustomerSharePage() {
           }}
         >
           {/* TOPLAM TAHSİLAT */}
-          <div
-            className="card"
-            style={{
-              background: "#f0fdf4",
-              textAlign: "center",
-              padding: 14,
-            }}
-          >
-            <div style={{ fontSize: 12, color: "#166534" }}>
+          <div className="card stat-card success">
+            <div style={{ fontSize: 12, color: "var(--success)" }}>
               {t("public.totalPayment")}
             </div>
-            <strong style={{ color: "#16a34a", fontSize: 16 }}>
+            <strong style={{ color: "var(--success)", fontSize: 16 }}>
               +{money(totalPayment, currency)}
             </strong>
           </div>
@@ -1279,15 +1221,16 @@ export function PublicCustomerSharePage() {
           <div
             className="card"
             style={{
-              background: "#fef2f2",
+              background:
+                "color-mix(in srgb, var(--danger) 12%, var(--surface))",
               textAlign: "center",
               padding: 14,
             }}
           >
-            <div style={{ fontSize: 12, color: "#7f1d1d" }}>
+            <div style={{ fontSize: 12, color: "var(--danger)" }}>
               {t("public.totalDebt")}
             </div>
-            <strong style={{ color: "#dc2626", fontSize: 16 }}>
+            <strong style={{ color: "var(--danger)", fontSize: 16 }}>
               -{money(totalDebt, currency)}
             </strong>
           </div>
@@ -1296,7 +1239,10 @@ export function PublicCustomerSharePage() {
           <div
             className="card"
             style={{
-              background: balance >= 0 ? "#eff6ff" : "#fef2f2",
+              background:
+                balance >= 0
+                  ? "color-mix(in srgb, var(--info) 12%, var(--surface))"
+                  : "color-mix(in srgb, var(--danger) 12%, var(--surface))",
               textAlign: "center",
               padding: 14,
             }}
@@ -1304,7 +1250,7 @@ export function PublicCustomerSharePage() {
             <div
               style={{
                 fontSize: 12,
-                color: balance >= 0 ? "#1e40af" : "#7f1d1d",
+                color: balance >= 0 ? "var(--info)" : "var(--danger)",
               }}
             >
               {t("public.balance")}
@@ -1312,7 +1258,7 @@ export function PublicCustomerSharePage() {
             <strong
               style={{
                 fontSize: 16,
-                color: balance >= 0 ? "#2563eb" : "#dc2626",
+                color: balance >= 0 ? "var(--info)" : "var(--danger)",
               }}
             >
               {money(balance, currency)}
@@ -1341,9 +1287,7 @@ export function PublicCustomerSharePage() {
                         key={item.id}
                         className="card list-item"
                         style={{
-                          borderLeft: `6px solid ${
-                            isPayment ? "#16a34a" : "#dc2626"
-                          }`,
+                          borderLeft: `6px solid ${isPayment ? "var(--success)" : "var(--danger)"}`,
                         }}
                       >
                         <div>
@@ -1362,12 +1306,14 @@ export function PublicCustomerSharePage() {
                           </strong>
 
                           {p.note && (
-                            <div style={{ fontSize: 12, color: "#555" }}>
+                            <div
+                              style={{ fontSize: 12, color: "var(--muted)" }}
+                            >
                               {p.note}
                             </div>
                           )}
 
-                          <div style={{ fontSize: 12, color: "#777" }}>
+                          <div style={{ fontSize: 12, color: "var(--muted)" }}>
                             {p.date}
                           </div>
                         </div>
@@ -1375,7 +1321,9 @@ export function PublicCustomerSharePage() {
                         <div
                           style={{
                             fontWeight: 700,
-                            color: isPayment ? "#16a34a" : "#dc2626",
+                            color: isPayment
+                              ? "var(--success)"
+                              : "var(--danger)",
                           }}
                         >
                           {isPayment ? "+" : "-"}
@@ -1441,7 +1389,7 @@ export function PublicCustomerSharePage() {
                           <div
                             style={{
                               fontSize: 12,
-                              color: "#777",
+                              color: "var(--muted)",
                               marginTop: 4,
                             }}
                           >

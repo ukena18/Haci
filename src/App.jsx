@@ -1815,7 +1815,7 @@ ${t("duplicate_customer_confirm")}
               }
               zIndex={6000}
             >
-              <p style={{ color: "#b91c1c", fontWeight: 600 }}>
+              <p style={{ color: "var(--danger)", fontWeight: 600 }}>
                 ⚠️ {t("vault_delete_warning")}
               </p>
 
@@ -1896,7 +1896,8 @@ ${t("duplicate_customer_confirm")}
                     style={{
                       marginTop: 8,
                       fontSize: 12,
-                      color: "#7f1d1d",
+                      color: "var(--danger)",
+                      opacity: 0.85,
                       textAlign: "center",
                     }}
                   >
@@ -1984,11 +1985,13 @@ function JobCard({
             {job.isRunning && <span className="badge">{t("working")}</span>}
           </div>
 
-          <div style={{ marginTop: 6, fontSize: 12, color: "#555" }}>
+          <div style={{ marginTop: 6, fontSize: 12, color: "var(--muted)" }}>
             {job.isRunning ? (
               <>
                 <i className="fa-solid fa-clock"></i> {t("duration")}:{" "}
-                <strong style={{ color: "#111" }}>{formatTimer(liveMs)}</strong>
+                <strong style={{ color: "var(--text)" }}>
+                  {formatTimer(liveMs)}
+                </strong>
               </>
             ) : (
               <>
@@ -2113,11 +2116,14 @@ function JobCard({
                 ))}
               </div>
             ) : (
-              <div style={{ color: "#666", fontSize: 12 }}>{t("no_parts")}</div>
+              <div style={{ color: "var(--muted)", fontSize: 12 }}>
+                {" "}
+                {t("no_parts")}
+              </div>
             )}
 
             {job.notes && (
-              <div style={{ marginTop: 8, color: "#333" }}>
+              <div style={{ marginTop: 8, color: "var(--text)" }}>
                 <strong>{t("note_label")}:</strong> {job.notes}
               </div>
             )}
@@ -2138,7 +2144,7 @@ function JobCard({
                     <div
                       key={s.id || i}
                       className="miniRow"
-                      style={{ fontSize: 12, color: "#444" }}
+                      style={{ fontSize: 12, color: "var(--muted)" }}
                     >
                       <span>
                         #{i + 1} •{" "}
@@ -2343,7 +2349,9 @@ function VaultDetailModal({
             )}
 
             <div style={{ marginTop: 8 }}>
-              <div style={{ fontSize: 12, color: "#666", marginBottom: 4 }}>
+              <div
+                style={{ fontSize: 12, color: "var(--muted)", marginBottom: 4 }}
+              >
                 {t("currency_label")}
               </div>
 
@@ -2356,7 +2364,9 @@ function VaultDetailModal({
                   width: "100%",
                   height: 40,
                   borderRadius: 8,
-                  border: "1px solid #ddd",
+                  border: "1px solid var(--border)",
+                  background: "var(--surface)",
+                  color: "var(--text)",
                   padding: "0 10px",
                   fontSize: 14,
                 }}
@@ -2446,7 +2456,7 @@ function VaultDetailModal({
           <div className="hidden">
             <div ref={printRef}>
               <h1>{t("vault_report_title")}</h1>
-              <div style={{ color: "#555", marginBottom: 8 }}>
+              <div style={{ color: "var(--muted)", marginBottom: 8 }}>
                 {t("vault_label")}: <b>{vault.name}</b>
                 <br />
                 {t("currency_label")}: <b>{vault.currency}</b>
