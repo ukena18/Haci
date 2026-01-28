@@ -10,14 +10,22 @@ export function ModalBase({
   zIndex = 1000,
 }) {
   const isClosingRef = useRef(false);
+  const didPushRef = useRef(false);
   const { t } = useLang();
 
-  // 📱 Handle browser back / Android back
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      didPushRef.current = false;
+      return;
+    }
 
     isClosingRef.current = false;
-    window.history.pushState({ modal: true }, "");
+
+    // ✅ PUSH HISTORY ONLY ONCE
+    if (!didPushRef.current) {
+      window.history.pushState({ modal: true }, "");
+      didPushRef.current = true;
+    }
 
     const handleBack = () => {
       if (isClosingRef.current) return;
@@ -26,10 +34,7 @@ export function ModalBase({
     };
 
     window.addEventListener("popstate", handleBack);
-
-    return () => {
-      window.removeEventListener("popstate", handleBack);
-    };
+    return () => window.removeEventListener("popstate", handleBack);
   }, [open, onClose]);
 
   if (!open) return null;

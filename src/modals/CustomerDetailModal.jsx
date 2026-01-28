@@ -564,24 +564,20 @@ export function CustomerDetailModal({
                           cursor: "pointer",
                         }}
                         onClick={() => {
-                          setEditTx(p);
-                          setEditAmount(String(p.amount ?? ""));
-                          setEditNote(p.note || "");
-                          setEditDate(
-                            p.date || new Date().toISOString().slice(0, 10),
+                          onOpenPayment(
+                            isPayment ? "payment" : "debt",
+                            customer,
+                            p,
                           );
-                          setEditMethod(p.method || "cash");
-                          setEditVaultId(p.vaultId || activeVaultId || "");
-
-                          setEditDueDays(
-                            p.dueDays == null ? "" : String(p.dueDays),
-                          );
-                          setEditDueDismissed(p.dueDismissed === true);
                         }}
                       >
                         <div>
                           <strong
-                            style={{ color: isPayment ? "#166534" : "#7f1d1d" }}
+                            style={{
+                              color: isPayment
+                                ? "var(--success)"
+                                : "var(--danger)",
+                            }}
                           >
                             {isPayment ? (
                               <>
@@ -708,7 +704,7 @@ export function CustomerDetailModal({
                       <div
                         style={{
                           fontWeight: 700,
-                          color: "#dc2626",
+                          color: "var(--danger)",
                           fontSize: 12,
                         }}
                       >
@@ -722,192 +718,6 @@ export function CustomerDetailModal({
           </div>
         )}
       </ModalBase>
-      {editTx && (
-        <div className="edit-modal-overlay" onClick={() => setEditTx(null)}>
-          <div className="edit-modal" onClick={(e) => e.stopPropagation()}>
-            <h3
-              style={{
-                marginTop: 0,
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-              }}
-            >
-              {editTx.type === "payment" ? (
-                <>
-                  <i className="fa-solid fa-money-bill-wave"></i>
-                  {t("edit_payment")}
-                </>
-              ) : (
-                <>
-                  <i className="fa-solid fa-file-invoice"></i>
-                  {t("edit_debt")}
-                </>
-              )}
-            </h3>
-
-            {/* vault (only for Payment) */}
-            {editTx.type === "payment" && (
-              <div className="form-group">
-                <label>{t("vault")}</label>
-                <select
-                  value={editVaultId}
-                  onChange={(e) => setEditVaultId(e.target.value)}
-                >
-                  {allowedVaults.map((k) => (
-                    <option key={k.id} value={k.id}>
-                      {k.name} ({k.currency})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {/* DATE */}
-            <div className="form-group">
-              <label>{t("date")}</label>
-              <input
-                type="date"
-                value={editDate}
-                onChange={(e) => setEditDate(e.target.value)}
-              />
-            </div>
-
-            {/* METHOD */}
-            {editTx.type === "payment" && (
-              <div className="form-group">
-                <label>{t("method_label")}</label>
-                <select
-                  value={editMethod}
-                  onChange={(e) => setEditMethod(e.target.value)}
-                >
-                  <option value={PAYMENT_METHOD.CASH}>
-                    {PAYMENT_METHOD_LABEL_TR[PAYMENT_METHOD.CASH]}
-                  </option>
-
-                  <option value={PAYMENT_METHOD.CARD}>
-                    {PAYMENT_METHOD_LABEL_TR[PAYMENT_METHOD.CARD]}
-                  </option>
-
-                  <option value={PAYMENT_METHOD.TRANSFER}>
-                    {PAYMENT_METHOD_LABEL_TR[PAYMENT_METHOD.TRANSFER]}
-                  </option>
-                </select>
-              </div>
-            )}
-
-            {/* AMOUNT */}
-            <div className="form-group">
-              <label>{t("amount")}</label>
-              <input
-                type="number"
-                value={editAmount}
-                onChange={(e) => setEditAmount(e.target.value)}
-              />
-            </div>
-
-            {/* NOTE */}
-            <div className="form-group">
-              <label>{t("note")}</label>
-              <input
-                value={editNote}
-                onChange={(e) => setEditNote(e.target.value)}
-              />
-            </div>
-
-            {/* ✅ DUE DAYS + WATCHLIST (ONLY FOR DEBT) */}
-            {editTx.type === "debt" && (
-              <div className="form-group">
-                <label>{t("due_days")}</label>
-
-                <input
-                  type="number"
-                  min={1}
-                  max={365}
-                  value={editDueDays}
-                  onChange={(e) => setEditDueDays(e.target.value)}
-                />
-
-                {/* 🔔 add back button only if dismissed */}
-                {editDueDismissed && (
-                  <div style={{ marginTop: 10 }}>
-                    <button
-                      type="button"
-                      className="btn"
-                      style={{
-                        background: "#ecfeff",
-                        color: "#0369a1",
-                        fontWeight: 600,
-                      }}
-                      onClick={() => setEditDueDismissed(false)}
-                    >
-                      🔔 {t("restore_payment_tracking")}
-                    </button>
-
-                    <div
-                      style={{ fontSize: 12, color: "#0369a1", marginTop: 4 }}
-                    >
-                      {t("payment_tracking_resume_info")}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* ACTIONS */}
-            <div className="modal-actions">
-              <button
-                className="btn btn-delete"
-                onClick={() => deleteTransaction(editTx.id)}
-              >
-                <i className="fa-solid fa-trash"></i>
-                {t("delete")}
-              </button>
-
-              <button
-                className="btn btn-cancel"
-                onClick={() => setEditTx(null)}
-              >
-                {t("cancel")}
-              </button>
-
-              <button
-                className="btn btn-save"
-                onClick={() => {
-                  onUpdatePayment({
-                    ...editTx,
-                    amount: toNum(editAmount),
-                    note: editNote,
-                    date: editDate,
-                    currency: editTx.currency, // 🔒 LOCK
-
-                    method: editTx.type === "payment" ? editMethod : null,
-                    vaultId:
-                      editTx.type === "payment" ? editVaultId : editTx.vaultId,
-
-                    // ✅ NEW: only debt uses these
-                    dueDays:
-                      editTx.type === "debt"
-                        ? editDueDays === ""
-                          ? null
-                          : Number(editDueDays)
-                        : editTx.dueDays,
-
-                    dueDismissed:
-                      editTx.type === "debt"
-                        ? editDueDismissed
-                        : editTx.dueDismissed,
-                  });
-
-                  setEditTx(null);
-                }}
-              >
-                {t("save")}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }

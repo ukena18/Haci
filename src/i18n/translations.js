@@ -955,6 +955,21 @@ export const translations = {
       "Yine de yeni bir müşteri olarak kaydetmek istiyor musunuz?",
     cancel: "Vazgeç",
     create_anyway: "Yine de Kaydet",
+    notes_placeholder: "Notlar",
+    debt_add_date: "Borç Tarihi",
+    debt_add_date_info: "Borcun oluşturulduğu tarih",
+    payment_due_date: "Vade Tarihi",
+    payment_due_info: "Borç bu tarihe kadar takip edilecektir",
+    edit_payment_title: "Ödemeyi düzenle",
+    edit_debt_title: "Borcu düzenle",
+    update_payment: "Ödemeyi güncelle",
+    update_debt: "Borcu güncelle",
+    delete: "Sil",
+    duplicate_customer_title: "Olası benzer müşteri",
+    duplicate_customer_message:
+      "Benzer bilgilere sahip bir müşteri zaten sistemde mevcut.",
+
+    add_anyway: "Yine de ekle",
   },
 
   en: {
@@ -1692,6 +1707,22 @@ export const translations = {
 
     "settings.theme.title": "Theme",
     "settings.theme.desc": "Switch between light and dark appearance",
+    notes_placeholder: "Notes",
+    debt_add_date: "Debt Date",
+    debt_add_date_info: "Date when the debt was created",
+    payment_due_date: "Due Date",
+    payment_due_info: "Debt will be tracked until this date",
+    edit_payment_title: "Edit payment",
+    edit_debt_title: "Edit debt",
+    update_payment: "Update payment",
+    update_debt: "Update debt",
+    delete: "Delete",
+
+    duplicate_customer_title: "Possible duplicate customer",
+    duplicate_customer_message:
+      "A customer with similar details already exists.",
+
+    add_anyway: "Add anyway",
   },
 
   de: {
@@ -2438,5 +2469,11 @@ export const translations = {
     "settings.theme.title": "Design",
     "settings.theme.desc":
       "Zwischen hellem und dunklem Erscheinungsbild wechseln",
+
+    notes_placeholder: "Notizin",
+    debt_add_date: "Schulddatum",
+    debt_add_date_info: "Datum, an dem die Schuld erstellt wurde",
+    payment_due_date: "Fälligkeitsdatum",
+    payment_due_info: "Die Schuld wird bis zu diesem Datum verfolgt",
   },
 };

@@ -11,6 +11,9 @@ export function PaymentActionModal({
   vaults,
   activeVaultId,
   onSubmit,
+  // ✅ NEW
+  editingTx = null, // payment or debt being edited
+  onDelete = null,
 }) {
   const allowedVaults = customer?.currency
     ? vaults.filter((v) => v.currency === customer.currency)
@@ -27,28 +30,75 @@ export function PaymentActionModal({
 
   const { t } = useLang();
 
+  const isEdit = !!editingTx;
+
+  const title =
+    mode === "payment"
+      ? isEdit
+        ? t("edit_payment_title")
+        : t("collect_payment_title")
+      : isEdit
+        ? t("edit_debt_title")
+        : t("add_debt_title");
+
+  const primaryLabel =
+    mode === "payment"
+      ? isEdit
+        ? t("update_payment")
+        : t("collect_payment")
+      : isEdit
+        ? t("update_debt")
+        : t("add_debt");
+
   useEffect(() => {
     if (!open) return;
-    setAmount("");
-    setNote("");
-    setVaultId(activeVaultId || "");
-    setMethod(PAYMENT_METHOD.CASH);
-    setAddDate(new Date().toISOString().slice(0, 10));
 
-    setDueDate("");
-  }, [open, activeVaultId]);
+    const today = new Date().toISOString().slice(0, 10);
+
+    if (editingTx) {
+      // 🔁 EDIT MODE
+      setAmount(String(editingTx.amount ?? ""));
+      setNote(editingTx.note || "");
+      setVaultId(editingTx.vaultId || activeVaultId || "");
+      setMethod(editingTx.method || PAYMENT_METHOD.CASH);
+
+      setAddDate(editingTx.addDate || editingTx.date || today);
+
+      setDueDate(
+        editingTx.dueDate ||
+          (editingTx.dueDays != null
+            ? addDaysToDate(
+                editingTx.addDate || editingTx.date,
+                editingTx.dueDays,
+              )
+            : ""),
+      );
+    } else {
+      // ➕ CREATE MODE
+      setAmount("");
+      setNote("");
+      setVaultId(activeVaultId || "");
+      setMethod(PAYMENT_METHOD.CASH);
+
+      setAddDate(today);
+      setDueDate(addDaysToDate(today, 30));
+    }
+  }, [open, editingTx, activeVaultId]);
 
   if (!open) return null;
+
+  function addDaysToDate(dateStr, days) {
+    if (!dateStr || days == null) return "";
+    const d = new Date(dateStr);
+    d.setDate(d.getDate() + Number(days));
+    return d.toISOString().slice(0, 10);
+  }
 
   return (
     <div className="payment-backdrop" onClick={onClose}>
       <div className="payment-modal" onClick={(e) => e.stopPropagation()}>
         <div className="payment-modal-header">
-          <h3 style={{ margin: 0 }}>
-            {mode === "payment"
-              ? t("collect_payment_title")
-              : t("add_debt_title")}
-          </h3>
+          <h3 style={{ margin: 0 }}>{title}</h3>
 
           <button
             className="btn btn-cancel"
@@ -81,21 +131,34 @@ export function PaymentActionModal({
           {/* DEBT ADD DATE */}
           {mode === "debt" && (
             <div className="form-group">
-              <label>{t("debt_add_date") || "Debt Date"}</label>
+              <label>{t("debt_add_date")}</label>
               <input
                 type="date"
                 value={addDate}
-                onChange={(e) => setAddDate(e.target.value)}
+                onChange={(e) => {
+                  const newDate = e.target.value;
+
+                  setAddDate((prev) => {
+                    const autoDue =
+                      !dueDate || dueDate === addDaysToDate(prev, 30);
+
+                    if (autoDue) {
+                      setDueDate(addDaysToDate(newDate, 30));
+                    }
+
+                    return newDate;
+                  });
+                }}
               />
               <small style={{ color: "var(--muted)" }}>
-                {t("debt_add_date_info") || "Date when the debt was created"}
+                {t("debt_add_date_info")}
               </small>
             </div>
           )}
           {/* DUE DATE — ONLY FOR DEBT */}
           {mode === "debt" && (
             <div className="form-group">
-              <label>{t("payment_due_date") || "Due Date"}</label>
+              <label>{t("payment_due_date")}</label>
               <input
                 type="date"
                 value={dueDate}
@@ -103,8 +166,7 @@ export function PaymentActionModal({
                 min={addDate}
               />
               <small style={{ color: "var(--muted)" }}>
-                {t("payment_due_info") ||
-                  "Debt will be tracked until this date"}
+                {t("payment_due_info")}
               </small>
             </div>
           )}
@@ -172,29 +234,41 @@ export function PaymentActionModal({
 
           {/* ACTIONS */}
           <div className="btn-row">
+            {/* DELETE — ONLY IN EDIT MODE */}
+            {isEdit && (
+              <button
+                className="btn btn-delete"
+                onClick={() => {
+                  onDelete?.(editingTx);
+                  onClose();
+                }}
+              >
+                {t("delete")}
+              </button>
+            )}
+
             <button className="btn btn-cancel" onClick={onClose}>
               {t("cancel")}
             </button>
+
             <button
               className={mode === "payment" ? "btn btn-save" : "btn btn-delete"}
               onClick={() => {
-                onSubmit({
-                  amount,
+                const payload = {
+                  ...editingTx,
+                  amount: Number(amount),
                   note,
                   vaultId,
-
-                  // ✅ EXPLICIT DATES
                   addDate,
                   dueDate,
-
-                  // ✅ PAYMENT ONLY
                   method: mode === "payment" ? method : null,
-                });
+                };
 
+                onSubmit(payload);
                 onClose();
               }}
             >
-              {mode === "payment" ? t("collect_payment") : t("add_debt")}
+              {primaryLabel}
             </button>
           </div>
         </div>

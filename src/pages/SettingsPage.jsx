@@ -1,20 +1,4 @@
-import React, { useEffect, useRef, useState, useMemo } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "../firebase";
 import { useLang } from "../i18n/LanguageContext";
-
-// helpers (same ones you already use in App.jsx)
-import {
-  computeCustomerBalance,
-  money,
-  toNum,
-  calcHours,
-  partsTotalOf,
-  jobTotalOf,
-  partLineTotal,
-  clockHoursOf,
-} from "../utils/helpers";
 
 export function SettingsPage({
   // auth/user
@@ -24,32 +8,17 @@ export function SettingsPage({
 
   // state
   state,
-  setState,
 
   // ui state
   setProfileOpen,
-  setSelectedVaultId,
-  setVaultDetailOpen,
+
   setVaultListOpen,
 
-  editingVaultId,
-  setEditingVaultId,
-  editingVaultName,
-  setEditingVaultName,
-
-  showChangelog,
   setShowChangelog,
 
-  // helpers
-  uid,
-  money,
-  getVaultTotals,
-
-  // components
-  Changelog,
   setAdvancedSettingsOpen,
 }) {
-  const { lang, changeLanguage, t } = useLang();
+  const { t } = useLang();
 
   return (
     <div className="settings-dashboard">

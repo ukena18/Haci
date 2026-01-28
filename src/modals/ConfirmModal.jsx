@@ -4,10 +4,18 @@ import { ModalBase } from "./ModalBase";
 
 import { useLang } from "../i18n/LanguageContext";
 
-export function ConfirmModal({ open, message, onYes, onNo, requireText }) {
+export function ConfirmModal({
+  open,
+  message,
+  onYes,
+  onNo,
+  requireText,
+  type,
+}) {
   const [typed, setTyped] = useState("");
   const { t } = useLang();
 
+  const isDuplicate = type === "duplicate_customer";
   useEffect(() => {
     if (!open) setTyped("");
   }, [open]);
@@ -17,12 +25,16 @@ export function ConfirmModal({ open, message, onYes, onNo, requireText }) {
   return (
     <ModalBase
       open={open}
-      title={t("delete_confirmation")}
+      title={
+        type === "duplicate_customer"
+          ? t("duplicate_customer_title")
+          : t("delete_confirmation")
+      }
       onClose={onNo}
       className="confirm-modal"
       zIndex={4000}
     >
-      <p style={{ marginTop: 0 }}>{message}</p>
+      <p style={{ marginTop: 0, whiteSpace: "pre-line" }}>{message}</p>
 
       {requireText && (
         <div className="form-group">
@@ -39,16 +51,16 @@ export function ConfirmModal({ open, message, onYes, onNo, requireText }) {
 
       <div className="btn-row">
         <button className="btn btn-cancel" onClick={onNo}>
-          {t("no")}
+          {isDuplicate ? t("cancel") : t("no")}
         </button>
 
         <button
-          className="btn btn-delete"
+          className={`btn ${isDuplicate ? "btn-save" : "btn-delete"}`}
           disabled={!canConfirm}
           style={{ opacity: canConfirm ? 1 : 0.5 }}
           onClick={onYes}
         >
-          {t("yes")}
+          {isDuplicate ? t("add_anyway") : t("yes")}
         </button>
       </div>
     </ModalBase>

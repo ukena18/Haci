@@ -518,10 +518,6 @@
   border: 1px solid transparent;
 }
 
-.history-card .list-item:hover {
-  border-color: var(--border);
-}
-
 .list-item:active:not(:has(input, select, textarea)) {
   transform: scale(0.99);
 }
@@ -806,16 +802,22 @@
 .job-active .job-status-badge {
   background: color-mix(in srgb, var(--danger) 14%, var(--surface));
   color: var(--danger);
+  padding: 0px 20px;
+  border-radius: 16px;
 }
 
 .job-unpaid .job-status-badge {
   background: color-mix(in srgb, var(--warning) 14%, var(--surface));
   color: var(--warning);
+  padding: 0px 20px;
+  border-radius: 16px;
 }
 
 .job-paid .job-status-badge {
   background: color-mix(in srgb, var(--success) 14%, var(--surface));
   color: var(--success);
+  padding: 0px 20px;
+  border-radius: 16px;
 }
 
 /* =========================
@@ -2602,11 +2604,13 @@ textarea {
 .btn-save {
   background: var(--grad-success);
   color: white;
+  border-radius: 10px;
 }
 
 .btn-cancel {
   background: #666;
   color: white;
+  border-radius: 10px;
 }
 
 .btn-delete {

@@ -479,6 +479,7 @@ function MainApp({ state, setState, user }) {
   const [paymentCustomer, setPaymentCustomer] = useState(null);
   const [vaultDetailOpen, setVaultDetailOpen] = useState(false);
   const [selectedVaultId, setSelectedVaultId] = useState(null);
+  const [paymentEditingTx, setPaymentEditingTx] = useState(null);
 
   const [vaultListOpen, setVaultListOpen] = useState(false);
 
@@ -572,9 +573,10 @@ function MainApp({ state, setState, user }) {
     }));
   }
 
-  function openPaymentModal(mode, customer) {
+  function openPaymentModal(mode, customer, editingTx = null) {
     setPaymentMode(mode);
     setPaymentCustomer(customer);
+    setPaymentEditingTx(editingTx); // ✅ STORE IT
     setPaymentModalOpen(true);
   }
 
@@ -941,18 +943,13 @@ function MainApp({ state, setState, user }) {
       setConfirm({
         open: true,
         type: "duplicate_customer",
-        message: `
-⚠️ ${t("duplicate_customer_title")}
-
-${t("duplicate_customer_similar_found")}:
-
-• ${duplicate.name} ${duplicate.surname}
-${duplicate.email ? "• 📧 " + duplicate.email : ""}
-${duplicate.phone ? "• 📞 " + duplicate.phone : ""}
-
-${t("duplicate_customer_question")}
-`,
-        payload: customer, // 👈 store temporarily
+        message:
+          t("duplicate_customer_message") +
+          "\n\n" +
+          `Name: ${duplicate.name} ${duplicate.surname}\n` +
+          `Email: ${duplicate.email || "-"}\n` +
+          `Phone: ${duplicate.phone || "-"}`,
+        payload: customer,
       });
 
       return; // ❌ STOP HERE (do not save yet)
@@ -1598,11 +1595,27 @@ ${t("duplicate_customer_question")}
             customer={paymentCustomer}
             vaults={state.vaults}
             activeVaultId={state.activeVaultId}
-            onClose={() => setPaymentModalOpen(false)}
+            editingTx={paymentEditingTx} // ✅ PASS IT
+            onDelete={(tx) => {
+              setConfirm({
+                open: true,
+                type: "payment",
+                id: tx.id,
+                message: t("delete_transaction_confirm"),
+              });
+            }}
+            onClose={() => {
+              setPaymentModalOpen(false);
+              setPaymentEditingTx(null); // ✅ RESET
+            }}
             onSubmit={(data) => {
               if (!paymentCustomer) return;
 
-              if (paymentMode === "payment") {
+              if (paymentEditingTx) {
+                // 🔁 EDIT EXISTING TRANSACTION
+                updatePaymentTransaction(data);
+              } else if (paymentMode === "payment") {
+                // ➕ CREATE PAYMENT
                 makePayment(
                   paymentCustomer.id,
                   data.amount,
@@ -1612,6 +1625,7 @@ ${t("duplicate_customer_question")}
                   data.method,
                 );
               } else {
+                // ➕ CREATE DEBT
                 addDebt({
                   customerId: paymentCustomer.id,
                   amount: data.amount,
@@ -1630,7 +1644,9 @@ ${t("duplicate_customer_question")}
             onClose={() => setShowChangelog(false)}
             zIndex={2000}
           >
-            <Changelog language={lang} />
+            <div className="modal-scroll">
+              <Changelog language={lang} />
+            </div>
           </ModalBase>
 
           <VaultDetailModal
@@ -1729,6 +1745,7 @@ ${t("duplicate_customer_question")}
           {/* CONFIRMATION MODAL (Delete) */}
           <ConfirmModal
             open={confirm.open}
+            type={confirm.type}
             message={confirm.message}
             requireText={confirm.type === "customer"}
             onNo={() =>
