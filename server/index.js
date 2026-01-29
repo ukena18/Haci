@@ -2,6 +2,8 @@ import express from "express";
 import cors from "cors";
 import userRoutes from "./routes/users.js";
 import publicCustomerRoutes from "./routes/publicCustomers.js";
+import adminRoutes from "./routes/admin.js";
+app.use("/api/admin", adminRoutes);
 
 const app = express();
 
@@ -10,6 +12,7 @@ app.use(express.json());
 
 app.use("/api/users", userRoutes);
 app.use("/api/public-customers", publicCustomerRoutes);
+app.use("/api/admin", adminRoutes);
 
 app.get("/api/health", (req, res) => {
   res.json({ ok: true, from: "express" });
