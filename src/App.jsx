@@ -166,6 +166,8 @@ import { CustomersPage } from "./pages/CustomersPage.jsx";
 import { SettingsPage } from "./pages/SettingsPage.jsx";
 import { PublicCustomerSharePage } from "./pages/PublicCustomerSharePage.jsx";
 
+import "./firebase";
+
 import {
   ensureUserData,
   loadUserData,
@@ -173,30 +175,15 @@ import {
   publishCustomerSnapshot,
 } from "./firestoreService";
 
-import { auth } from "./firebase";
 import AuthPage from "./AuthPage";
 import {
   BrowserRouter,
   Routes,
   Route,
-  useNavigate,
-  useParams,
   useLocation, // ✅ ADD
 } from "react-router-dom";
 
-import {
-  onAuthStateChanged,
-  signOut,
-  updateProfile,
-  updateEmail,
-  updatePassword,
-  EmailAuthProvider,
-  reauthenticateWithCredential,
-} from "firebase/auth";
-
-import { doc, getDoc } from "firebase/firestore";
-
-import { db } from "./firebase";
+import { onAuthStateChanged, signOut, getAuth } from "firebase/auth";
 
 import { ModalBase } from "./modals/ModalBase.jsx";
 import { CustomerModal } from "./modals/CustomerModal.jsx";
@@ -250,6 +237,8 @@ import {
    1) STORAGE (session-only)
    - sessionStorage is cleared when the tab/session ends
 ============================================================ */
+
+const auth = getAuth();
 
 const STORAGE_KEY = "usta_app_data_react_session";
 
@@ -346,37 +335,6 @@ function AppRoutes({ user }) {
 
       // 🔧 START with raw data
       const fixed = { ...data };
-
-      // ==============================
-      // ✅ PROFILE HYDRATION (CRITICAL)
-      // ==============================
-      try {
-        const snap = await getDoc(doc(db, "users", user.uid));
-
-        if (snap.exists()) {
-          const u = snap.data();
-
-          fixed.profile = {
-            ...(u.profile || {}),
-          };
-
-          // 🔁 Backward compatibility (old users)
-          if (!fixed.profile.name && u.name) {
-            fixed.profile.name = u.name;
-          }
-          if (!fixed.profile.phone && u.phone) {
-            fixed.profile.phone = u.phone;
-          }
-          if (!fixed.profile.address && u.address) {
-            fixed.profile.address = u.address;
-          }
-        } else {
-          fixed.profile = {};
-        }
-      } catch (e) {
-        console.error("Profile load failed:", e);
-        fixed.profile = {};
-      }
 
       // ==============================
       // ✅ JOB MIGRATION (CRITICAL)

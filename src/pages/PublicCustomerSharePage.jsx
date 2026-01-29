@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState, useMemo } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "../firebase";
+
 import { useLang } from "../i18n/LanguageContext";
 
 // helpers (same ones you already use in App.jsx)
@@ -58,16 +57,15 @@ export function PublicCustomerSharePage() {
   useEffect(() => {
     async function load() {
       try {
-        const ref = doc(db, "public_customers", id);
-        const s = await getDoc(ref);
+        const res = await fetch(`/api/public-customers/${id}`);
 
-        if (!s.exists()) {
+        if (!res.ok) {
           setSnap(null);
-          setLoading(false);
           return;
         }
 
-        setSnap(s.data());
+        const data = await res.json();
+        setSnap(data);
       } catch (e) {
         console.error(e);
         setSnap(null);

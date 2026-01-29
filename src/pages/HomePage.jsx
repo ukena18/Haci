@@ -1,20 +1,9 @@
 import React, { useEffect, useRef, useState, useMemo } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "../firebase";
+
 import { useLang } from "../i18n/LanguageContext";
 
 // helpers (same ones you already use in App.jsx)
-import {
-  computeCustomerBalance,
-  money,
-  toNum,
-  calcHours,
-  partsTotalOf,
-  jobTotalOf,
-  partLineTotal,
-  clockHoursOf,
-} from "../utils/helpers";
+import { money, toNum, jobTotalOf } from "../utils/helpers";
 
 export function HomePage({
   defaultCurrency,

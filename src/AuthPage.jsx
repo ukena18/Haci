@@ -5,8 +5,9 @@ import {
   sendPasswordResetEmail,
   updateProfile,
 } from "firebase/auth";
-import { auth, db } from "./firebase";
-import { doc, setDoc } from "firebase/firestore";
+
+import { getAuth } from "firebase/auth";
+import { ensureUserData } from "./firestoreService";
 
 export default function AuthPage() {
   const [email, setEmail] = useState("");
@@ -17,6 +18,7 @@ export default function AuthPage() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
+  const auth = getAuth();
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -44,22 +46,8 @@ export default function AuthPage() {
           displayName: name,
         });
 
-        // ✅ save profile to Firestore
-        await setDoc(doc(db, "users", user.uid), {
-          uid: user.uid,
-          email: user.email,
-          profile: {
-            name,
-            phone,
-            address,
-          },
-          createdAt: Date.now(),
-
-          // defaults for app
-          currency: "TRY",
-          vaults: [],
-          customers: [],
-        });
+        // 🔥 STEP 3 — VERY IMPORTANT (ADD THIS LINE)
+        await ensureUserData(user.uid);
       } else {
         // ✅ login
         await signInWithEmailAndPassword(auth, email, password);
