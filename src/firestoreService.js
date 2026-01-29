@@ -1,12 +1,22 @@
 import { getAuth } from "firebase/auth";
 
-async function authFetch(url, options = {}) {
-  const user = getAuth().currentUser;
-  const token = await user.getIdToken();
+const API_BASE = import.meta.env.PROD ? "https://ustaapp.onrender.com" : "";
 
-  return fetch(url, {
+async function authFetch(url, options = {}) {
+  const auth = getAuth();
+  const user = auth.currentUser;
+
+  if (!user) {
+    throw new Error("User not authenticated");
+  }
+
+  // 🔥 FORCE fresh token (critical in production)
+  const token = await user.getIdToken(true);
+
+  return fetch(`${API_BASE}${url}`, {
     ...options,
     headers: {
+      "Content-Type": "application/json",
       ...(options.headers || {}),
       Authorization: `Bearer ${token}`,
     },
