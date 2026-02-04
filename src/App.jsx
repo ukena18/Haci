@@ -348,6 +348,17 @@ function AppRoutes({ user }) {
       const fixed = { ...data };
 
       // ==============================
+      // ✅ HARD DEFAULTS (CRITICAL)
+      // ==============================
+      fixed.customers = Array.isArray(fixed.customers) ? fixed.customers : [];
+      fixed.jobs = Array.isArray(fixed.jobs) ? fixed.jobs : [];
+      fixed.payments = Array.isArray(fixed.payments) ? fixed.payments : [];
+      fixed.reservations = Array.isArray(fixed.reservations)
+        ? fixed.reservations
+        : [];
+      fixed.vaults = Array.isArray(fixed.vaults) ? fixed.vaults : [];
+
+      // ==============================
       // ✅ PROFILE HYDRATION (CRITICAL)
       // ==============================
       try {
