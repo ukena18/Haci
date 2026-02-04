@@ -127,6 +127,20 @@ export function PaymentActionModal({
               </select>
             </div>
           )}
+          {/* PAYMENT DATE — ONLY FOR PAYMENT */}
+          {mode === "payment" && (
+            <div className="form-group">
+              <label>{t("payment_date")}</label>
+              <input
+                type="date"
+                value={addDate}
+                onChange={(e) => setAddDate(e.target.value)}
+              />
+              <small style={{ color: "var(--muted)" }}>
+                {t("payment_date_info")}
+              </small>
+            </div>
+          )}
 
           {/* DEBT ADD DATE */}
           {mode === "debt" && (
@@ -262,6 +276,10 @@ export function PaymentActionModal({
                   addDate,
                   dueDate,
                   method: mode === "payment" ? method : null,
+                  // ✅ normalize date fields
+                  date: addDate,
+                  addDate: mode === "debt" ? addDate : undefined,
+                  dueDate: mode === "debt" ? dueDate : undefined,
                 };
 
                 onSubmit(payload);

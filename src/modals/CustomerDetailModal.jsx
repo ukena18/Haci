@@ -51,6 +51,7 @@ export function CustomerDetailModal({
   const [editVaultId, setEditVaultId] = useState("");
   const [editDueDays, setEditDueDays] = useState("30");
   const [editDueDismissed, setEditDueDismissed] = useState(false);
+  const [whatsappChooserOpen, setWhatsappChooserOpen] = useState(false);
 
   const displayCurrency = customer?.currency || null;
 
@@ -182,7 +183,7 @@ export function CustomerDetailModal({
     window.location.href = `mailto:${customer.email}?subject=${subject}&body=${body}`;
   }
 
-  function sendByWhatsApp() {
+  function sendByWhatsApp(type = "regular") {
     if (!customer?.phone) {
       alert(t("send_phone_missing"));
       return;
@@ -191,7 +192,12 @@ export function CustomerDetailModal({
     const phone = customer.phone.replace(/[^\d+]/g, "");
     const text = encodeURIComponent(buildShareText());
 
-    window.open(`https://wa.me/${phone}?text=${text}`, "_blank");
+    const url =
+      type === "business"
+        ? `https://api.whatsapp.com/send?phone=${phone}&text=${text}`
+        : `https://wa.me/${phone}?text=${text}`;
+
+    window.open(url, "_blank");
   }
 
   // 🔒 ALL customer payments (NO DATE FILTER)
@@ -247,30 +253,19 @@ export function CustomerDetailModal({
 
     const jobItems = customerJobs.map((j) => ({
       kind: "job",
-      date: j.date,
-      createdAt: j.createdAt || 0,
+      sortAt: j.createdAt || new Date(j.date).getTime(),
       data: j,
     }));
 
     const paymentItems = customerPayments
-      .filter((p) => p.source !== "job") // ✅ HIDE job-paid Payment rows
+      .filter((p) => p.source !== "job")
       .map((p) => ({
         kind: "payment",
-        date: p.date,
-        createdAt: p.createdAt || 0,
+        sortAt: p.createdAt || new Date(p.addDate || p.date).getTime(),
         data: p,
       }));
 
-    return [...jobItems, ...paymentItems].sort((a, b) => {
-      const da = new Date(a.date).getTime();
-      const db = new Date(b.date).getTime();
-
-      // 1) sort by date (newest first)
-      if (da !== db) return db - da;
-
-      // 2) if same date, sort by createdAt (newest first)
-      return (b.createdAt || 0) - (a.createdAt || 0);
-    });
+    return [...jobItems, ...paymentItems].sort((a, b) => b.sortAt - a.sortAt);
   }, [customerJobs, customerPayments, customer]);
 
   function deleteTransaction(txId) {
@@ -509,9 +504,10 @@ export function CustomerDetailModal({
               <button onClick={sendByEmail}>
                 <i className="fa-solid fa-envelope"></i> {t("mail")}
               </button>
-              <button onClick={sendByWhatsApp}>
+              <button onClick={() => setWhatsappChooserOpen(true)}>
                 <i className="fa-brands fa-whatsapp"></i> {t("whatsapp")}
               </button>
+
               <button onClick={onEditCustomer}>
                 <i className="fa-solid fa-pen"></i>
               </button>
@@ -717,6 +713,44 @@ export function CustomerDetailModal({
             </div>
           </div>
         )}
+      </ModalBase>
+
+      <ModalBase
+        open={whatsappChooserOpen}
+        title={t("choose_whatsapp")}
+        onClose={() => setWhatsappChooserOpen(false)}
+        zIndex={4000}
+      >
+        <div className="whatsapp-chooser">
+          <button
+            className="whatsapp-btn regular"
+            onClick={() => {
+              setWhatsappChooserOpen(false);
+              sendByWhatsApp("regular");
+            }}
+          >
+            <i className="fa-brands fa-whatsapp"></i>
+            WhatsApp
+          </button>
+
+          <button
+            className="whatsapp-btn business"
+            onClick={() => {
+              setWhatsappChooserOpen(false);
+              sendByWhatsApp("business");
+            }}
+          >
+            <i className="fa-brands fa-whatsapp"></i>
+            WhatsApp Business
+          </button>
+
+          <button
+            className="whatsapp-cancel"
+            onClick={() => setWhatsappChooserOpen(false)}
+          >
+            {t("cancel")}
+          </button>
+        </div>
       </ModalBase>
     </>
   );

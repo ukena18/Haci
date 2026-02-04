@@ -3864,3 +3864,80 @@ body {
 .modal-actions {
   flex-shrink: 0;
 }
+
+/* ================================
+   WhatsApp Chooser Modal (Scoped)
+================================ */
+
+.whatsapp-chooser {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Title polish (optional) */
+.whatsapp-chooser-title {
+  font-size: 15px;
+  font-weight: 800;
+  margin-bottom: 6px;
+  color: var(--text);
+  text-align: center;
+}
+
+/* WhatsApp buttons */
+.whatsapp-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+
+  width: 100%;
+  padding: 14px;
+
+  border-radius: 14px;
+  border: none;
+
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+
+  color: white;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+/* Regular WhatsApp */
+.whatsapp-btn.regular {
+  background: linear-gradient(135deg, #25d366, #128c7e);
+}
+
+/* WhatsApp Business */
+.whatsapp-btn.business {
+  background: linear-gradient(135deg, #075e54, #054c44);
+}
+
+/* Interaction */
+.whatsapp-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.18);
+}
+
+.whatsapp-btn:active {
+  transform: scale(0.98);
+}
+
+/* Cancel button */
+.whatsapp-cancel {
+  margin-top: 4px;
+  background: var(--surface-muted);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}

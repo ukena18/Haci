@@ -498,6 +498,7 @@ export const translations = {
     pdf: "PDF",
     mail: "Mail",
     whatsapp: "WA",
+    choose_whatsapp: "WhatsApp Seç",
     edit: "Düzenle",
 
     // =====================
@@ -970,6 +971,8 @@ export const translations = {
       "Benzer bilgilere sahip bir müşteri zaten sistemde mevcut.",
 
     add_anyway: "Yine de ekle",
+    payment_date: "Ödeme Tarihi",
+    payment_date_info: "Ödemenin yapıldığı tarihi seçin",
   },
 
   en: {
@@ -1309,7 +1312,8 @@ export const translations = {
 
     pdf: "PDF",
     mail: "Mail",
-    whatsapp: "WhatsApp",
+    whatsapp: "WA",
+    choose_whatsapp: "Choose WhatsApp",
     edit: "Edit",
 
     job_history: "Job History",
@@ -1723,6 +1727,8 @@ export const translations = {
       "A customer with similar details already exists.",
 
     add_anyway: "Add anyway",
+    payment_date: "Ödeme Tarihi",
+    payment_date_info: "Ödemenin yapıldığı tarihi seçin",
   },
 
   de: {
@@ -2063,7 +2069,8 @@ export const translations = {
 
     pdf: "PDF",
     mail: "E-Mail",
-    whatsapp: "WhatsApp",
+    whatsapp: "WA",
+    choose_whatsapp: "Wahlen WhatsApp",
     edit: "Bearbeiten",
 
     job_history: "Auftragsverlauf",
